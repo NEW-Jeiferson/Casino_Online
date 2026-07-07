@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{d8167774-3aad-4a3e-ada2-1b447af9a4da}</ProjectGuid>
+    <ProjectGuid>{FD1FEBCB-AA62-B6C4-D9D5-961D7C76AC4F}</ProjectGuid>
     <RootNamespace>CasinoOnline</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
