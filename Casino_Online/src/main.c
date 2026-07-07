@@ -1,14 +1,10 @@
 /*
  * main.c
  * -----------------------------------------------------------------------
- * Punto de entrada del programa. Aqui se configura la ventana de freeGLUT,
+ * Punto de entrada del programa. Aqui se configura la ventana de GLUT,
  * se registran los callbacks del ciclo de vida (display, reshape, keyboard,
  * idle) y se inicializan los subsistemas (jugador, estado del juego,
  * geometria de la ruleta, iluminacion).
- *
- * Responsable sugerido: Persona C (sistema de juego y UI), en coordinacion
- * con A y B para las llamadas de inicializacion de sus modulos.
- * -----------------------------------------------------------------------
  */
 
 #include <GL/glut.h>
@@ -28,6 +24,15 @@
 #define GL_MULTISAMPLE 0x809D
 #endif
 
+ /* ------------------------------------------------------------------- */
+ /* Estado global de la aplicacion.                                     */
+ /* TODO (Persona C): valorar si esto conviene encapsularse distinto     */
+ /* (por ejemplo en un struct "Juego") a medida que crezca.              */
+ /* ------------------------------------------------------------------- */
+static Jugador      jugador;
+static EstadoBolita  bolita;
+static float         angulo_rueda = 0.0f;
+
 /* ------------------------------------------------------------------- */
 /* Callback de dibujo. Se ejecuta cada frame.                          */
 /* ------------------------------------------------------------------- */
@@ -36,16 +41,40 @@ void display(void) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    /* TODO: posicionar camara (gluLookAt) */
+    /* Camara fija mirando hacia la mesa desde arriba/al frente.
+       TODO (Persona A/C): ajustar posicion si se agrega control de
+       camara con teclado o mouse mas adelante. */
+    gluLookAt(0.0, 9.0, 11.0,   /* posicion del ojo */
+        0.0, 0.0, 0.0,    /* punto al que mira */
+        0.0, 1.0, 0.0);  /* vector "arriba" */
 
-    /* TODO (Persona A): dibujar mesa + rueda + bolita usando pila de matrices */
-    /* dibujar_mesa(); */
-    /* dibujar_rueda(); */
-    /* dibujar_bolita(); */
+    /* Jerarquia real de la escena con pila de matrices:
+       mesa (raiz) -> rueda (hijo: traslacion Y + rotacion) -> bolita
+       (nieto: hereda la transformacion de la rueda). El vidrio
+       protector es hijo de mesa, hermano de rueda (no gira). */
+    glPushMatrix();
+    dibujar_mesa();
 
-    /* TODO (Persona C): dibujar HUD y pantallas de transicion segun el estado */
-    /* dibujar_hud(&jugador); */
-    /* dibujar_pantalla_segun_estado(estado_actual); */
+    glPushMatrix();
+    glTranslatef(0.0f, 0.05f, 0.0f);
+    glRotatef(angulo_rueda, 0.0f, 1.0f, 0.0f);
+    dibujar_rueda();
+
+    /* La bolita se dibuja DENTRO de este bloque para heredar
+       la traslacion/rotacion de la rueda (jerarquia real). */
+    glPushMatrix();
+    dibujar_bolita(&bolita);
+    glPopMatrix();
+    glPopMatrix();
+
+    dibujar_vidrio_protector();
+    glPopMatrix();
+
+    /* HUD y pantallas de transicion se dibujan en 2D superpuestos a la
+       escena 3D (cada funcion se encarga de cambiar a proyeccion
+       ortografica internamente, ver TODO en hud.c/pantallas.c). */
+    dibujar_hud(&jugador);
+    dibujar_pantalla_segun_estado(estado_actual, &jugador);
 
     glutSwapBuffers();
 }
@@ -54,11 +83,20 @@ void display(void) {
 /* Callback de reshape. Se ejecuta cuando cambia el tamano de ventana. */
 /* ------------------------------------------------------------------- */
 void reshape(int ancho, int alto) {
+    float aspecto;
+    if (alto == 0) alto = 1; /* evitar division por cero */
+    aspecto = (float)ancho / (float)alto;
+
     glViewport(0, 0, ancho, alto);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    /* TODO: gluPerspective o glOrtho segun se defina en el AR correspondiente */
+    /* Proyeccion en perspectiva: se eligio sobre glOrtho porque la
+       escena es una mesa 3D con profundidad real (rueda, bolita,
+       vidrio a distintas alturas), no un dibujo plano tipo HUD.
+       TODO: si se decide documentar esto formalmente, agregar el AR
+       correspondiente sobre la eleccion gluPerspective vs glOrtho. */
+    gluPerspective(45.0, aspecto, 0.1, 100.0);
 
     glMatrixMode(GL_MODELVIEW);
 }
@@ -67,13 +105,23 @@ void reshape(int ancho, int alto) {
 /* Callback de teclado.                                                 */
 /* ------------------------------------------------------------------- */
 void teclado(unsigned char tecla, int x, int y) {
+    (void)x; (void)y;
     switch (tecla) {
-        case 27: /* ESC */
-            exit(0);
-            break;
-        /* TODO (Persona C): apostar, girar, aceptar/rechazar prestamo, reiniciar */
-        default:
-            break;
+    case 27: /* ESC */
+        exit(0);
+        break;
+    case ' ': /* ESPACIO: demo temporal para girar la bolita */
+        /* TODO (Persona C): reemplazar por la logica real de
+           "apostar y girar", conectada a la maquina de estados
+           (ESTADO_JUGANDO -> validar apuesta -> iniciar giro). */
+        if (!bolita.girando) {
+            angulo_rueda += 0.0f; /* la rueda podria acelerar tambien, ver TODO abajo */
+            iniciar_giro_bolita(&bolita, 220.0f);
+        }
+        break;
+        /* TODO (Persona C): apostar, aceptar/rechazar prestamo, reiniciar */
+    default:
+        break;
     }
     glutPostRedisplay();
 }
@@ -82,8 +130,19 @@ void teclado(unsigned char tecla, int x, int y) {
 /* Callback idle. Actualiza animaciones y transiciones de estado.     */
 /* ------------------------------------------------------------------- */
 void idle(void) {
-    /* TODO (Persona A): actualizar giro de rueda / bolita */
-    /* TODO (Persona C): actualizar maquina de estados        */
+    /* TODO (Persona A/C): reemplazar este delta fijo por un calculo
+       real basado en glutGet(GLUT_ELAPSED_TIME) para que la animacion
+       no dependa de que tan rapido corra cada computadora. */
+    const float delta_tiempo = 0.016f; /* ~60 FPS asumidos */
+
+    angulo_rueda += 15.0f * delta_tiempo; /* giro visual continuo de la rueda */
+    if (angulo_rueda >= 360.0f) angulo_rueda -= 360.0f;
+
+    actualizar_bolita(&bolita, delta_tiempo);
+
+    /* TODO (Persona C): actualizar maquina de estados (por ejemplo,
+       revisar si jugador.saldo llego a 0 y hacer cambiar_estado(...)) */
+
     glutPostRedisplay();
 }
 
@@ -100,10 +159,13 @@ int main(int argc, char** argv) {
     glCullFace(GL_BACK);
     glEnable(GL_MULTISAMPLE);
 
-    /* TODO: inicializar iluminacion, materiales, geometria, jugador */
-    /* inicializar_iluminacion(); */
-    /* inicializar_jugador(&jugador); */
-    /* inicializar_estado_juego(); */
+    /* Inicializacion de cada subsistema */
+    inicializar_iluminacion();
+    inicializar_jugador(&jugador, 1000.0f); /* saldo inicial de ejemplo */
+    inicializar_estado_juego();
+    inicializar_bolita(&bolita);
+    generar_perfil_bezier_rueda();  /* no-op en el placeholder actual */
+    construir_malla_rueda();        /* no-op en el placeholder actual */
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
