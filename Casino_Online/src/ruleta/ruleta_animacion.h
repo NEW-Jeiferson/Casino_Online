@@ -4,16 +4,18 @@
  * Animacion de la bolita: giro y desaceleracion sobre la rueda, usando
  * una curva de Bezier como funcion de easing para el frenado.
  *
- * Responsable sugerido: Persona A
+ * Responsable: Jeiferson
  * -----------------------------------------------------------------------
  */
 #ifndef RULETA_ANIMACION_H
 #define RULETA_ANIMACION_H
 
 typedef struct {
-    float angulo_actual;    /* posicion angular de la bolita en la rueda */
-    float velocidad;        /* velocidad angular actual */
-    int   girando;          /* 1 mientras la bolita esta en movimiento */
+    float angulo_actual;      /* posicion angular de la bolita en la rueda */
+    float velocidad;          /* velocidad angular actual (resultado del easing) */
+    float velocidad_inicial;  /* velocidad angular al iniciar el giro */
+    float duracion_total;     /* duracion total de la animacion de frenado (segundos) */
+    int   girando;            /* 1 mientras la bolita esta en movimiento */
     float tiempo_transcurrido;
 } EstadoBolita;
 
