@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Casino_Online/Casino_Online.vcxproj" />
+  <Project Path="Casino_Online/Casino_Online.vcxproj" Id="d8167774-3aad-4a3e-ada2-1b447af9a4da" />
 </Solution>
