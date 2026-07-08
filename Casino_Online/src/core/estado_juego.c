@@ -57,3 +57,54 @@ int calcular_numero_ganador(float angulo_final) {
 
     return ORDEN_RUEDA_EUROPEA[sector];
 }
+
+int docena_de_numero(int numero) {
+    if (numero <= 0 || numero > 36) return 0;
+    if (numero <= 12) return 1;
+    if (numero <= 24) return 2;
+    return 3;
+}
+
+int numero_es_par(int numero) {
+    return (numero != 0) && (numero % 2 == 0);
+}
+
+int mitad_de_numero(int numero) {
+    if (numero <= 0 || numero > 36) return 0;
+    return (numero <= 18) ? 1 : 2;
+}
+
+float calcular_ganancia_apuesta(const Apuesta* apuesta, int numero_ganador) {
+    switch (apuesta->tipo) {
+    case APUESTA_NUMERO:
+        return (apuesta->valor == numero_ganador) ? apuesta->monto * 35.0f : -apuesta->monto;
+
+    case APUESTA_COLOR:
+        return (numero_ganador != 0 && apuesta->valor == (int)color_de_numero(numero_ganador))
+            ? apuesta->monto : -apuesta->monto;
+
+    case APUESTA_DOCENA:
+        return (docena_de_numero(numero_ganador) == apuesta->valor)
+            ? apuesta->monto * 2.0f : -apuesta->monto;
+
+    case APUESTA_PAR_IMPAR:
+        return (numero_ganador != 0 && numero_es_par(numero_ganador) == apuesta->valor)
+            ? apuesta->monto : -apuesta->monto;
+
+    case APUESTA_MITAD:
+        return (mitad_de_numero(numero_ganador) == apuesta->valor)
+            ? apuesta->monto : -apuesta->monto;
+
+    default:
+        return -apuesta->monto;
+    }
+}
+
+float calcular_ganancia_total(const Apuesta apuestas[], int cantidad, int numero_ganador) {
+    float total = 0.0f;
+    int i;
+    for (i = 0; i < cantidad; i++) {
+        total += calcular_ganancia_apuesta(&apuestas[i], numero_ganador);
+    }
+    return total;
+}

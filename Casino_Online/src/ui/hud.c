@@ -15,7 +15,7 @@ static void dibujar_texto_2d(float x, float y, const char* texto) {
     }
 }
 
-void dibujar_hud(const Jugador* jugador) {
+void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apuestas_activas) {
     char buffer[128];
     int ancho = glutGet(GLUT_WINDOW_WIDTH);
     int alto = glutGet(GLUT_WINDOW_HEIGHT);
@@ -58,6 +58,9 @@ void dibujar_hud(const Jugador* jugador) {
 
     sprintf_s(buffer, sizeof(buffer), "Prestamos activos: %d", jugador->prestamos_activos);
     dibujar_texto_2d(10.0f, 680.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Apuestas colocadas: %d", num_apuestas_activas);
+    dibujar_texto_2d(10.0f, 630.0f, buffer);
 
     /* --- Restaurar estado 3D --- */
     glEnable(GL_DEPTH_TEST);

@@ -1,10 +1,11 @@
-/*/*
+/*
  * tablero_apuestas.c
  * Implementacion del tablero de apuestas. Ver tablero_apuestas.h.
  */
 #include <GL/glut.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "tablero_apuestas.h"
 #include "../utils/bresenham.h"
 #include "../core/estado_juego.h"
@@ -145,20 +146,101 @@ static void dibujar_numeros(void) {
     glPopMatrix();
 }
 
-void dibujar_tablero_apuestas(void) 
-{
-    /* El tablero se pinta con colores planos via glColor3f (rojo/negro
-       en las casillas, blanco en lineas y numeros). Con GL_LIGHTING
-       activado y sin GL_COLOR_MATERIAL, esos glColor3f no tienen efecto:
-       todo sale con el ultimo material aplicado (MATERIAL_FIELTRO,
-       verde, seteado por dibujar_mesa() justo antes). Por eso apagamos
-       la iluminacion mientras se dibuja el tablero, igual que hace
-       hud.c/pantallas.c con su contenido 2D. */
+/* Capa 4: fichas doradas sobre los numeros donde hay apuesta activa. */
+static void dibujar_fichas_apostadas(const Apuesta apuestas[], int cantidad) {
+    int col, fila, numero, i, hay_ficha;
+
+    glPushMatrix();
+    glTranslatef(-2.9f, 0.14f, 4.9f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    glScalef(ESCALA_TABLERO, ESCALA_TABLERO, 1.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f); /* dorado, bien visible sobre rojo/negro */
+
+    for (col = 0; col < TABLERO_COLUMNAS; col++) {
+        for (fila = 0; fila < TABLERO_FILAS; fila++) {
+            numero = numero_de_celda(col, fila);
+            hay_ficha = 0;
+            for (i = 0; i < cantidad; i++) {
+                if (apuestas[i].tipo == APUESTA_NUMERO && apuestas[i].valor == numero) {
+                    hay_ficha = 1;
+                    break;
+                }
+            }
+            if (!hay_ficha) continue;
+
+            glPushMatrix();
+            glTranslatef(col * CELDA_PX + CELDA_PX / 2.0f,
+                fila * CELDA_PX + CELDA_PX / 2.0f, 0.0f);
+            {
+                const int SEGMENTOS = 16;
+                const float RADIO = 12.0f;
+                int k;
+                glBegin(GL_TRIANGLE_FAN);
+                glVertex2f(0.0f, 0.0f);
+                for (k = 0; k <= SEGMENTOS; k++) {
+                    float ang = (float)k / SEGMENTOS * 2.0f * 3.14159265f;
+                    glVertex2f(cosf(ang) * RADIO, sinf(ang) * RADIO);
+                }
+                glEnd();
+            }
+            glPopMatrix();
+        }
+    }
+
+    glPopMatrix();
+}
+
+void dibujar_tablero_apuestas(const Apuesta apuestas_activas[], int num_apuestas) {
     glDisable(GL_LIGHTING);
 
     dibujar_casillas();
     dibujar_lineas();
     dibujar_numeros();
+    dibujar_fichas_apostadas(apuestas_activas, num_apuestas);
 
     glEnable(GL_LIGHTING);
+}
+
+/* Celda actualmente resaltada (hover del mouse), compartida con el
+   modulo de render (Dubenny) para que pueda dibujar el highlight
+   visual correspondiente. -1 significa "ninguna celda". */
+int celda_hover_col = -1;
+int celda_hover_fila = -1;
+
+void fijar_celda_hover(int col, int fila) {
+    celda_hover_col = col;
+    celda_hover_fila = fila;
+}
+
+/* Inversa de numero_de_celda(): dado un punto (x, z) del mundo (el que
+   entrega obtener_punto_clic_en_mesa de Jeiferson), calcula a que
+   columna/fila del grid corresponde.
+   Es la transformacion inversa exacta de la que usa dibujar_casillas():
+   ese glTranslatef(-2.9, 0.08, 4.9) + glRotatef(-90, X) + glScalef
+   mapea un punto local (u, v) del grid a world = (u*ESCALA - 2.9, 0.08, -v*ESCALA + 4.9).
+   Aqui despejamos u y v a partir de world (x, z). */
+int obtener_celda_en_punto(float x, float z, int* col_out, int* fila_out) {
+    float u = (x - (-2.9f)) / ESCALA_TABLERO;
+    float v = (4.9f - z) / ESCALA_TABLERO;
+    int col, fila;
+
+    if (u < 0.0f || u >= (float)(TABLERO_COLUMNAS * CELDA_PX)) return 0;
+    if (v < 0.0f || v >= (float)(TABLERO_FILAS * CELDA_PX)) return 0;
+
+    col = (int)(u / CELDA_PX);
+    fila = (int)(v / CELDA_PX);
+    if (col >= TABLERO_COLUMNAS) col = TABLERO_COLUMNAS - 1;
+    if (fila >= TABLERO_FILAS)   fila = TABLERO_FILAS - 1;
+
+    *col_out = col;
+    *fila_out = fila;
+    return 1;
+}
+
+int obtener_numero_en_punto(float x, float z, int* numero_out) {
+    int col, fila;
+    if (!obtener_celda_en_punto(x, z, &col, &fila)) return 0;
+    *numero_out = numero_de_celda(col, fila);
+    return 1;
 }
