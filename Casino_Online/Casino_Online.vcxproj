@@ -150,6 +150,7 @@
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\render\iluminacion.c" />
     <ClCompile Include="src\render\materiales.c" />
+    <ClCompile Include="src\ruleta\mouse_picking.c" />
     <ClCompile Include="src\ruleta\ruleta_animacion.c" />
     <ClCompile Include="src\ruleta\ruleta_geometria.c" />
     <ClCompile Include="src\ui\hud.c" />
@@ -162,6 +163,7 @@
     <ClInclude Include="src\core\jugador.h" />
     <ClInclude Include="src\render\iluminacion.h" />
     <ClInclude Include="src\render\materiales.h" />
+    <ClInclude Include="src\ruleta\mouse_picking.h" />
     <ClInclude Include="src\ruleta\ruleta_animacion.h" />
     <ClInclude Include="src\ruleta\ruleta_geometria.h" />
     <ClInclude Include="src\ui\hud.h" />
