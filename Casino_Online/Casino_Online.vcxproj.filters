@@ -66,6 +66,9 @@
     <ClCompile Include="src\ui\pantallas.c">
       <Filter>src\ui</Filter>
     </ClCompile>
+    <ClCompile Include="src\ruleta\mouse_picking.c">
+      <Filter>src\ruleta</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\estado_juego.h">
@@ -97,6 +100,9 @@
     </ClInclude>
     <ClInclude Include="src\ui\pantallas.h">
       <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ruleta\mouse_picking.h">
+      <Filter>src\ruleta</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
