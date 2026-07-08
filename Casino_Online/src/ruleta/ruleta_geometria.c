@@ -15,16 +15,17 @@
 #include "../render/materiales.h"
 #include "../utils/bezier.h"
 
-#define RADIO_MESA           6.0f
+ /* RADIO_MESA ahora se expone en ruleta_geometria.h (Luis la necesita
+    para el mapeo de posicion 3D a celda del tablero de apuestas) */
 #define PERFIL_SEGMENTOS     12   /* puntos a lo largo del perfil (radio-altura) */
 #define REVOLUCION_SEGMENTOS 36   /* divisiones angulares (360 / 36 = 10 grados) */
 #define PI_GEOMETRIA         3.14159265358979323846f
 
- /* ------------------------------------------------------------------- */
- /* Datos de la malla generada.                                          */
- /* perfil_puntos[i].x = radio, perfil_puntos[i].y = altura (el campo z  */
- /* del perfil no se usa, se deja en 0).                                 */
- /* ------------------------------------------------------------------- */
+    /* ------------------------------------------------------------------- */
+    /* Datos de la malla generada.                                          */
+    /* perfil_puntos[i].x = radio, perfil_puntos[i].y = altura (el campo z  */
+    /* del perfil no se usa, se deja en 0).                                 */
+    /* ------------------------------------------------------------------- */
 static Punto3D perfil_puntos[PERFIL_SEGMENTOS];
 static Punto3D malla_vertices[PERFIL_SEGMENTOS][REVOLUCION_SEGMENTOS];
 static Punto3D malla_normales[PERFIL_SEGMENTOS][REVOLUCION_SEGMENTOS];
