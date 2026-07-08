@@ -145,7 +145,8 @@ static void dibujar_numeros(void) {
     glPopMatrix();
 }
 
-void dibujar_tablero_apuestas(void) {
+void dibujar_tablero_apuestas(void) 
+{
     /* El tablero se pinta con colores planos via glColor3f (rojo/negro
        en las casillas, blanco en lineas y numeros). Con GL_LIGHTING
        activado y sin GL_COLOR_MATERIAL, esos glColor3f no tienen efecto:
