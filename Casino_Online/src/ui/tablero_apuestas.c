@@ -119,6 +119,37 @@ static void dibujar_lineas(void) {
     glPopMatrix();
 }
 
+/* Capa 5: resaltado de la celda bajo el mouse (hover), usando
+   celda_hover_col/celda_hover_fila (actualizadas desde mouse_mover()
+   en main.c). Dibuja solo el borde, para no tapar el color rojo/negro
+   de la casilla. */
+static void dibujar_hover(void) {
+    if (celda_hover_col < 0 || celda_hover_fila < 0) return; /* sin hover activo */
+
+    glPushMatrix();
+    glTranslatef(-2.9f, 0.13f, 4.9f);
+    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    glScalef(ESCALA_TABLERO, ESCALA_TABLERO, 1.0f);
+
+    glColor3f(1.0f, 1.0f, 1.0f); /* blanco brillante, bien visible sobre rojo/negro */
+    glLineWidth(3.0f);
+
+    glBegin(GL_LINE_LOOP);
+    glVertex2i(celda_hover_col * CELDA_PX + MARGEN_CASILLA,
+        celda_hover_fila * CELDA_PX + MARGEN_CASILLA);
+    glVertex2i((celda_hover_col + 1) * CELDA_PX - MARGEN_CASILLA,
+        celda_hover_fila * CELDA_PX + MARGEN_CASILLA);
+    glVertex2i((celda_hover_col + 1) * CELDA_PX - MARGEN_CASILLA,
+        (celda_hover_fila + 1) * CELDA_PX - MARGEN_CASILLA);
+    glVertex2i(celda_hover_col * CELDA_PX + MARGEN_CASILLA,
+        (celda_hover_fila + 1) * CELDA_PX - MARGEN_CASILLA);
+    glEnd();
+
+    glLineWidth(1.0f); /* restaurar grosor por defecto, para no afectar otras lineas */
+
+    glPopMatrix();
+}
+
 /* Capa 3: numeros en blanco, centrados sobre cada casilla. */
 static void dibujar_numeros(void) {
     int col, fila, numero;
@@ -198,6 +229,7 @@ void dibujar_tablero_apuestas(const Apuesta apuestas_activas[], int num_apuestas
     dibujar_lineas();
     dibujar_numeros();
     dibujar_fichas_apostadas(apuestas_activas, num_apuestas);
+    dibujar_hover();   /* <-- nueva linea */
 
     glEnable(GL_LIGHTING);
 }
