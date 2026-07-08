@@ -19,6 +19,7 @@
 #include "render/materiales.h"
 #include "ui/hud.h"
 #include "ui/pantallas.h"
+#include "ui/tablero_apuestas.h"
 
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE 0x809D
@@ -71,6 +72,7 @@ void display(void) {
        protector es hijo de mesa, hermano de rueda (no gira). */
     glPushMatrix();
     dibujar_mesa();
+    dibujar_tablero_apuestas();
 
     glPushMatrix();
     glTranslatef(0.0f, 0.05f, 0.0f);

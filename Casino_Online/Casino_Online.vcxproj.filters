@@ -66,6 +66,12 @@
     <ClCompile Include="src\ui\pantallas.c">
       <Filter>src\ui</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui\tablero_apuestas.h">
+      <Filter>src\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\tablero_apuestas.c">
+      <Filter>src\ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\estado_juego.h">

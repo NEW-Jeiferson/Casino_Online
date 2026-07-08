@@ -143,6 +143,8 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\ui\tablero_apuestas.c" />
+    <ClCompile Include="src\ui\tablero_apuestas.h" />
     <ClCompile Include="src\core\estado_juego.c" />
     <ClCompile Include="src\core\jugador.c" />
     <ClCompile Include="src\main.c" />
