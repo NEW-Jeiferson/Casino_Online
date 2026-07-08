@@ -237,6 +237,7 @@ void idle(void) {
     glutPostRedisplay();
 }
 
+
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
 
@@ -256,8 +257,8 @@ int main(int argc, char** argv) {
     inicializar_estado_juego();
     estado_actual = ESTADO_JUGANDO; /* fuerza estado de prueba, quitar cuando el menu funcione */
     inicializar_bolita(&bolita);
-    generar_perfil_bezier_rueda();  /* no-op en el placeholder actual */
-    construir_malla_rueda();        /* no-op en el placeholder actual */
+    generar_perfil_bezier_rueda();  /* genera el perfil de Bezier real */
+    construir_malla_rueda();        /* construye la malla de revolucion real */
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
