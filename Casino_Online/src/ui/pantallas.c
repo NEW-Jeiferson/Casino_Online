@@ -3,34 +3,159 @@
  * Implementacion de las pantallas de transicion. Ver pantallas.h.
  */
 #include <GL/glut.h>
+#include <stdio.h>
+#include <math.h>
 #include "pantallas.h"
 
+ /* Funcion auxiliar para dibujar texto (duplicada de hud.c a proposito,
+    para no acoplar ambos archivos con un header compartido) */
+static void dibujar_texto_2d(float x, float y, const char* texto) {
+    const char* c;
+    glRasterPos2f(x, y);
+    for (c = texto; *c != '\0'; c++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+}
+
 void dibujar_pantalla_prestamo(const Jugador* jugador) {
-    /* TODO: activar GL_BLEND, dibujar un rectangulo semitransparente
-       cubriendo la pantalla, y el mensaje reflexivo:
-       "Ya perdiste tu saldo inicial. En la vida real, este seria el
-       momento de parar." seguido de las opciones (seguir/salir). */
-    (void)jugador; /* referencia al parametro hasta implementar */
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    char buffer[128];
+
+    /* --- Entrar en modo 2D (igual que en hud.c) --- */
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    /* --- Overlay semitransparente sobre toda la pantalla --- */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glColor4f(0.0f, 0.0f, 0.0f, 0.6f); /* negro al 60% de opacidad */
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glDisable(GL_BLEND);
+
+    /* --- Mensaje reflexivo --- */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d((float)ancho / 2.0f - 220.0f, (float)alto / 2.0f + 40.0f,
+        "Ya perdiste tu saldo inicial.");
+    dibujar_texto_2d((float)ancho / 2.0f - 220.0f, (float)alto / 2.0f + 15.0f,
+        "En la vida real, este seria el momento de parar.");
+
+    sprintf_s(buffer, sizeof(buffer), "Deuda actual: %.2f", jugador->deuda);
+    dibujar_texto_2d((float)ancho / 2.0f - 220.0f, (float)alto / 2.0f - 15.0f, buffer);
+
+    dibujar_texto_2d((float)ancho / 2.0f - 220.0f, (float)alto / 2.0f - 50.0f,
+        "[P] Pedir prestamo y seguir     [ESC] Salir");
+
+    /* --- Restaurar estado 3D --- */
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
 }
 
 void dibujar_pantalla_game_over(const Jugador* jugador) {
-    /* TODO: primero dibujar el resumen tipo "recibo" (tiempo jugado,
-       total perdido, prestamos solicitados), y despues el overlay
-       rojo/negro con interpolacion de color (fade) y el mensaje
-       final en tono comico-dramatico. */
-    (void)jugador;
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    char buffer[128];
+
+    /* --- Entrar en modo 2D --- */
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    /* --- Overlay con interpolacion de color (fade rojo/negro) ---
+       Usamos glutGet(GLUT_ELAPSED_TIME) para variar la opacidad en el
+       tiempo y dar un efecto de "pulso" dramatico, en vez de un overlay
+       estatico. */
+    {
+        float tiempo_ms = (float)glutGet(GLUT_ELAPSED_TIME);
+        float pulso = (sinf(tiempo_ms * 0.002f) + 1.0f) / 2.0f; /* 0..1 */
+        float r = 0.3f + pulso * 0.5f; /* oscila entre 0.3 y 0.8 de rojo */
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glColor4f(r, 0.0f, 0.0f, 0.75f);
+        glBegin(GL_QUADS);
+        glVertex2f(0.0f, 0.0f);
+        glVertex2f((float)ancho, 0.0f);
+        glVertex2f((float)ancho, (float)alto);
+        glVertex2f(0.0f, (float)alto);
+        glEnd();
+
+        glDisable(GL_BLEND);
+    }
+
+    /* --- Resumen tipo "recibo" --- */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d((float)ancho / 2.0f - 180.0f, (float)alto / 2.0f + 120.0f,
+        "=== RECIBO FINAL ===");
+
+    sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
+    dibujar_texto_2d((float)ancho / 2.0f - 180.0f, (float)alto / 2.0f + 90.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Prestamos solicitados: %d", jugador->prestamos_activos);
+    dibujar_texto_2d((float)ancho / 2.0f - 180.0f, (float)alto / 2.0f + 65.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Interes acumulado: %.2f", jugador->interes_acumulado);
+    dibujar_texto_2d((float)ancho / 2.0f - 180.0f, (float)alto / 2.0f + 40.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Deuda final: %.2f", jugador->deuda);
+    dibujar_texto_2d((float)ancho / 2.0f - 180.0f, (float)alto / 2.0f + 15.0f, buffer);
+
+    /* --- Mensaje final --- */
+    dibujar_texto_2d((float)ancho / 2.0f - 180.0f, (float)alto / 2.0f - 30.0f,
+        "GAME OVER: la casa siempre gana.");
+    dibujar_texto_2d((float)ancho / 2.0f - 180.0f, (float)alto / 2.0f - 55.0f,
+        "[ESC] Salir     [ENTER] Reiniciar");
+
+    /* --- Restaurar estado 3D --- */
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
 }
 
 void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador) {
     switch (estado) {
-        case ESTADO_PRESTAMO:
-            dibujar_pantalla_prestamo(jugador);
-            break;
-        case ESTADO_GAME_OVER:
-            dibujar_pantalla_game_over(jugador);
-            break;
-        default:
-            break; /* ESTADO_MENU, ESTADO_JUGANDO, ESTADO_SIN_FONDOS
-                       no requieren overlay o se manejan aparte */
+    case ESTADO_PRESTAMO:
+        dibujar_pantalla_prestamo(jugador);
+        break;
+    case ESTADO_GAME_OVER:
+        dibujar_pantalla_game_over(jugador);
+        break;
+    default:
+        break; /* ESTADO_MENU, ESTADO_JUGANDO, ESTADO_SIN_FONDOS
+                   no requieren overlay o se manejan aparte */
     }
 }

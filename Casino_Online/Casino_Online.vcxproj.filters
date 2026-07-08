@@ -66,11 +66,17 @@
     <ClCompile Include="src\ui\pantallas.c">
       <Filter>src\ui</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui\tablero_apuestas.c">
+      <Filter>src\ui</Filter>
+    </ClCompile>
     <ClCompile Include="src\ruleta\mouse_picking.c">
       <Filter>src\ruleta</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ui\tablero_apuestas.h">
+      <Filter>src\ui</Filter>
+    </ClInclude>
     <ClInclude Include="src\core\estado_juego.h">
       <Filter>src\core</Filter>
     </ClInclude>
@@ -104,5 +110,8 @@
     <ClInclude Include="src\ruleta\mouse_picking.h">
       <Filter>src\ruleta</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
 </Project>

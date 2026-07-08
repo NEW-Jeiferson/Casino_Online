@@ -143,6 +143,8 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\ui\tablero_apuestas.c" />
+    <ClCompile Include="src\ui\tablero_apuestas.h" />
     <ClCompile Include="src\core\estado_juego.c" />
     <ClCompile Include="src\core\jugador.c" />
     <ClCompile Include="src\main.c" />
@@ -168,6 +170,9 @@
     <ClInclude Include="src\ui\pantallas.h" />
     <ClInclude Include="src\utils\bezier.h" />
     <ClInclude Include="src\utils\bresenham.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
