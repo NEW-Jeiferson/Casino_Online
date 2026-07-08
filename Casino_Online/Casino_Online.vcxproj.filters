@@ -99,4 +99,7 @@
       <Filter>src\ui</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
+  </ItemGroup>
 </Project>
