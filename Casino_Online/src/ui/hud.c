@@ -59,6 +59,11 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     sprintf_s(buffer, sizeof(buffer), "Prestamos activos: %d", jugador->prestamos_activos);
     dibujar_texto_2d(10.0f, 680.0f, buffer);
 
+    /* Ficha actualmente seleccionada (1-4), para que el jugador sepa
+       cuanto esta a punto de apostar antes de hacer clic. */
+    sprintf_s(buffer, sizeof(buffer), "Ficha actual: %.2f", monto_ficha_actual);
+    dibujar_texto_2d(10.0f, 655.0f, buffer);
+
     sprintf_s(buffer, sizeof(buffer), "Apuestas colocadas: %d", num_apuestas_activas);
     dibujar_texto_2d(10.0f, 630.0f, buffer);
 

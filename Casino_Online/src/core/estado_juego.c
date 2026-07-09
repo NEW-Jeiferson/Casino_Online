@@ -4,6 +4,7 @@
  */
 #include "estado_juego.h"
 #include <math.h>
+#include <stdio.h>
 
 EstadoJuego estado_actual;
 
@@ -30,9 +31,48 @@ ColorRuleta color_de_numero(int numero) {
     return COLOR_NEGRO;
 }
 
+/* Tabla de transiciones permitidas. Solo se listan los flujos que el
+   juego realmente usa (ver main.c/idle.c):
+     MENU      -> JUGANDO    (ENTER en la pantalla de bienvenida)
+     JUGANDO   -> PRESTAMO   (el saldo no alcanza para la ficha minima)
+     PRESTAMO  -> JUGANDO    (se acepta el prestamo y la deuda es pagable)
+     PRESTAMO  -> GAME_OVER  (se acepta el prestamo pero la deuda ya es
+                              impagable)
+     GAME_OVER -> JUGANDO    (ENTER reinicia la partida)
+   Cualquier otra transicion (por ejemplo MENU -> GAME_OVER directo, o
+   JUGANDO -> MENU) se considera invalida y se ignora. */
+static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
+    if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido */
+
+    switch (actual) {
+    case ESTADO_MENU:
+        return nuevo == ESTADO_JUGANDO;
+
+    case ESTADO_JUGANDO:
+        return nuevo == ESTADO_PRESTAMO;
+
+    case ESTADO_PRESTAMO:
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_GAME_OVER;
+
+    case ESTADO_GAME_OVER:
+        return nuevo == ESTADO_JUGANDO;
+
+    default:
+        return 0;
+    }
+}
+
 void cambiar_estado(EstadoJuego nuevo_estado) {
-    /* TODO: agregar logica de validacion de transiciones si se necesita,
-       por ejemplo no permitir pasar de MENU directo a GAME_OVER */
+    if (!es_transicion_valida(estado_actual, nuevo_estado)) {
+        /* Transicion no contemplada por el diseno del juego: se ignora
+           en vez de aplicarla a ciegas, para no dejar el juego en un
+           estado inconsistente (por ejemplo, ver la pantalla de
+           Game Over sin haber pasado por Prestamo). */
+        fprintf(stderr,
+            "cambiar_estado: transicion invalida (%d -> %d) ignorada\n",
+            (int)estado_actual, (int)nuevo_estado);
+        return;
+    }
     estado_actual = nuevo_estado;
 }
 
