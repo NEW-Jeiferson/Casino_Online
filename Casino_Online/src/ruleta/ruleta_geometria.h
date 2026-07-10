@@ -63,4 +63,12 @@ void dibujar_rueda(void);
    ya que es una tapa fija que no gira. */
 void dibujar_vidrio_protector(void);
 
+/* Dibuja la pista de 37 casillas coloreadas (rojo/negro/verde) con sus
+   numeros, sobre la superficie de la rueda. Se llama DESPUES de
+   dibujar_rueda() y mientras la misma matriz de la rueda sigue activa
+   (para que la pista gire junto con la rueda). Usa ORDEN_RUEDA_EUROPEA
+   y color_de_numero() de core/estado_juego.h, la misma fuente de
+   verdad que usa main.c para decidir el numero ganador. */
+void dibujar_pista_numerada(void);
+
 #endif /* RULETA_GEOMETRIA_H */
