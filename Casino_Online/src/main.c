@@ -334,8 +334,31 @@ void mouse_mover(int x, int y) {
 }
 
 void idle(void) {
-    const float delta_tiempo = 0.016f;
+    /* BUGFIX (velocidad de giro): antes delta_tiempo era una constante
+       fija (0.016f, "como si" el juego corriera siempre a 60 FPS). Pero
+       GLUT clasico no limita cuantas veces por segundo se llama a
+       idle() -sin vsync, esto puede correr cientos o miles de veces
+       por segundo segun el equipo-, y cada llamada sumaba esos 16ms
+       "de mentira" sin importar cuanto tiempo real hubiera pasado.
+       Resultado: una animacion pensada para durar 3.5-7 segundos
+       terminaba en menos de 1 segundo de reloj real.
+
+       Fix: medir el tiempo real transcurrido con glutGet(GLUT_ELAPSED_TIME)
+       (milisegundos desde glutInit) y usar la diferencia real entre
+       frames. Se limita (clamp) a un maximo de 0.1s por frame para
+       evitar saltos enormes si la ventana se arrastra, se minimiza, o
+       el sistema se congela un instante -sin el clamp, un solo frame
+       "lento" podria saltar la bolita varios grados de golpe. */
+    static int tiempo_anterior_ms = -1;
+    int   tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
+    float delta_tiempo;
     int estaba_girando = partida.bolita.girando;
+
+    if (tiempo_anterior_ms < 0) tiempo_anterior_ms = tiempo_actual_ms;
+    delta_tiempo = (float)(tiempo_actual_ms - tiempo_anterior_ms) / 1000.0f;
+    tiempo_anterior_ms = tiempo_actual_ms;
+    if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   /* por si el contador diera un valor raro */
+    if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   /* clamp anti-salto */
 
     if (partida.bolita.girando) {
         /* Usa la MISMA constante que iniciar_giro_bolita_hacia_absoluto()

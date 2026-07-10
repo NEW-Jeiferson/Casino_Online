@@ -45,8 +45,19 @@
 
        /* Velocidad "tipica" con la que siempre se ve girar la bolita, sin
           importar cuanto tenga que recorrer en total -lo que cambia entre
-          giros es la DURACION, no que tan rapido se ve. */
-#define VELOCIDAD_TIPICA_GIRO 140.0f
+          giros es la DURACION, no que tan rapido se ve.
+          DOBLADA de 189 a 378 (a pedido explicito: "el doble de rapido"),
+          JUNTO con DURACION_MINIMA_GIRO/DURACION_MAXIMA_GIRO (ver abajo),
+          tambien a la mitad. Es necesario mover las dos cosas a la vez:
+          con 189 casi todos los giros ya caian pegados al piso de
+          duracion minima (3.5s) -seguir subiendo solo la velocidad ya
+          no acortaba nada, porque el clamp lo topaba primero. Al bajar
+          tambien los limites de duracion a la mitad, el giro completo
+          dura la mitad de tiempo que antes, con la MISMA curva de
+          frenado Bezier (solo comprimida en el tiempo 2x) -eso es lo
+          que realmente se percibe como "el doble de rapido", no solo
+          una bolita mas veloz por un instante contra el mismo piso. */
+#define VELOCIDAD_TIPICA_GIRO 378.0f
 
           /* --------------------------------------------------------------------
            * FACTOR_INTEGRAL_EASING: relacion entre angulo total recorrido,
@@ -69,9 +80,14 @@
 #define FACTOR_INTEGRAL_EASING 0.525f
 
            /* Limites de seguridad para que un giro nunca se sienta instantaneo
-              ni exageradamente largo, sin importar el azar del angulo objetivo */
-#define DURACION_MINIMA_GIRO 3.5f
-#define DURACION_MAXIMA_GIRO 7.0f
+              ni exageradamente largo, sin importar el azar del angulo objetivo.
+              Bajados a la mitad (3.5->1.75, 7->3.5) junto con duplicar
+              VELOCIDAD_TIPICA_GIRO arriba, a pedido explicito de que el
+              giro se sienta "el doble de rapido". Sigue habiendo un piso
+              y un techo -el giro nunca es instantaneo ni eterno-, solo
+              que ahora la mitad de tiempo. */
+#define DURACION_MINIMA_GIRO 1.75f
+#define DURACION_MAXIMA_GIRO 3.5f
 
 void inicializar_bolita(EstadoBolita* bolita) {
     bolita->angulo_actual = 0.0f;

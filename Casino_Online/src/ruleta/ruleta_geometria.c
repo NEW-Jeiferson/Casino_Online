@@ -235,10 +235,34 @@ void dibujar_vidrio_protector(void) {
          "enterrada" dentro de la superficie curva en ningun punto. */
 #define ALTURA_PISTA 0.42f
 
+         /* BUGFIX (numeros deformados/desbordados en la rueda): antes se usaba
+            una escala fija (0.0022) sin importar cuantos digitos tuviera el
+            numero. El ancho de arco disponible por sector es fijo (paso_angular
+            grados a radio_medio), pero un numero de 2 digitos (27 de los 37
+            numeros de la rueda) media con esa escala fija cerca de un 30% MAS
+            ancho que su propio sector -se metia visualmente en los sectores
+            vecinos. ANCHO_MAX_NUMERO_PISTA es el ancho de arco real disponible
+            (cuerda del sector a radio_medio, con un margen de seguridad), y la
+            escala se reduce (de forma UNIFORME, x e y por igual, para no
+            deformar los digitos) solo si hace falta.
+            El margen se subio de 0.85 a 0.95 (menos "colchon" contra el sector
+            vecino, mas tamano real para el numero) porque con 0.85 los numeros
+            de 2 digitos quedaban innecesariamente chicos -ver BUGFIX de grosor
+            de linea proporcional, mas abajo, que es la otra mitad de por que
+            se veian "borroneados". */
+#define ESCALA_NUMERO_PISTA_BASE 0.0024f
+static float ancho_max_numero_pista(void) {
+    const float paso_angular = 360.0f / 37.0f;
+    const float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
+    return 2.0f * radio_medio * sinf((paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f) * 0.95f;
+}
+
 static void dibujar_numero_pista(int numero) {
     char texto[4];
     int i, len;
     GLboolean iluminacion_estaba_activa;
+    GLboolean line_smooth_estaba_activo, blend_estaba_activo;
+    float escala, ancho_total;
 
     snprintf(texto, sizeof(texto), "%d", numero);
     len = (int)strlen(texto);
@@ -249,22 +273,64 @@ static void dibujar_numero_pista(int numero) {
        la rueda que reciben menos luz directa. Se desactiva la
        iluminacion SOLO para el numero (no afecta las cuñas de color,
        que ya se dibujaron antes de este punto), para que siempre se
-       vea blanco puro sin importar donde caiga en la rueda, y se
-       engruesa la linea para que no se pierda a distancia. */
+       vea blanco puro sin importar donde caiga en la rueda. */
     iluminacion_estaba_activa = glIsEnabled(GL_LIGHTING);
     glDisable(GL_LIGHTING);
     glColor3f(1.0f, 1.0f, 1.0f);
-    glLineWidth(2.5f);
+
+    /* BUGFIX ("los numeros se ven borroneados/deformados", causa real):
+       NO es un filtro -es la combinacion de dos cosas:
+       1) En todo el proyecto no se activa GL_LINE_SMOOTH en ningun
+          lado (el MSAA global ya esta documentado como poco confiable
+          en GLUT clasico -ver contexto-proyecto.md-, asi que los
+          trazos finos y diagonales de la fuente stroke quedaban
+          dentados/escalonados a este tamano tan chico en pantalla).
+       2) El grosor de linea era FIJO (2.5px) sin importar cuanto se
+          hubiera achicado el numero (ver ancho_max_numero_pista arriba):
+          para un numero de 2 digitos, ya reducido a ~2/3 de su tamano
+          base para caber en su sector, una linea de 2.5px es
+          PROPORCIONALMENTE mucho mas gruesa que en un numero de 1
+          digito sin reducir -las curvas de los digitos (3, 6, 8, 9...)
+          se embarran entre si y dejan de leerse como numero.
+       Fix: se activa antialiasing de lineas solo para este trazo (se
+       restaura el estado previo despues), y el grosor de linea ahora
+       escala junto con 'escala' (mismo factor que ya se le aplico al
+       tamano del numero), con un piso de 1.1f para que nunca quede
+       invisible. */
+    line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
+    blend_estaba_activo = glIsEnabled(GL_BLEND);
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+
+    escala = ESCALA_NUMERO_PISTA_BASE;
+    ancho_total = (float)len * 104.76f * escala;
+    {
+        float ancho_max = ancho_max_numero_pista();
+        if (ancho_total > ancho_max) {
+            escala *= ancho_max / ancho_total;      /* escala uniforme (misma en x e y) */
+            ancho_total = ancho_max;
+        }
+    }
+
+    {
+        float grosor = 2.5f * (escala / ESCALA_NUMERO_PISTA_BASE);
+        if (grosor < 1.1f) grosor = 1.1f;
+        glLineWidth(grosor);
+    }
 
     glPushMatrix();
-    glScalef(0.0022f, 0.0022f, 1.0f); /* la fuente stroke es "grande" por defecto */
-    glTranslatef(-(float)len * 52.0f, 0.0f, 0.0f); /* centrar aproximadamente */
+    glScalef(escala, escala, 1.0f);
+    glTranslatef(-(float)len * 52.38f, -59.5f, 0.0f); /* centrar horizontal y verticalmente (52.38 = mitad del ancho de avance por caracter, 59.5 = mitad de la altura de mayuscula/digito de GLUT_STROKE_ROMAN) */
     for (i = 0; i < len; i++) {
         glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
     }
     glPopMatrix();
 
     glLineWidth(1.0f);
+    if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
+    if (!blend_estaba_activo) glDisable(GL_BLEND);
     if (iluminacion_estaba_activa) glEnable(GL_LIGHTING);
 }
 
@@ -319,7 +385,26 @@ void dibujar_pista_numerada(void) {
         {
             float ang_medio = (angulo_inicio + paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f;
             float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
-            float altura_numero = altura_superficie_en_radio(radio_medio) + OFFSET_PISTA * 2.0f; /* un poco mas alto que la banda, para no pelear con ella en Z */
+            /* BUGFIX (numeros "deformados"/con partes faltantes, z-fighting):
+               antes esta altura se calculaba con altura_superficie_en_radio(radio_medio),
+               es decir, la altura REAL de la curva de Bezier en ese radio
+               exacto. Pero la banda de color de abajo (el GL_TRIANGLE_STRIP
+               de este mismo sector) NO sigue esa curva real entre
+               RADIO_INTERNO_PISTA y RADIO_EXTERNO_PISTA -sus vertices
+               interpolan LINEALMENTE entre altura_interna y altura_externa.
+               Como el perfil de la rueda es concavo (forma de valle) en esa
+               zona, la altura real de la curva en el punto medio queda POR
+               DEBAJO de esa interpolacion lineal -el numero se dibujaba mas
+               abajo que la superficie de la banda que en realidad se ve en
+               pantalla, y quedaba peleando en Z contra ella (partes de los
+               trazos del numero se recortaban/desaparecian al azar segun el
+               angulo de camara).
+               Fix: usar la MISMA interpolacion lineal que usa la banda
+               (altura_interna y altura_externa ya estan calculadas arriba),
+               evaluada en radio_medio -que, por ser el punto medio, es
+               simplemente el promedio de ambas-, para que el numero quede
+               siempre apoyado sobre la superficie que realmente se dibuja. */
+            float altura_numero = (altura_interna + altura_externa) / 2.0f + OFFSET_PISTA * 2.0f;
 
             glColor3f(1.0f, 1.0f, 1.0f);
             glPushMatrix();

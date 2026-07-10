@@ -44,34 +44,68 @@ static int numero_de_celda(int col, int fila) {
 static void dibujar_texto_stroke_centrado(const char* texto, float ancho_max) {
     int i, len;
     float ancho_total, alto_total;
-    float escala_x, escala_y;
+    float escala;
 
     len = (int)strlen(texto);
 
-    /* Altura fija para que todo el texto se vea del mismo tamano. */
-    escala_y = 0.24f;
-    alto_total = 119.05f * escala_y;
+    /* Altura/ancho parten de la misma escala (fuente sin deformar). */
+    escala = 0.24f;
+    ancho_total = len * 104.76f * escala;
 
-    /* El ancho parte de la misma escala que la altura, pero si con esa
-       escala el texto no entra en la celda, se reduce solo el ancho
-       (escala_x) para que siempre quepa. Esto evita que los numeros de
-       2 digitos (10, 11, 25, 36, etc.) o las etiquetas mas largas
-       ("1ra 12", "19-36") se salgan de su recuadro. */
-    escala_x = escala_y;
-    ancho_total = len * 104.76f * escala_x;
+    /* BUGFIX (texto deformado en las zonas especiales del tablero -
+       Par/Impar/Rojo/Negro/1-18/19-36-): antes, si el texto no entraba
+       en su celda, SOLO se reducia escala_x (dejando escala_y fija en
+       0.24) -es decir, un glScalef(escala_x, escala_y, 1) NO uniforme.
+       Eso aplastaba las letras horizontalmente sin tocar su altura,
+       deformando curvas y trazos de la fuente stroke: mucho mas
+       notorio en palabras largas ("NEGRO", "IMPAR", 5 caracteres en
+       solo 74px de celda -> hacia falta comprimir a un ~59% del ancho
+       "natural") que en los digitos de la grilla principal (1-2
+       caracteres, con mucho mas margen de sobra, por eso esos se veian
+       bien).
+       Fix: si no entra, se reduce el MISMO factor en X y en Y (escala
+       uniforme) -el texto sale mas chico, pero nunca deformado, en
+       cualquier celda del tablero. */
     if (ancho_total > ancho_max) {
-        escala_x = ancho_max / (len * 104.76f);
+        escala *= ancho_max / ancho_total;
         ancho_total = ancho_max;
     }
+    alto_total = 119.05f * escala;
 
     glPushMatrix();
     glTranslatef(-ancho_total / 2.0f, -alto_total / 2.0f, 0.0f);
-    glScalef(escala_x, escala_y, 1.0f);
+    glScalef(escala, escala, 1.0f);
 
-    for (i = 0; i < len; i++) {
-        glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
+    /* BUGFIX (texto "borroso"): la fuente stroke solo dibuja lineas
+       delgadas (grosor 1.0 por defecto); a la escala final que queda
+       tras el ajuste de arriba, esas lineas de 1px se ven casi
+       invisibles/borrosas en varias resoluciones. Se engruesa un poco,
+       igual que ya se hacia para los numeros de la rueda. Ademas se
+       activa GL_LINE_SMOOTH (con blending, que es lo que necesita para
+       funcionar) mientras dura el trazo -en todo el proyecto no habia
+       ningun antialiasing de lineas activo (el MSAA global esta
+       documentado como poco confiable en GLUT clasico), asi que los
+       trazos diagonales de la fuente se veian dentados/escalonados a
+       tamanos chicos. Se restaura el estado previo despues, para no
+       afectar el resto de la escena (Bresenham, etc., que no lo
+       necesitan). */
+    {
+        GLboolean line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
+        GLboolean blend_estaba_activo = glIsEnabled(GL_BLEND);
+        glEnable(GL_LINE_SMOOTH);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+        glLineWidth(1.6f);
+
+        for (i = 0; i < len; i++) {
+            glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
+        }
+
+        glLineWidth(1.0f); /* restaurar, para no afectar otras lineas (Bresenham, etc.) */
+        if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
+        if (!blend_estaba_activo) glDisable(GL_BLEND);
     }
-
     glPopMatrix();
 }
 
