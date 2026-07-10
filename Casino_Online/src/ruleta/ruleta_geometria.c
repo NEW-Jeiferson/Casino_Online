@@ -286,8 +286,15 @@ void dibujar_pista_numerada(void) {
             float t = (float)k / segmentos_arco;
             float ang = (angulo_inicio + t * (angulo_fin - angulo_inicio)) * PI_GEOMETRIA / 180.0f;
             glNormal3f(0.0f, 1.0f, 0.0f);
-            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), altura_interna, RADIO_INTERNO_PISTA * sinf(ang));
-            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), altura_externa, RADIO_EXTERNO_PISTA * sinf(ang));
+            /* BUGFIX: signo negativo en Z, para que coincida con la
+               convencion de glRotatef(angulo, 0,1,0) que usa
+               dibujar_bolita() (glRotatef aplica z' = -x*sin(angulo),
+               no +x*sin(angulo)). Sin este signo, la pista quedaba en
+               espejo respecto a donde realmente cae la bolita: se veia
+               caer sobre un color/numero que no era el que en verdad
+               se habia decidido como ganador. */
+            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), altura_interna, -RADIO_INTERNO_PISTA * sinf(ang));
+            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), altura_externa, -RADIO_EXTERNO_PISTA * sinf(ang));
         }
         glEnd();
 
@@ -298,7 +305,8 @@ void dibujar_pista_numerada(void) {
 
             glColor3f(1.0f, 1.0f, 1.0f);
             glPushMatrix();
-            glTranslatef(radio_medio * cosf(ang_medio), altura_numero, radio_medio * sinf(ang_medio));
+            /* Mismo BUGFIX de signo que en los vertices de arriba */
+            glTranslatef(radio_medio * cosf(ang_medio), altura_numero, -radio_medio * sinf(ang_medio));
             glRotatef(-(angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
             glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
             dibujar_numero_pista(numero);

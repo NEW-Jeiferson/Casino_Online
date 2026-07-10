@@ -85,57 +85,55 @@ void iniciar_giro_bolita(EstadoBolita* bolita, float velocidad_inicial) {
 
 /* VELOCIDAD_RUEDA_DURANTE_GIRO ahora se expone en ruleta_animacion.h
    (main.c la necesita para su idle(), ver comentario ahi) */
-void iniciar_giro_bolita_hacia_absoluto(EstadoBolita* bolita, float delta_absoluto_deseado, int vueltas_extra) {
-    float delta_total;
-    float tasa_combinada;
+void iniciar_giro_bolita_hacia_absoluto(EstadoBolita* bolita, float angulo_sector_centro, int vueltas_extra) {
+    float target_mod;
+    float actual_mod;
+    float delta_relativo;
     float duracion_necesaria;
 
-    /* delta_absoluto_deseado es cuanto debe avanzar la POSICION ABSOLUTA
-       de la bolita en pantalla (rueda + bolita combinadas) para llegar
-       al sector elegido. Normalizar a [0, 360) y agregar vueltas extra
-       de regalo visual. */
-    delta_total = delta_absoluto_deseado;
-    while (delta_total < 0.0f) delta_total += 360.0f;
-    while (delta_total >= 360.0f) delta_total -= 360.0f;
-    if (vueltas_extra > 0) delta_total += 360.0f * (float)vueltas_extra;
+    /* --------------------------------------------------------------
+     * CORRECCION DE FONDO (reemplaza el enfoque de "tasa combinada"
+     * rueda+bolita usado antes): se hizo el algebra completa de la
+     * jerarquia de matrices y se confirmo que el angulo de la RUEDA
+     * SE CANCELA de la ecuacion de correctitud -no influye para nada
+     * en donde debe terminar la bolita relativa a un sector.
+     *
+     * Derivacion (ver conversacion para el detalle completo):
+     *   posicion_mundial_pista(sector)  = angulo_rueda + angulo_sector
+     *   posicion_mundial_bolita         = angulo_rueda - bolita.angulo_actual
+     *   (coinciden)  =>  bolita.angulo_actual_final = -angulo_sector
+     *
+     * Por eso esta funcion ya NO necesita saber nada de
+     * VELOCIDAD_RUEDA_DURANTE_GIRO ni de angulo_rueda: solo le importa
+     * a donde debe llegar el angulo PROPIO de la bolita. El parametro
+     * se sigue llamando angulo_sector_centro (no "absoluto") porque
+     * ya no representa una posicion absoluta -era ahi donde estaba el
+     * error conceptual de la version anterior.
+     * -------------------------------------------------------------- */
 
-    /* Tasa combinada: cuantos grados de posicion ABSOLUTA se recorren
-       por segundo, sumando el aporte de la rueda (que gira a
-       VELOCIDAD_RUEDA_DURANTE_GIRO mientras dura el giro) y el aporte
-       relativo de la bolita (VELOCIDAD_TIPICA_GIRO * FACTOR_INTEGRAL_EASING,
-       la misma relacion usada antes). Al resolver la duracion contra
-       esta tasa COMBINADA de una sola vez, ya no hace falta predecir
-       por separado "donde va a quedar la rueda" -eso era la
-       dependencia circular que causaba el bug (la rueda ya no gira
-       siempre los mismos 240 grados por giro, porque la duracion ya
-       no es fija; predecirla con un 240 fijo daba un resultado
-       incorrecto casi siempre). */
-    tasa_combinada = VELOCIDAD_RUEDA_DURANTE_GIRO + (VELOCIDAD_TIPICA_GIRO * FACTOR_INTEGRAL_EASING);
+    target_mod = (float)fmod(-angulo_sector_centro, 360.0f);
+    if (target_mod < 0.0f) target_mod += 360.0f;
 
-    duracion_necesaria = delta_total / tasa_combinada;
+    actual_mod = (float)fmod(bolita->angulo_actual, 360.0f);
+    if (actual_mod < 0.0f) actual_mod += 360.0f;
+
+    delta_relativo = target_mod - actual_mod;
+    while (delta_relativo < 0.0f) delta_relativo += 360.0f;
+    while (delta_relativo >= 360.0f) delta_relativo -= 360.0f;
+
+    if (vueltas_extra > 0) delta_relativo += 360.0f * (float)vueltas_extra;
+
+    duracion_necesaria = delta_relativo / (VELOCIDAD_TIPICA_GIRO * FACTOR_INTEGRAL_EASING);
 
     bolita->velocidad_inicial = VELOCIDAD_TIPICA_GIRO;
 
     if (duracion_necesaria < DURACION_MINIMA_GIRO) {
         duracion_necesaria = DURACION_MINIMA_GIRO;
-        /* Si se recorta la duracion, la rueda YA NO es controlable
-           desde aqui (gira a su propia velocidad fija en idle()), asi
-           que hay que recalcular SOLO la velocidad de la bolita para
-           que compense: bolita_delta_necesario = lo que falta despues
-           de descontar lo que la rueda ya aporta en ese tiempo
-           (recortado). */
-        float aporte_rueda = VELOCIDAD_RUEDA_DURANTE_GIRO * duracion_necesaria;
-        float bolita_delta_necesario = delta_total - aporte_rueda;
-        if (bolita_delta_necesario < 0.0f) bolita_delta_necesario = 0.0f; /* seguridad, no deberia pasar con los rangos usados */
-        bolita->velocidad_inicial = bolita_delta_necesario / (duracion_necesaria * FACTOR_INTEGRAL_EASING);
+        bolita->velocidad_inicial = delta_relativo / (duracion_necesaria * FACTOR_INTEGRAL_EASING);
     }
     else if (duracion_necesaria > DURACION_MAXIMA_GIRO) {
-        float aporte_rueda2, bolita_delta_necesario2;
         duracion_necesaria = DURACION_MAXIMA_GIRO;
-        aporte_rueda2 = VELOCIDAD_RUEDA_DURANTE_GIRO * duracion_necesaria;
-        bolita_delta_necesario2 = delta_total - aporte_rueda2;
-        if (bolita_delta_necesario2 < 0.0f) bolita_delta_necesario2 = 0.0f;
-        bolita->velocidad_inicial = bolita_delta_necesario2 / (duracion_necesaria * FACTOR_INTEGRAL_EASING);
+        bolita->velocidad_inicial = delta_relativo / (duracion_necesaria * FACTOR_INTEGRAL_EASING);
     }
 
     bolita->velocidad = bolita->velocidad_inicial;
@@ -189,13 +187,18 @@ void dibujar_bolita(const EstadoBolita* bolita) {
        encima, no centrada en la superficie) mas un margen chico
        para que no la toque. */
     const float MARGEN_SOBRE_SUPERFICIE = 0.02f;
-    const float RADIO_BOLITA = 0.2f;
+    const float RADIO_BOLITA = 0.12f; /* antes 0.2f: ocupaba ~91% del ancho de un sector (0.442 unidades a este radio de orbita), haciendo que pareciera "entre dos colores" incluso bien centrada. Con 0.12, el diametro (0.24) queda en ~54% del ancho del sector. */
     float altura_bolita = altura_superficie_en_radio(RADIO_ORBITA_BOLITA) + RADIO_BOLITA + MARGEN_SOBRE_SUPERFICIE;
 
     glPushMatrix();
 
     glTranslatef(0.0f, altura_bolita, 0.0f);
-    glRotatef(bolita->angulo_actual, 0.0f, 1.0f, 0.0f);
+    /* Sentido CONTRARIO a la rueda (signo negativo), como en una ruleta
+       real: el crupier lanza la bolita en sentido opuesto al giro de
+       la rueda. Esto tambien es lo que hace que la desaceleracion se
+       vea claramente (ver comentario largo en
+       iniciar_giro_bolita_hacia_absoluto sobre por que esto importa). */
+    glRotatef(-bolita->angulo_actual, 0.0f, 1.0f, 0.0f);
     glTranslatef(RADIO_ORBITA_BOLITA, 0.0f, 0.0f);
 
     aplicar_material(MATERIAL_METAL);

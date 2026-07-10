@@ -174,22 +174,21 @@ void teclado(unsigned char tecla, int x, int y) {
         break;
 
     case ' ':
-        /* FIX DE ALEATORIEDAD (ronda 3): las rondas anteriores
-           intentaban predecir por separado "donde va a quedar la
-           rueda" usando un angulo fijo (240 grados), asumiendo una
-           duracion de giro tambien fija. Al pasar a duracion variable
-           (ver ruleta_animacion.c), esa prediccion dejo de ser
-           correcta -la rueda ya no gira siempre lo mismo por giro-, lo
-           que causaba que la bolita cayera siempre desplazada de forma
-           parecida (bug real: "la bolita siempre cae en el mismo
-           lugar", reportado al probar).
+        /* FIX DE ALEATORIEDAD (ronda 4 - correccion de fondo): las
+           rondas anteriores (2 y 3) intentaban involucrar el angulo de
+           la RUEDA en el calculo del objetivo de la bolita -primero
+           prediciendolo mal con un valor fijo (ronda 2), despues con
+           una ecuacion "combinada" rueda+bolita (ronda 3)-, pero
+           ambos enfoques partian de una premisa equivocada.
 
-           Ahora no se predice nada por separado: se calcula
-           directamente cuanto debe avanzar la POSICION ABSOLUTA de la
-           bolita (rueda + bolita combinadas) para llegar al sector
-           elegido, y esa unica cantidad se le pasa a
-           iniciar_giro_bolita_hacia_absoluto(), que resuelve la
-           duracion contra la tasa combinada de ambos movimientos. */
+           Se rehizo el algebra completa de la jerarquia de matrices
+           (mesa -> rueda -> bolita) y se confirmo que el angulo de la
+           rueda SE CANCELA de la ecuacion de correctitud: no importa
+           en que angulo este la rueda, el unico numero que le importa
+           a iniciar_giro_bolita_hacia_absoluto() es el angulo del
+           sector elegido -ni siquiera hace falta calcular la posicion
+           actual combinada. Ver el comentario largo en
+           ruleta_animacion.c para la derivacion completa. */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
 
@@ -197,17 +196,9 @@ void teclado(unsigned char tecla, int x, int y) {
             int numero_ganador = ORDEN_RUEDA_EUROPEA[sector_ganador];
             float angulo_sector_centro = ((float)sector_ganador + 0.5f) * (360.0f / 37.0f);
 
-            /* Posicion absoluta ACTUAL de la bolita (antes de girar):
-               rueda + bolita, ambas en su angulo de reposo actual. */
-            float posicion_absoluta_actual = fmodf(partida.angulo_rueda + partida.bolita.angulo_actual, 360.0f);
-            float delta_absoluto_deseado;
-            if (posicion_absoluta_actual < 0.0f) posicion_absoluta_actual += 360.0f;
-
-            delta_absoluto_deseado = angulo_sector_centro - posicion_absoluta_actual;
-
             partida.numero_ganador_pendiente = numero_ganador;
 
-            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, delta_absoluto_deseado, 1 /* vuelta extra visual */);
+            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 1 /* vuelta extra visual */);
         }
         break;
 
