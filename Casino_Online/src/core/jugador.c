@@ -14,8 +14,16 @@ void inicializar_jugador(Jugador* j, float saldo_inicial) {
     j->interes_acumulado = 0.0f;
 }
 
-void aplicar_resultado_apuesta(Jugador* j, float monto_apostado, float ganancia) {
-    j->total_apostado += monto_apostado;
+void registrar_apuesta(Jugador* j, float monto) {
+    j->total_apostado += monto;
+}
+
+void anular_apuesta(Jugador* j, float monto) {
+    j->total_apostado -= monto;
+    if (j->total_apostado < 0.0f) j->total_apostado = 0.0f;
+}
+
+void aplicar_resultado_apuesta(Jugador* j, float ganancia) {
     j->saldo += ganancia;
 
     if (j->saldo <= 0.0f) {

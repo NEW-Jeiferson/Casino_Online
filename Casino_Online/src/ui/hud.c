@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "hud.h"
 
-/* Funcion auxiliar para dibujar texto con glutBitmapCharacter */
+ /* Funcion auxiliar para dibujar texto con glutBitmapCharacter */
 static void dibujar_texto_2d(float x, float y, const char* texto) {
     const char* c;
     glRasterPos2f(x, y);
@@ -15,14 +15,41 @@ static void dibujar_texto_2d(float x, float y, const char* texto) {
     }
 }
 
-void dibujar_hud(const Jugador* jugador) {
+void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apuestas_activas) {
     char buffer[128];
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
 
-    /* TODO: cambiar a proyeccion ortografica 2D antes de dibujar
-       (glMatrixMode(GL_PROJECTION) + glLoadIdentity + glOrtho),
-       deshabilitar GL_LIGHTING y GL_DEPTH_TEST temporalmente,
-       dibujar el texto, y restaurar el estado despues. */
+    /* --- Guardar estado 3D y entrar en modo 2D --- */
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
 
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    /* --- Interpolacion de color segun saldo bajo --- */
+    {
+        const float UMBRAL_SALDO_BAJO = 200.0f;
+        float t = jugador->saldo / UMBRAL_SALDO_BAJO;
+        float r, g, b;
+
+        if (t > 1.0f) t = 1.0f;
+        if (t < 0.0f) t = 0.0f;
+
+        r = 1.0f;
+        g = t;
+        b = t;
+
+        glColor3f(r, g, b);
+    }
+
+    /* --- Dibujo del HUD --- */
     sprintf_s(buffer, sizeof(buffer), "Saldo: %.2f", jugador->saldo);
     dibujar_texto_2d(10.0f, 730.0f, buffer);
 
@@ -32,6 +59,20 @@ void dibujar_hud(const Jugador* jugador) {
     sprintf_s(buffer, sizeof(buffer), "Prestamos activos: %d", jugador->prestamos_activos);
     dibujar_texto_2d(10.0f, 680.0f, buffer);
 
-    /* TODO: si jugador->saldo es bajo, interpolar el color del texto
-       de blanco a rojo (interpolacion de color) para llamar la atencion */
+    /* Ficha actualmente seleccionada (1-4), para que el jugador sepa
+       cuanto esta a punto de apostar antes de hacer clic. */
+    sprintf_s(buffer, sizeof(buffer), "Ficha actual: %.2f", monto_ficha_actual);
+    dibujar_texto_2d(10.0f, 655.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Apuestas colocadas: %d", num_apuestas_activas);
+    dibujar_texto_2d(10.0f, 630.0f, buffer);
+
+    /* --- Restaurar estado 3D --- */
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
 }

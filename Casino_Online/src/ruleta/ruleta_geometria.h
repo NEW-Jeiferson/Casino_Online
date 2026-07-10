@@ -32,8 +32,15 @@
 	debe orbitar la bolita sobre el borde de la rueda. */
 #define RADIO_EXTERIOR_RUEDA 3.0f
 
-	/* Genera los puntos del perfil de la rueda usando una curva de Bezier
-	   cubica, y los guarda para usarse en la superficie de revolucion */
+	/* Medio lado de la mesa (mesa cuadrada de -RADIO_MESA a +RADIO_MESA en
+	   X y Z, en Y=0). Se expone aqui porque el sistema de mouse picking
+	   (mouse_picking.c) y el mapeo de posicion 3D a celda del tablero
+	   (tablero_apuestas.c, responsabilidad de Luis) lo necesitan para sus
+	   calculos, en vez de repetir el numero "magico" 6.0f en otro archivo. */
+#define RADIO_MESA 6.0f
+
+	   /* Genera los puntos del perfil de la rueda usando una curva de Bezier
+		  cubica, y los guarda para usarse en la superficie de revolucion */
 void generar_perfil_bezier_rueda(void);
 
 /* Construye la malla 3D de la rueda (superficie de revolucion) a partir

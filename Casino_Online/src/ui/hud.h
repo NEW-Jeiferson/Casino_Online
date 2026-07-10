@@ -15,6 +15,6 @@
 
 /* Dibuja el HUD con la informacion actual del jugador. Debe llamarse en
    modo de proyeccion ortografica 2D (superpuesto a la escena 3D) */
-void dibujar_hud(const Jugador* jugador);
+void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apuestas_activas);
 
 #endif /* HUD_H */
