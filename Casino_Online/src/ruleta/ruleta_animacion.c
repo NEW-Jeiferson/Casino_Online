@@ -39,7 +39,7 @@
     /* Velocidad "tipica" con la que siempre se ve girar la bolita, sin
        importar cuanto tenga que recorrer en total -lo que cambia entre
        giros es la DURACION, no que tan rapido se ve. */
-#define VELOCIDAD_TIPICA_GIRO 220.0f
+#define VELOCIDAD_TIPICA_GIRO 140.0f
 
        /* --------------------------------------------------------------------
         * FACTOR_INTEGRAL_EASING: relacion entre angulo total recorrido,
@@ -63,7 +63,7 @@
 
         /* Limites de seguridad para que un giro nunca se sienta instantaneo
            ni exageradamente largo, sin importar el azar del angulo objetivo */
-#define DURACION_MINIMA_GIRO 2.5f
+#define DURACION_MINIMA_GIRO 3.5f
 #define DURACION_MAXIMA_GIRO 7.0f
 
 void inicializar_bolita(EstadoBolita* bolita) {
