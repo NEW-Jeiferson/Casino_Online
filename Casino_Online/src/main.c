@@ -55,9 +55,38 @@ typedef struct {
 
 static EstadoPartida partida;
 
+/* BUGFIX (integridad economica): antes se validaba cada ficha nueva
+   contra partida.jugador.saldo "a secas", pero registrar_apuesta() NO
+   descuenta el saldo al colocar una ficha (el saldo solo se ajusta una
+   vez, al resolver la ronda, con la ganancia/perdida neta -ver
+   jugador.c). Eso significaba que el saldo nunca "bajaba" mientras se
+   colocaban fichas dentro de la misma ronda, y el jugador podia
+   colocar muchas mas fichas de las que realmente podia pagar (hasta
+   MAX_APUESTAS), porque cada clic se validaba contra el mismo saldo
+   sin descontar.
+
+   Fix: se calcula cuanto se lleva apostado YA en esta ronda (sumando
+   partida.apuestas_activas), y se exige que el saldo alcance para eso
+   MAS la ficha nueva. No se toca jugador.c/aplicar_resultado_apuesta
+   (la liquidacion neta al final de la ronda sigue igual), solo se
+   corrige la validacion de "me alcanza para esta ficha". */
+static float monto_apostado_en_ronda(void) {
+    float total = 0.0f;
+    int i;
+    for (i = 0; i < partida.num_apuestas_activas; i++) {
+        total += partida.apuestas_activas[i].monto;
+    }
+    return total;
+}
+
+static int saldo_alcanza_para_ficha(float monto_ficha) {
+    return (partida.jugador.saldo - monto_apostado_en_ronda()) >= monto_ficha;
+}
+
 /* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
    Devuelve 1 si se agrego, 0 si no (arreglo lleno). */
 static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
+
     if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
     partida.apuestas_activas[partida.num_apuestas_activas].tipo = tipo;
     partida.apuestas_activas[partida.num_apuestas_activas].valor = valor;
@@ -168,7 +197,7 @@ void teclado(unsigned char tecla, int x, int y) {
         /* Apuesta a color ROJO: se agrega al arreglo de apuestas
            activas, pero NO dispara el giro (ver tecla ESPACIO). */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
-            && partida.jugador.saldo >= partida.monto_ficha_actual) {
+            && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_ROJO, partida.monto_ficha_actual);
         }
         break;
@@ -176,7 +205,7 @@ void teclado(unsigned char tecla, int x, int y) {
     case 'n':
     case 'N':
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
-            && partida.jugador.saldo >= partida.monto_ficha_actual) {
+            && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_NEGRO, partida.monto_ficha_actual);
         }
         break;
@@ -262,7 +291,7 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
 
     if (boton == GLUT_LEFT_BUTTON) {
         /* Clic izquierdo: agregar ficha */
-        if (partida.jugador.saldo < partida.monto_ficha_actual) return;
+        if (!saldo_alcanza_para_ficha(partida.monto_ficha_actual)) return;
         if (!obtener_punto_clic_en_mesa(x, y, &wx, &wz)) return;
 
         if (obtener_numero_en_punto(wx, wz, &numero)) {
@@ -305,8 +334,31 @@ void mouse_mover(int x, int y) {
 }
 
 void idle(void) {
-    const float delta_tiempo = 0.016f;
+    /* BUGFIX (velocidad de giro): antes delta_tiempo era una constante
+       fija (0.016f, "como si" el juego corriera siempre a 60 FPS). Pero
+       GLUT clasico no limita cuantas veces por segundo se llama a
+       idle() -sin vsync, esto puede correr cientos o miles de veces
+       por segundo segun el equipo-, y cada llamada sumaba esos 16ms
+       "de mentira" sin importar cuanto tiempo real hubiera pasado.
+       Resultado: una animacion pensada para durar 3.5-7 segundos
+       terminaba en menos de 1 segundo de reloj real.
+
+       Fix: medir el tiempo real transcurrido con glutGet(GLUT_ELAPSED_TIME)
+       (milisegundos desde glutInit) y usar la diferencia real entre
+       frames. Se limita (clamp) a un maximo de 0.1s por frame para
+       evitar saltos enormes si la ventana se arrastra, se minimiza, o
+       el sistema se congela un instante -sin el clamp, un solo frame
+       "lento" podria saltar la bolita varios grados de golpe. */
+    static int tiempo_anterior_ms = -1;
+    int   tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
+    float delta_tiempo;
     int estaba_girando = partida.bolita.girando;
+
+    if (tiempo_anterior_ms < 0) tiempo_anterior_ms = tiempo_actual_ms;
+    delta_tiempo = (float)(tiempo_actual_ms - tiempo_anterior_ms) / 1000.0f;
+    tiempo_anterior_ms = tiempo_actual_ms;
+    if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   /* por si el contador diera un valor raro */
+    if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   /* clamp anti-salto */
 
     if (partida.bolita.girando) {
         /* Usa la MISMA constante que iniciar_giro_bolita_hacia_absoluto()
@@ -331,15 +383,17 @@ void idle(void) {
         int   numero_ganador = partida.numero_ganador_pendiente;
         float ganancia_total = calcular_ganancia_total(partida.apuestas_activas, partida.num_apuestas_activas, numero_ganador);
 
-        /* DIAGNOSTICO TEMPORAL: imprime en la consola el numero/color
-           que realmente se decidio, para comparar directamente contra
-           lo que se ve en pantalla y confirmar si ya coinciden.
-           Se puede quitar una vez confirmado. */
+        /* DIAGNOSTICO: solo en builds Debug (_DEBUG lo define el
+           .vcxproj automaticamente). En Release (NDEBUG) esto
+           desaparece del binario -ya no hace falta acordarse de
+           quitarlo a mano antes de entregar. */
+#ifdef _DEBUG
         {
             const char* color_texto = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "ROJO"
                 : (color_de_numero(numero_ganador) == COLOR_NEGRO) ? "NEGRO" : "VERDE";
             printf("[RESULTADO REAL] numero=%d color=%s ganancia=%.2f\n", numero_ganador, color_texto, ganancia_total);
         }
+#endif
 
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;

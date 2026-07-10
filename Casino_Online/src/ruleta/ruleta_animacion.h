@@ -15,8 +15,12 @@
     misma constante en su idle() para incrementar angulo_rueda -no un
     numero repetido a mano-, porque iniciar_giro_bolita_hacia_absoluto()
     asume este valor exacto al resolver la duracion del giro. Si alguna
-    vez cambia, hay que cambiarla solo aqui. */
-#define VELOCIDAD_RUEDA_DURANTE_GIRO 60.0f
+    vez cambia, hay que cambiarla solo aqui.
+    DOBLADA de 81 a 162 (a pedido explicito: "el doble de rapido"), junto
+    con VELOCIDAD_TIPICA_GIRO y los limites de duracion en
+    ruleta_animacion.c, para que la rueda y la bolita se sigan viendo a
+    velocidades proporcionadas entre si. */
+#define VELOCIDAD_RUEDA_DURANTE_GIRO 162.0f
 
 typedef struct {
     float angulo_actual;      /* posicion angular de la bolita en la rueda */
@@ -29,11 +33,6 @@ typedef struct {
 
 /* Inicializa el estado de la bolita (detenida, angulo 0) */
 void inicializar_bolita(EstadoBolita* bolita);
-
-/* Inicia el giro de la bolita con una velocidad inicial dada. Se deja
-   publica por compatibilidad, pero para resolver apuestas el flujo
-   correcto es iniciar_giro_bolita_hacia_absoluto() (ver abajo). */
-void iniciar_giro_bolita(EstadoBolita* bolita, float velocidad_inicial);
 
 /* Inicia el giro resolviendo, de una sola vez, cuanto deben avanzar
    JUNTAS la rueda y la bolita para que la posicion ABSOLUTA final de

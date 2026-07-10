@@ -3,7 +3,6 @@
  * Implementacion de la maquina de estados. Ver estado_juego.h.
  */
 #include "estado_juego.h"
-#include <math.h>
 #include <stdio.h>
 
 EstadoJuego estado_actual;
@@ -74,28 +73,6 @@ void cambiar_estado(EstadoJuego nuevo_estado) {
         return;
     }
     estado_actual = nuevo_estado;
-}
-
-ColorRuleta calcular_color_ganador(float angulo_final) {
-    float angulo_normalizado = fmodf(angulo_final, 360.0f);
-    int sector;
-    if (angulo_normalizado < 0.0f) angulo_normalizado += 360.0f;
-
-    sector = (int)(angulo_normalizado / (360.0f / 37.0f)); /* 0..36 */
-
-    if (sector == 0) return COLOR_VERDE;
-    return (sector % 2 == 0) ? COLOR_NEGRO : COLOR_ROJO;
-}
-
-int calcular_numero_ganador(float angulo_final) {
-    float angulo_normalizado = fmodf(angulo_final, 360.0f);
-    int sector;
-    if (angulo_normalizado < 0.0f) angulo_normalizado += 360.0f;
-
-    sector = (int)(angulo_normalizado / (360.0f / 37.0f)); /* 0..36 */
-    if (sector > 36) sector = 36; /* proteccion por redondeo */
-
-    return ORDEN_RUEDA_EUROPEA[sector];
 }
 
 int docena_de_numero(int numero) {
