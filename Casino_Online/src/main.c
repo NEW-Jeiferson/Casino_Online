@@ -102,8 +102,16 @@ void display(void) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    gluLookAt(0.0, 9.0, 11.0,
-        0.0, 0.0, 0.0,
+    /* Camara mucho mas inclinada hacia abajo que antes (65 grados de
+       elevacion, antes 39), para leer mejor los numeros de la rueda y
+       el tablero, sin llegar a ser una vista totalmente plana desde
+       arriba -se conserva la perspectiva real (gluPerspective, no
+       glOrtho), asi que el volumen 3D de la rueda (domo, sombreado de
+       Phong) sigue notandose. El punto al que mira se corrio un poco
+       hacia el tablero (Z positivo) para que quede mejor encuadrado
+       junto con la rueda, en vez de mirar solo al centro de la rueda. */
+    gluLookAt(0.0, 15.0, 7.0,
+        0.0, 0.0, 1.0,
         0.0, 1.0, 0.0);
 
     glPushMatrix();
