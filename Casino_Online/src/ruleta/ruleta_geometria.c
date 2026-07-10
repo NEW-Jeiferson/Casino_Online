@@ -11,9 +11,12 @@
  */
 #include <GL/glut.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 #include "ruleta_geometria.h"
 #include "../render/materiales.h"
 #include "../utils/bezier.h"
+#include "../core/estado_juego.h" /* ORDEN_RUEDA_EUROPEA, color_de_numero: para la pista numerada */
 
  /* RADIO_MESA ahora se expone en ruleta_geometria.h (Luis la necesita
     para el mapeo de posicion 3D a celda del tablero de apuestas) */
@@ -180,4 +183,97 @@ void dibujar_vidrio_protector(void) {
     glDisable(GL_BLEND);
 
     glPopMatrix();
+}
+
+/* ------------------------------------------------------------------- */
+/* Pista numerada (Opcion A: colores geometricos por sector + numeros   */
+/* rectos, sin textura). Se llama justo despues de dibujar_rueda(),     */
+/* mientras la matriz del nodo "rueda" sigue activa, para que la pista  */
+/* gire junto con la rueda en vez de quedarse fija.                     */
+/*                                                                       */
+/* Usa ORDEN_RUEDA_EUROPEA y color_de_numero() de estado_juego.h        */
+/* (Luis) -misma fuente de verdad que usa main.c para decidir el       */
+/* numero ganador, asi que lo que se VE en la rueda siempre coincide    */
+/* con lo que CUENTA como resultado. No hay copia local de estos datos. */
+/* ------------------------------------------------------------------- */
+
+/* Radios de la banda donde va la pista (entre el domo central y el
+   labio del borde). Ajustados a ojo contra el perfil de Bezier actual
+   (p1 en radio ~1.05, p2 en radio ~2.25, p3 -borde- en radio 3.0);
+   recalibrar viendo la escena real si hace falta. */
+#define RADIO_INTERNO_PISTA 1.6f
+#define RADIO_EXTERNO_PISTA 2.6f
+
+   /* Altura a la que se dibuja la pista: justo por encima del punto mas
+      alto del perfil en esa banda (p1.y = 0.40), para que no quede
+      "enterrada" dentro de la superficie curva en ningun punto. */
+#define ALTURA_PISTA 0.42f
+
+static void dibujar_numero_pista(int numero) {
+    char texto[4];
+    int i, len;
+
+    snprintf(texto, sizeof(texto), "%d", numero);
+    len = (int)strlen(texto);
+
+    glPushMatrix();
+    glScalef(0.0022f, 0.0022f, 1.0f); /* la fuente stroke es "grande" por defecto */
+    glTranslatef(-(float)len * 52.0f, 0.0f, 0.0f); /* centrar aproximadamente */
+    for (i = 0; i < len; i++) {
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
+    }
+    glPopMatrix();
+}
+
+void dibujar_pista_numerada(void) {
+    int sector;
+    const float paso_angular = 360.0f / 37.0f;
+
+    /* dibujar_rueda() ya dejo fijo MATERIAL_METAL (glMaterialfv), que
+       por si solo IGNORA glColor3f. Activar GL_COLOR_MATERIAL hace que
+       el color plano si tenga efecto para esta pasada -se desactiva al
+       final para no afectar lo que se dibuje despues (bolita, vidrio). */
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
+    for (sector = 0; sector < 37; sector++) {
+        int numero = ORDEN_RUEDA_EUROPEA[sector];
+        ColorRuleta color = color_de_numero(numero);
+        /* Mismo convenio de angulo usado para decidir el resultado en
+           main.c: cada sector ocupa 360/37 grados, empezando en 0. */
+        float angulo_inicio = sector * paso_angular;
+        float angulo_fin = angulo_inicio + paso_angular;
+        int segmentos_arco = 4; /* subdivisiones para que la cuña no sea un triangulo tosco */
+        int k;
+
+        if (color == COLOR_VERDE)      glColor3f(0.0f, 0.5f, 0.15f);
+        else if (color == COLOR_ROJO)  glColor3f(0.75f, 0.08f, 0.08f);
+        else                            glColor3f(0.05f, 0.05f, 0.05f); /* negro */
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (k = 0; k <= segmentos_arco; k++) {
+            float t = (float)k / segmentos_arco;
+            float ang = (angulo_inicio + t * (angulo_fin - angulo_inicio)) * PI_GEOMETRIA / 180.0f;
+            glNormal3f(0.0f, 1.0f, 0.0f);
+            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), ALTURA_PISTA, RADIO_INTERNO_PISTA * sinf(ang));
+            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), ALTURA_PISTA, RADIO_EXTERNO_PISTA * sinf(ang));
+        }
+        glEnd();
+
+        /* Numero centrado en medio del sector, a mitad del radio de la pista */
+        {
+            float ang_medio = (angulo_inicio + paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f;
+            float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
+
+            glColor3f(1.0f, 1.0f, 1.0f);
+            glPushMatrix();
+            glTranslatef(radio_medio * cosf(ang_medio), ALTURA_PISTA + 0.001f, radio_medio * sinf(ang_medio));
+            glRotatef(-(angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
+            glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+            dibujar_numero_pista(numero);
+            glPopMatrix();
+        }
+    }
+
+    glDisable(GL_COLOR_MATERIAL);
 }

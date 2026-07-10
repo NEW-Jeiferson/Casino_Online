@@ -128,7 +128,16 @@ float calcular_ganancia_apuesta(const Apuesta* apuesta, int numero_ganador) {
             ? apuesta->monto * 2.0f : -apuesta->monto;
 
     case APUESTA_PAR_IMPAR:
-        return (numero_ganador != 0 && numero_es_par(numero_ganador) == apuesta->valor)
+        /* BUGFIX (encontrado en analisis cruzado, no introducido por
+           Jeiferson): la comparacion original usaba == en vez de !=.
+           Convenio: apuesta->valor = 0 significa "aposte a PAR",
+           valor = 1 significa "aposte a IMPAR". numero_es_par()
+           devuelve 1 si el numero es par, 0 si es impar.
+           Con ==: apostar a PAR (valor=0) solo "ganaba" cuando
+           numero_es_par devolvia 0 (numero IMPAR) -exactamente al
+           reves. La comparacion correcta es !=, ver tabla de verdad
+           completa en la conversacion/AR correspondiente. */
+        return (numero_ganador != 0 && numero_es_par(numero_ganador) != apuesta->valor)
             ? apuesta->monto : -apuesta->monto;
 
     case APUESTA_MITAD:
