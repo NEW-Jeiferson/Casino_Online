@@ -17,6 +17,70 @@ static void dibujar_texto_2d(float x, float y, const char* texto) {
     }
 }
 
+void dibujar_pantalla_menu(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    /* --- Entrar en modo 2D (igual que en hud.c) --- */
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    /* --- Overlay semitransparente sobre toda la pantalla --- */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glDisable(GL_BLEND);
+
+    /* --- Titulo y aviso de proposito (concientizacion, saldo virtual) --- */
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_2d(cx - 190.0f, cy + 190.0f, "CASINO ONLINE - SIMULADOR DE RULETA");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d(cx - 220.0f, cy + 150.0f,
+        "Juegas con saldo virtual. Nunca dinero real.");
+
+    /* --- Controles --- */
+    dibujar_texto_2d(cx - 220.0f, cy + 105.0f, "Controles:");
+    dibujar_texto_2d(cx - 220.0f, cy + 78.0f, "1 - 4            Elegir monto de ficha");
+    dibujar_texto_2d(cx - 220.0f, cy + 51.0f, "Clic izquierdo   Apostar en la celda senalada");
+    dibujar_texto_2d(cx - 220.0f, cy + 24.0f, "Clic derecho     Quitar una ficha de esa celda");
+    dibujar_texto_2d(cx - 220.0f, cy - 3.0f, "BACKSPACE        Deshacer la ultima ficha");
+    dibujar_texto_2d(cx - 220.0f, cy - 30.0f, "ESPACIO          Girar la ruleta");
+    dibujar_texto_2d(cx - 220.0f, cy - 57.0f, "P                Pedir prestamo (sin saldo)");
+
+    /* --- Llamado a la accion --- */
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_2d(cx - 150.0f, cy - 110.0f, "[ENTER] Comenzar     [ESC] Salir");
+
+    /* --- Restaurar estado 3D --- */
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
 void dibujar_pantalla_prestamo(const Jugador* jugador) {
     int ancho = glutGet(GLUT_WINDOW_WIDTH);
     int alto = glutGet(GLUT_WINDOW_HEIGHT);
@@ -148,6 +212,9 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
 
 void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador) {
     switch (estado) {
+    case ESTADO_MENU:
+        dibujar_pantalla_menu();
+        break;
     case ESTADO_PRESTAMO:
         dibujar_pantalla_prestamo(jugador);
         break;
@@ -155,7 +222,6 @@ void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador) {
         dibujar_pantalla_game_over(jugador);
         break;
     default:
-        break; /* ESTADO_MENU, ESTADO_JUGANDO, ESTADO_SIN_FONDOS
-                   no requieren overlay o se manejan aparte */
+        break; /* ESTADO_JUGANDO no requiere overlay */
     }
 }

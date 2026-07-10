@@ -15,6 +15,10 @@
 #include "../core/jugador.h"
 #include "../core/estado_juego.h"
 
+/* Dibuja la pantalla de bienvenida (ESTADO_MENU): titulo, aviso de que
+   se juega con saldo virtual, y la lista de controles del juego. */
+void dibujar_pantalla_menu(void);
+
 /* Dibuja el overlay y mensaje reflexivo de la pantalla de prestamo */
 void dibujar_pantalla_prestamo(const Jugador* jugador);
 

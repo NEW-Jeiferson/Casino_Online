@@ -11,9 +11,12 @@
  */
 #include <GL/glut.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 #include "ruleta_geometria.h"
 #include "../render/materiales.h"
 #include "../utils/bezier.h"
+#include "../core/estado_juego.h" /* ORDEN_RUEDA_EUROPEA, color_de_numero: para la pista numerada */
 
  /* RADIO_MESA ahora se expone en ruleta_geometria.h (Luis la necesita
     para el mapeo de posicion 3D a celda del tablero de apuestas) */
@@ -54,6 +57,31 @@ static Punto3D normalizar_vector(Punto3D v) {
     r.y = v.y / longitud;
     r.z = v.z / longitud;
     return r;
+}
+
+
+
+/* Ver declaracion en ruleta_geometria.h. perfil_puntos[].x es radio
+   creciente (garantizado: los puntos de control de la Bezier tienen
+   X monotonamente creciente, 0 -> 1.05 -> 2.25 -> 3.0, asi que la
+   curva resultante tambien lo es), asi que basta interpolar linealmente
+   entre los dos puntos muestreados que rodean el radio pedido. */
+float altura_superficie_en_radio(float radio) {
+    int i;
+
+    if (radio <= perfil_puntos[0].x) return perfil_puntos[0].y;
+    if (radio >= perfil_puntos[PERFIL_SEGMENTOS - 1].x) return perfil_puntos[PERFIL_SEGMENTOS - 1].y;
+
+    for (i = 0; i < PERFIL_SEGMENTOS - 1; i++) {
+        float r0 = perfil_puntos[i].x;
+        float r1 = perfil_puntos[i + 1].x;
+
+        if (radio >= r0 && radio <= r1) {
+            float t = (r1 - r0 < 0.00001f) ? 0.0f : (radio - r0) / (r1 - r0);
+            return perfil_puntos[i].y + t * (perfil_puntos[i + 1].y - perfil_puntos[i].y);
+        }
+    }
+    return perfil_puntos[PERFIL_SEGMENTOS - 1].y; /* no deberia llegar aca */
 }
 
 /* ------------------------------------------------------------------- */
@@ -180,4 +208,104 @@ void dibujar_vidrio_protector(void) {
     glDisable(GL_BLEND);
 
     glPopMatrix();
+}
+
+/* ------------------------------------------------------------------- */
+/* Pista numerada (Opcion A: colores geometricos por sector + numeros   */
+/* rectos, sin textura). Se llama justo despues de dibujar_rueda(),     */
+/* mientras la matriz del nodo "rueda" sigue activa, para que la pista  */
+/* gire junto con la rueda en vez de quedarse fija.                     */
+/*                                                                       */
+/* Usa ORDEN_RUEDA_EUROPEA y color_de_numero() de estado_juego.h        */
+/* (Luis) -misma fuente de verdad que usa main.c para decidir el       */
+/* numero ganador, asi que lo que se VE en la rueda siempre coincide    */
+/* con lo que CUENTA como resultado. No hay copia local de estos datos. */
+/* ------------------------------------------------------------------- */
+
+/* Radios de la banda donde va la pista (entre el domo central y el
+   labio del borde). Ajustados a ojo contra el perfil de Bezier actual
+   (p1 en radio ~1.05, p2 en radio ~2.25, p3 -borde- en radio 3.0);
+   recalibrar viendo la escena real si hace falta. */
+#define RADIO_INTERNO_PISTA 1.6f
+#define RADIO_EXTERNO_PISTA 2.6f
+
+   /* Altura a la que se dibuja la pista: justo por encima del punto mas
+      alto del perfil en esa banda (p1.y = 0.40), para que no quede
+      "enterrada" dentro de la superficie curva en ningun punto. */
+#define ALTURA_PISTA 0.42f
+
+static void dibujar_numero_pista(int numero) {
+    char texto[4];
+    int i, len;
+
+    snprintf(texto, sizeof(texto), "%d", numero);
+    len = (int)strlen(texto);
+
+    glPushMatrix();
+    glScalef(0.0022f, 0.0022f, 1.0f); /* la fuente stroke es "grande" por defecto */
+    glTranslatef(-(float)len * 52.0f, 0.0f, 0.0f); /* centrar aproximadamente */
+    for (i = 0; i < len; i++) {
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
+    }
+    glPopMatrix();
+}
+
+#define OFFSET_PISTA 0.006f /* separacion minima sobre la malla metalica, para evitar z-fighting */
+
+void dibujar_pista_numerada(void) {
+    int sector;
+    const float paso_angular = 360.0f / 37.0f;
+
+    /* FIX: alturas leidas de la superficie real (Bezier) en vez del
+       ALTURA_PISTA fijo original. El perfil se hunde entre el radio
+       interno y externo de la pista (ver comentario de altura_superficie_en_radio),
+       asi que un valor constante hacia que la pista entera flotara por
+       encima de la rueda -mas notorio hacia el borde externo, que es
+       justo donde esta el hundimiento mas fuerte del perfil. */
+    float altura_interna = altura_superficie_en_radio(RADIO_INTERNO_PISTA) + OFFSET_PISTA;
+    float altura_externa = altura_superficie_en_radio(RADIO_EXTERNO_PISTA) + OFFSET_PISTA;
+
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glDisable(GL_CULL_FACE);
+
+    for (sector = 0; sector < 37; sector++) {
+        int numero = ORDEN_RUEDA_EUROPEA[sector];
+        ColorRuleta color = color_de_numero(numero);
+        float angulo_inicio = sector * paso_angular;
+        float angulo_fin = angulo_inicio + paso_angular;
+        int segmentos_arco = 4;
+        int k;
+
+        if (color == COLOR_VERDE)      glColor3f(0.0f, 0.5f, 0.15f);
+        else if (color == COLOR_ROJO)  glColor3f(0.75f, 0.08f, 0.08f);
+        else                            glColor3f(0.05f, 0.05f, 0.05f);
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (k = 0; k <= segmentos_arco; k++) {
+            float t = (float)k / segmentos_arco;
+            float ang = (angulo_inicio + t * (angulo_fin - angulo_inicio)) * PI_GEOMETRIA / 180.0f;
+            glNormal3f(0.0f, 1.0f, 0.0f);
+            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), altura_interna, RADIO_INTERNO_PISTA * sinf(ang));
+            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), altura_externa, RADIO_EXTERNO_PISTA * sinf(ang));
+        }
+        glEnd();
+
+        {
+            float ang_medio = (angulo_inicio + paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f;
+            float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
+            float altura_numero = altura_superficie_en_radio(radio_medio) + OFFSET_PISTA * 2.0f; /* un poco mas alto que la banda, para no pelear con ella en Z */
+
+            glColor3f(1.0f, 1.0f, 1.0f);
+            glPushMatrix();
+            glTranslatef(radio_medio * cosf(ang_medio), altura_numero, radio_medio * sinf(ang_medio));
+            glRotatef(-(angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
+            glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+            dibujar_numero_pista(numero);
+            glPopMatrix();
+        }
+    }
+
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
 }
