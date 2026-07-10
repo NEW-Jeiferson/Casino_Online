@@ -30,11 +30,6 @@ typedef struct {
 /* Inicializa el estado de la bolita (detenida, angulo 0) */
 void inicializar_bolita(EstadoBolita* bolita);
 
-/* Inicia el giro de la bolita con una velocidad inicial dada. Se deja
-   publica por compatibilidad, pero para resolver apuestas el flujo
-   correcto es iniciar_giro_bolita_hacia_absoluto() (ver abajo). */
-void iniciar_giro_bolita(EstadoBolita* bolita, float velocidad_inicial);
-
 /* Inicia el giro resolviendo, de una sola vez, cuanto deben avanzar
    JUNTAS la rueda y la bolita para que la posicion ABSOLUTA final de
    la bolita (rueda + bolita combinadas) avance exactamente

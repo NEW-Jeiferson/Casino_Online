@@ -15,21 +15,28 @@ typedef enum {
     COLOR_VERDE
 } ColorRuleta;
 
-/* Calcula el color ganador segun el angulo final de la bolita (0-360),
-   dividiendo la rueda en 37 sectores como una ruleta europea real */
-ColorRuleta calcular_color_ganador(float angulo_final);
 extern const int ORDEN_RUEDA_EUROPEA[37];
 
-/* Determina el numero ganador (0-36) segun el angulo final de la bolita */
-int calcular_numero_ganador(float angulo_final);
+/* NOTA: antes existian aqui calcular_color_ganador(angulo_final) y
+   calcular_numero_ganador(angulo_final) -derivaban el resultado del
+   ANGULO FINAL de la bolita. Ese fue el enfoque viejo y con bugs (ver
+   contexto-proyecto.md, seccion 9, items 1 y 3): el numero ganador
+   ahora se decide ANTES de girar con rand() % 37 (ver ' ' en
+   main.c/teclado()), y ninguna parte del codigo actual llama a esas
+   dos funciones. Se eliminaron para que no queden como "fuente de
+   verdad" enganosa -si alguna vez hace falta re-derivar un numero a
+   partir de un angulo, hay que reconstruirla teniendo en cuenta el fix
+   de signo en Z de dibujar_pista_numerada() (ruleta_geometria.c),
+   que estas funciones viejas no incorporaban. */
 
-/* Determina el color real de un numero especifico (0-36), segun la
-   tabla fija de una ruleta europea real */
+   /* Determina el color real de un numero especifico (0-36), segun la
+      tabla fija de una ruleta europea real */
 ColorRuleta color_de_numero(int numero);
 
 /* --- Derivados del numero ganador (para resolver docena/par-impar/
-   mitad). Todos parten del numero que ya devuelve
-   calcular_numero_ganador(); no reimplementan nada de la rueda. --- */
+   mitad). Todos parten de un numero ya conocido (el que decide main.c
+   con rand() % 37 al presionar ESPACIO, ver ORDEN_RUEDA_EUROPEA); no
+   reimplementan nada de la rueda. --- */
 
    /* Docena del numero: 1 (1-12), 2 (13-24), 3 (25-36); 0 si numero es 0 */
 int docena_de_numero(int numero);

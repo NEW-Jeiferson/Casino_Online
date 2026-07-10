@@ -28,10 +28,10 @@
 #include "../utils/bezier.h"
 
  /* Duracion "base" del frenado de la bolita, en segundos. Ya no se usa
-    como duracion fija de cada giro (ver iniciar_giro_bolita_hacia,
-    que calcula una duracion distinta por giro) -se deja como valor por
-    defecto de iniciar_giro_bolita() para quien la siga llamando
-    directamente con una velocidad fija en vez de un angulo destino. */
+    como duracion fija de cada giro (ver iniciar_giro_bolita_hacia_absoluto,
+    que calcula una duracion distinta por giro) -se deja solo como valor
+    inicial de inicializar_bolita() (bolita detenida, antes de cualquier
+    giro real). */
 #define DURACION_GIRO_BOLA 4.0f
 
     /* BUGFIX: antes era (RADIO_EXTERIOR_RUEDA - 0.4f) = 2.6, que
@@ -82,16 +82,17 @@ void inicializar_bolita(EstadoBolita* bolita) {
     bolita->tiempo_transcurrido = 0.0f;
 }
 
-void iniciar_giro_bolita(EstadoBolita* bolita, float velocidad_inicial) {
-    bolita->velocidad_inicial = velocidad_inicial;
-    bolita->velocidad = velocidad_inicial;
-    bolita->duracion_total = DURACION_GIRO_BOLA;
-    bolita->girando = 1;
-    bolita->tiempo_transcurrido = 0.0f;
-}
+/* NOTA: aqui existia iniciar_giro_bolita(bolita, velocidad_inicial),
+   la version vieja que giraba con una velocidad fija en vez de
+   resolver hacia un angulo objetivo. No la usa nada del codigo actual
+   (el flujo real es iniciar_giro_bolita_hacia_absoluto(), que es el
+   unico que garantiza que el numero visual coincide con el numero
+   decidido). Se elimino para no dejarla como alternativa "valida" -si
+   se llamara por error, la animacion terminaria en un angulo que no
+   corresponde a ningun numero ganador real. */
 
-/* VELOCIDAD_RUEDA_DURANTE_GIRO ahora se expone en ruleta_animacion.h
-   (main.c la necesita para su idle(), ver comentario ahi) */
+   /* VELOCIDAD_RUEDA_DURANTE_GIRO ahora se expone en ruleta_animacion.h
+      (main.c la necesita para su idle(), ver comentario ahi) */
 void iniciar_giro_bolita_hacia_absoluto(EstadoBolita* bolita, float angulo_sector_centro, int vueltas_extra) {
     float target_mod;
     float actual_mod;

@@ -49,23 +49,35 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
         glColor3f(r, g, b);
     }
 
-    /* --- Dibujo del HUD --- */
+    /* --- Dibujo del HUD ---
+       BUGFIX: antes las posiciones Y eran constantes absolutas
+       (730, 705, 680...) calculadas a mano para una ventana de
+       1024x768. pantallas.c ya calculaba todo en base al ancho/alto
+       reales (glutGet), pero hud.c no -si la ventana se redimensionaba
+       (reshape() lo permite sin restriccion), el HUD podia quedar
+       cortado (ventana mas chica que 768 de alto) o "flotando" lejos
+       de la esquina superior (ventana mas grande). Ahora las Y se
+       anclan a 'alto', con el mismo espaciado vertical de 25px y el
+       mismo margen superior de 38px que tenia el layout original a
+       768 de alto (768 - 730 = 38, 768 - 705 = 63, etc.), asi que a
+       1024x768 se ve identico a antes, y en cualquier otro tamano de
+       ventana se mantiene pegado a la esquina superior izquierda. */
     sprintf_s(buffer, sizeof(buffer), "Saldo: %.2f", jugador->saldo);
-    dibujar_texto_2d(10.0f, 730.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 38.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
-    dibujar_texto_2d(10.0f, 705.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 63.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Prestamos activos: %d", jugador->prestamos_activos);
-    dibujar_texto_2d(10.0f, 680.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 88.0f, buffer);
 
     /* Ficha actualmente seleccionada (1-4), para que el jugador sepa
        cuanto esta a punto de apostar antes de hacer clic. */
     sprintf_s(buffer, sizeof(buffer), "Ficha actual: %.2f", monto_ficha_actual);
-    dibujar_texto_2d(10.0f, 655.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 113.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Apuestas colocadas: %d", num_apuestas_activas);
-    dibujar_texto_2d(10.0f, 630.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 138.0f, buffer);
 
     /* --- Restaurar estado 3D --- */
     glEnable(GL_DEPTH_TEST);
