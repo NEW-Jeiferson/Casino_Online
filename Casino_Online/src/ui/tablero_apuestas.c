@@ -241,8 +241,9 @@ static void dibujar_lineas_zonas_especiales(void) {
 
 /* Capa 5: resaltado de la celda bajo el mouse (hover), usando
    celda_hover_col/celda_hover_fila (actualizadas desde mouse_mover()
-   en main.c). Dibuja solo el borde, para no tapar el color rojo/negro
-   de la casilla. */
+   en main.c). Ademas del borde original, se agrega un relleno dorado
+   semitransparente (mismo dorado que las fichas apostadas) para dar
+   sensacion de "casilla activa" sin tapar el rojo/negro de fondo. */
 static void dibujar_hover(void) {
     if (celda_hover_col < 0 || celda_hover_fila < 0) return; /* sin hover activo */
 
@@ -251,7 +252,27 @@ static void dibujar_hover(void) {
     glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
     glScalef(ESCALA_TABLERO, ESCALA_TABLERO, 1.0f);
 
-    glColor3f(1.0f, 1.0f, 1.0f); /* blanco brillante, bien visible sobre rojo/negro */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    /* Relleno: dorado al 25% de opacidad, mismo tono que las fichas
+       apostadas (1.0, 0.85, 0.0) para mantener consistencia visual. */
+    glColor4f(1.0f, 0.85f, 0.0f, 0.25f);
+    glBegin(GL_QUADS);
+    glVertex2i(celda_hover_col * CELDA_PX + MARGEN_CASILLA,
+        celda_hover_fila * CELDA_PX + MARGEN_CASILLA);
+    glVertex2i((celda_hover_col + 1) * CELDA_PX - MARGEN_CASILLA,
+        celda_hover_fila * CELDA_PX + MARGEN_CASILLA);
+    glVertex2i((celda_hover_col + 1) * CELDA_PX - MARGEN_CASILLA,
+        (celda_hover_fila + 1) * CELDA_PX - MARGEN_CASILLA);
+    glVertex2i(celda_hover_col * CELDA_PX + MARGEN_CASILLA,
+        (celda_hover_fila + 1) * CELDA_PX - MARGEN_CASILLA);
+    glEnd();
+
+    glDisable(GL_BLEND);
+
+    /* Borde original: blanco brillante, bien visible sobre rojo/negro */
+    glColor3f(1.0f, 1.0f, 1.0f);
     glLineWidth(3.0f);
 
     glBegin(GL_LINE_LOOP);
