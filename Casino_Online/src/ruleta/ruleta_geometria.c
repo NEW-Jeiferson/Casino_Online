@@ -229,26 +229,29 @@ void dibujar_pista_numerada(void) {
     int sector;
     const float paso_angular = 360.0f / 37.0f;
 
-    /* dibujar_rueda() ya dejo fijo MATERIAL_METAL (glMaterialfv), que
-       por si solo IGNORA glColor3f. Activar GL_COLOR_MATERIAL hace que
-       el color plano si tenga efecto para esta pasada -se desactiva al
-       final para no afectar lo que se dibuje despues (bolita, vidrio). */
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
+    /* FIX: el winding del triangle strip de la banda queda invertido
+       (normal calculada hacia -Y en vez de +Y), por lo que GL_CULL_FACE
+       (GL_BACK, activo globalmente en main.c) lo descartaba entero -de
+       ahi que solo se vieran los numeros (son GL_LINE, no los afecta
+       el culling). Se desactiva culling solo para esta banda en vez
+       de invertir el orden de vertices, para no arriesgar romper el
+       calculo de normal que ya usa glNormal3f(0,1,0). */
+    glDisable(GL_CULL_FACE);
 
     for (sector = 0; sector < 37; sector++) {
         int numero = ORDEN_RUEDA_EUROPEA[sector];
         ColorRuleta color = color_de_numero(numero);
-        /* Mismo convenio de angulo usado para decidir el resultado en
-           main.c: cada sector ocupa 360/37 grados, empezando en 0. */
         float angulo_inicio = sector * paso_angular;
         float angulo_fin = angulo_inicio + paso_angular;
-        int segmentos_arco = 4; /* subdivisiones para que la cuña no sea un triangulo tosco */
+        int segmentos_arco = 4;
         int k;
 
         if (color == COLOR_VERDE)      glColor3f(0.0f, 0.5f, 0.15f);
         else if (color == COLOR_ROJO)  glColor3f(0.75f, 0.08f, 0.08f);
-        else                            glColor3f(0.05f, 0.05f, 0.05f); /* negro */
+        else                            glColor3f(0.05f, 0.05f, 0.05f);
 
         glBegin(GL_TRIANGLE_STRIP);
         for (k = 0; k <= segmentos_arco; k++) {
@@ -260,7 +263,6 @@ void dibujar_pista_numerada(void) {
         }
         glEnd();
 
-        /* Numero centrado en medio del sector, a mitad del radio de la pista */
         {
             float ang_medio = (angulo_inicio + paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f;
             float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
@@ -275,5 +277,6 @@ void dibujar_pista_numerada(void) {
         }
     }
 
+    glEnable(GL_CULL_FACE);
     glDisable(GL_COLOR_MATERIAL);
 }
