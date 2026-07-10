@@ -59,6 +59,31 @@ static Punto3D normalizar_vector(Punto3D v) {
     return r;
 }
 
+
+
+/* Ver declaracion en ruleta_geometria.h. perfil_puntos[].x es radio
+   creciente (garantizado: los puntos de control de la Bezier tienen
+   X monotonamente creciente, 0 -> 1.05 -> 2.25 -> 3.0, asi que la
+   curva resultante tambien lo es), asi que basta interpolar linealmente
+   entre los dos puntos muestreados que rodean el radio pedido. */
+float altura_superficie_en_radio(float radio) {
+    int i;
+
+    if (radio <= perfil_puntos[0].x) return perfil_puntos[0].y;
+    if (radio >= perfil_puntos[PERFIL_SEGMENTOS - 1].x) return perfil_puntos[PERFIL_SEGMENTOS - 1].y;
+
+    for (i = 0; i < PERFIL_SEGMENTOS - 1; i++) {
+        float r0 = perfil_puntos[i].x;
+        float r1 = perfil_puntos[i + 1].x;
+
+        if (radio >= r0 && radio <= r1) {
+            float t = (r1 - r0 < 0.00001f) ? 0.0f : (radio - r0) / (r1 - r0);
+            return perfil_puntos[i].y + t * (perfil_puntos[i + 1].y - perfil_puntos[i].y);
+        }
+    }
+    return perfil_puntos[PERFIL_SEGMENTOS - 1].y; /* no deberia llegar aca */
+}
+
 /* ------------------------------------------------------------------- */
 
 void generar_perfil_bezier_rueda(void) {
@@ -225,20 +250,23 @@ static void dibujar_numero_pista(int numero) {
     glPopMatrix();
 }
 
+#define OFFSET_PISTA 0.006f /* separacion minima sobre la malla metalica, para evitar z-fighting */
+
 void dibujar_pista_numerada(void) {
     int sector;
     const float paso_angular = 360.0f / 37.0f;
 
+    /* FIX: alturas leidas de la superficie real (Bezier) en vez del
+       ALTURA_PISTA fijo original. El perfil se hunde entre el radio
+       interno y externo de la pista (ver comentario de altura_superficie_en_radio),
+       asi que un valor constante hacia que la pista entera flotara por
+       encima de la rueda -mas notorio hacia el borde externo, que es
+       justo donde esta el hundimiento mas fuerte del perfil. */
+    float altura_interna = altura_superficie_en_radio(RADIO_INTERNO_PISTA) + OFFSET_PISTA;
+    float altura_externa = altura_superficie_en_radio(RADIO_EXTERNO_PISTA) + OFFSET_PISTA;
+
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-
-    /* FIX: el winding del triangle strip de la banda queda invertido
-       (normal calculada hacia -Y en vez de +Y), por lo que GL_CULL_FACE
-       (GL_BACK, activo globalmente en main.c) lo descartaba entero -de
-       ahi que solo se vieran los numeros (son GL_LINE, no los afecta
-       el culling). Se desactiva culling solo para esta banda en vez
-       de invertir el orden de vertices, para no arriesgar romper el
-       calculo de normal que ya usa glNormal3f(0,1,0). */
     glDisable(GL_CULL_FACE);
 
     for (sector = 0; sector < 37; sector++) {
@@ -258,18 +286,19 @@ void dibujar_pista_numerada(void) {
             float t = (float)k / segmentos_arco;
             float ang = (angulo_inicio + t * (angulo_fin - angulo_inicio)) * PI_GEOMETRIA / 180.0f;
             glNormal3f(0.0f, 1.0f, 0.0f);
-            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), ALTURA_PISTA, RADIO_INTERNO_PISTA * sinf(ang));
-            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), ALTURA_PISTA, RADIO_EXTERNO_PISTA * sinf(ang));
+            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), altura_interna, RADIO_INTERNO_PISTA * sinf(ang));
+            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), altura_externa, RADIO_EXTERNO_PISTA * sinf(ang));
         }
         glEnd();
 
         {
             float ang_medio = (angulo_inicio + paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f;
             float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
+            float altura_numero = altura_superficie_en_radio(radio_medio) + OFFSET_PISTA * 2.0f; /* un poco mas alto que la banda, para no pelear con ella en Z */
 
             glColor3f(1.0f, 1.0f, 1.0f);
             glPushMatrix();
-            glTranslatef(radio_medio * cosf(ang_medio), ALTURA_PISTA + 0.001f, radio_medio * sinf(ang_medio));
+            glTranslatef(radio_medio * cosf(ang_medio), altura_numero, radio_medio * sinf(ang_medio));
             glRotatef(-(angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
             glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
             dibujar_numero_pista(numero);

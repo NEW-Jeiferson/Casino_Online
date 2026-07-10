@@ -180,14 +180,26 @@ void actualizar_bolita(EstadoBolita* bolita, float delta_tiempo) {
 }
 
 void dibujar_bolita(const EstadoBolita* bolita) {
+    /* FIX: antes se usaba una altura fija (0.2f) que quedaba por
+       debajo de la superficie real de la rueda en el radio de orbita
+       (ver altura_superficie_en_radio) -la bolita se hundia dentro de
+       la malla metalica en vez de apoyarse sobre ella. Ahora se calcula
+       contra la altura real de la superficie en RADIO_ORBITA_BOLITA,
+       mas el propio radio de la bolita (para que quede apoyada por
+       encima, no centrada en la superficie) mas un margen chico
+       para que no la toque. */
+    const float MARGEN_SOBRE_SUPERFICIE = 0.02f;
+    const float RADIO_BOLITA = 0.2f;
+    float altura_bolita = altura_superficie_en_radio(RADIO_ORBITA_BOLITA) + RADIO_BOLITA + MARGEN_SOBRE_SUPERFICIE;
+
     glPushMatrix();
 
-    glTranslatef(0.0f, 0.2f, 0.0f);       /* altura sobre la superficie de la rueda */
+    glTranslatef(0.0f, altura_bolita, 0.0f);
     glRotatef(bolita->angulo_actual, 0.0f, 1.0f, 0.0f);
     glTranslatef(RADIO_ORBITA_BOLITA, 0.0f, 0.0f);
 
     aplicar_material(MATERIAL_METAL);
-    glutSolidSphere(0.2, 16, 16);
+    glutSolidSphere(RADIO_BOLITA, 16, 16);
 
     glPopMatrix();
 }

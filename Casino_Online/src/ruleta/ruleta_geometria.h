@@ -70,5 +70,6 @@ void dibujar_vidrio_protector(void);
    y color_de_numero() de core/estado_juego.h, la misma fuente de
    verdad que usa main.c para decidir el numero ganador. */
 void dibujar_pista_numerada(void);
+float altura_superficie_en_radio(float radio);
 
 #endif /* RULETA_GEOMETRIA_H */
