@@ -34,35 +34,42 @@
     directamente con una velocidad fija en vez de un angulo destino. */
 #define DURACION_GIRO_BOLA 4.0f
 
-#define RADIO_ORBITA_BOLITA (RADIO_EXTERIOR_RUEDA - 0.4f)
+    /* BUGFIX: antes era (RADIO_EXTERIOR_RUEDA - 0.4f) = 2.6, que
+       coincidia EXACTAMENTE con RADIO_EXTERNO_PISTA (tambien 2.6) -la
+       bolita orbitaba justo en el borde exterior de la pista, no
+       comodamente dentro de una casilla, lo cual hacia ambiguo
+       visualmente sobre que casilla estaba realmente parada. Ahora usa
+       el centro real de la banda (mismo radio_medio que usa
+       dibujar_pista_numerada() para colocar los numeros). */
+#define RADIO_ORBITA_BOLITA ((RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f)
 
-    /* Velocidad "tipica" con la que siempre se ve girar la bolita, sin
-       importar cuanto tenga que recorrer en total -lo que cambia entre
-       giros es la DURACION, no que tan rapido se ve. */
+       /* Velocidad "tipica" con la que siempre se ve girar la bolita, sin
+          importar cuanto tenga que recorrer en total -lo que cambia entre
+          giros es la DURACION, no que tan rapido se ve. */
 #define VELOCIDAD_TIPICA_GIRO 140.0f
 
-       /* --------------------------------------------------------------------
-        * FACTOR_INTEGRAL_EASING: relacion entre angulo total recorrido,
-        * velocidad y duracion del giro.
-        *
-        * actualizar_bolita() integra velocidad_inicial * factor(t) a lo largo
-        * del tiempo real, donde factor(t) es la componente Y de la curva de
-        * Bezier evaluada en t = tiempo_transcurrido/duracion, con puntos de
-        * control (Y): p0=1.0, p1=0.85, p2=0.25, p3=0.0.
-        *
-        * angulo_total = velocidad_inicial * duracion * integral en [0,1] de factor(u) du
-        *
-        * Cada polinomio de Bernstein de grado 3 integra a 1/4 sobre [0,1], asi
-        * que integral de factor(u) du = (p0+p1+p2+p3)/4 = (1+0.85+0.25+0)/4 = 0.525
-        *
-        * IMPORTANTE: si se modifican los puntos de control p0-p3 de
-        * actualizar_bolita(), este factor debe recalcularse (suma de p_i.y,
-        * entre 4).
-        * ------------------------------------------------------------------ */
+          /* --------------------------------------------------------------------
+           * FACTOR_INTEGRAL_EASING: relacion entre angulo total recorrido,
+           * velocidad y duracion del giro.
+           *
+           * actualizar_bolita() integra velocidad_inicial * factor(t) a lo largo
+           * del tiempo real, donde factor(t) es la componente Y de la curva de
+           * Bezier evaluada en t = tiempo_transcurrido/duracion, con puntos de
+           * control (Y): p0=1.0, p1=0.85, p2=0.25, p3=0.0.
+           *
+           * angulo_total = velocidad_inicial * duracion * integral en [0,1] de factor(u) du
+           *
+           * Cada polinomio de Bernstein de grado 3 integra a 1/4 sobre [0,1], asi
+           * que integral de factor(u) du = (p0+p1+p2+p3)/4 = (1+0.85+0.25+0)/4 = 0.525
+           *
+           * IMPORTANTE: si se modifican los puntos de control p0-p3 de
+           * actualizar_bolita(), este factor debe recalcularse (suma de p_i.y,
+           * entre 4).
+           * ------------------------------------------------------------------ */
 #define FACTOR_INTEGRAL_EASING 0.525f
 
-        /* Limites de seguridad para que un giro nunca se sienta instantaneo
-           ni exageradamente largo, sin importar el azar del angulo objetivo */
+           /* Limites de seguridad para que un giro nunca se sienta instantaneo
+              ni exageradamente largo, sin importar el azar del angulo objetivo */
 #define DURACION_MINIMA_GIRO 3.5f
 #define DURACION_MAXIMA_GIRO 7.0f
 

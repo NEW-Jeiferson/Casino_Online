@@ -72,4 +72,13 @@ void dibujar_vidrio_protector(void);
 void dibujar_pista_numerada(void);
 float altura_superficie_en_radio(float radio);
 
+/* Radios de la banda de la pista, expuestos aqui (antes solo internos
+   a ruleta_geometria.c) para que ruleta_animacion.c pueda orbitar la
+   bolita en el CENTRO de la banda en vez de adivinar un radio a mano
+   -antes RADIO_ORBITA_BOLITA coincidia exactamente con el borde
+   exterior de la pista (2.6 = 2.6), haciendo ambiguo visualmente en
+   que casilla estaba realmente parada la bolita. */
+#define RADIO_INTERNO_PISTA 1.6f
+#define RADIO_EXTERNO_PISTA 2.6f
+
 #endif /* RULETA_GEOMETRIA_H */

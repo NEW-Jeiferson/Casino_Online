@@ -323,6 +323,16 @@ void idle(void) {
         int   numero_ganador = partida.numero_ganador_pendiente;
         float ganancia_total = calcular_ganancia_total(partida.apuestas_activas, partida.num_apuestas_activas, numero_ganador);
 
+        /* DIAGNOSTICO TEMPORAL: imprime en la consola el numero/color
+           que realmente se decidio, para comparar directamente contra
+           lo que se ve en pantalla y confirmar si ya coinciden.
+           Se puede quitar una vez confirmado. */
+        {
+            const char* color_texto = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "ROJO"
+                : (color_de_numero(numero_ganador) == COLOR_NEGRO) ? "NEGRO" : "VERDE";
+            printf("[RESULTADO REAL] numero=%d color=%s ganancia=%.2f\n", numero_ganador, color_texto, ganancia_total);
+        }
+
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
 

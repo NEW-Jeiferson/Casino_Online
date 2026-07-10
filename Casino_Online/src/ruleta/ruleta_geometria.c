@@ -226,20 +226,35 @@ void dibujar_vidrio_protector(void) {
    labio del borde). Ajustados a ojo contra el perfil de Bezier actual
    (p1 en radio ~1.05, p2 en radio ~2.25, p3 -borde- en radio 3.0);
    recalibrar viendo la escena real si hace falta. */
-#define RADIO_INTERNO_PISTA 1.6f
-#define RADIO_EXTERNO_PISTA 2.6f
+   /* RADIO_INTERNO_PISTA / RADIO_EXTERNO_PISTA ahora se exponen en
+      ruleta_geometria.h (ruleta_animacion.c los necesita para orbitar la
+      bolita en el centro de la banda, no adivinar un radio a mano) */
 
-   /* Altura a la que se dibuja la pista: justo por encima del punto mas
-      alto del perfil en esa banda (p1.y = 0.40), para que no quede
-      "enterrada" dentro de la superficie curva en ningun punto. */
+      /* Altura a la que se dibuja la pista: justo por encima del punto mas
+         alto del perfil en esa banda (p1.y = 0.40), para que no quede
+         "enterrada" dentro de la superficie curva en ningun punto. */
 #define ALTURA_PISTA 0.42f
 
 static void dibujar_numero_pista(int numero) {
     char texto[4];
     int i, len;
+    GLboolean iluminacion_estaba_activa;
 
     snprintf(texto, sizeof(texto), "%d", numero);
     len = (int)strlen(texto);
+
+    /* BUGFIX (legibilidad): la fuente stroke dibuja solo el contorno
+       (lineas delgadas, no un glifo relleno), y al estar sujeta a la
+       iluminacion de la escena se veia opaca/apagada en las zonas de
+       la rueda que reciben menos luz directa. Se desactiva la
+       iluminacion SOLO para el numero (no afecta las cuñas de color,
+       que ya se dibujaron antes de este punto), para que siempre se
+       vea blanco puro sin importar donde caiga en la rueda, y se
+       engruesa la linea para que no se pierda a distancia. */
+    iluminacion_estaba_activa = glIsEnabled(GL_LIGHTING);
+    glDisable(GL_LIGHTING);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glLineWidth(2.5f);
 
     glPushMatrix();
     glScalef(0.0022f, 0.0022f, 1.0f); /* la fuente stroke es "grande" por defecto */
@@ -248,6 +263,9 @@ static void dibujar_numero_pista(int numero) {
         glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
     }
     glPopMatrix();
+
+    glLineWidth(1.0f);
+    if (iluminacion_estaba_activa) glEnable(GL_LIGHTING);
 }
 
 #define OFFSET_PISTA 0.006f /* separacion minima sobre la malla metalica, para evitar z-fighting */
@@ -307,9 +325,29 @@ void dibujar_pista_numerada(void) {
             glPushMatrix();
             /* Mismo BUGFIX de signo que en los vertices de arriba */
             glTranslatef(radio_medio * cosf(ang_medio), altura_numero, -radio_medio * sinf(ang_medio));
-            glRotatef(-(angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
+            /* BUGFIX: la posicion ya se corrigio con el signo negativo
+               (arriba), pero esta rotacion se habia quedado con la
+               formula vieja (de antes del fix del espejo), por lo que
+               el texto quedaba orientado incorrectamente aunque su
+               posicion ya fuera correcta -de ahi que se vieran
+               "torcidos". Con el signo Z invertido en la posicion, la
+               orientacion que corresponde tambien invierte signo: en
+               vez de -(angulo)+90, es +(angulo)+90. */
+            glRotatef((angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
             glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+            /* BUGFIX: los numeros se veian "opacos"/apagados comparado
+               con los del tablero, porque tablero_apuestas.c desactiva
+               GL_LIGHTING antes de dibujar sus numeros (quedan en
+               color plano y brillante), pero aqui nunca se desactivaba
+               -el blanco del numero quedaba sombreado por el modelo de
+               Phong de la escena (ambient/diffuse/specular segun el
+               angulo a la luz), en vez de verse blanco puro. Las
+               cuñas de color si se dejan CON iluminacion (para que se
+               vean parte de la rueda, con su sombreado natural); solo
+               el numero en si se saca de la ecuacion de luces. */
+            glDisable(GL_LIGHTING);
             dibujar_numero_pista(numero);
+            glEnable(GL_LIGHTING);
             glPopMatrix();
         }
     }
