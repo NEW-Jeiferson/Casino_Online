@@ -17,9 +17,8 @@ void aplicar_material(TipoMaterial tipo) {
 
     switch (tipo) {
     case MATERIAL_MADERA:
-        /* Aun no aplicado a ninguna geometria (no hay bordes/patas
-           de mesa todavia). Valores dejados listos para cuando
-           haya geometria que lo use. */
+        /* Usado en el borde de la mesa (dibujar_mesa(), alrededor del
+           fieltro) -ver ruleta_geometria.c. */
         ambient[0] = 0.3f;  ambient[1] = 0.2f;  ambient[2] = 0.1f;
         diffuse[0] = 0.5f;  diffuse[1] = 0.35f; diffuse[2] = 0.2f;
         specular[0] = 0.15f; specular[1] = 0.12f; specular[2] = 0.08f;

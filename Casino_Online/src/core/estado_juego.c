@@ -32,12 +32,14 @@ ColorRuleta color_de_numero(int numero) {
 
 /* Tabla de transiciones permitidas. Solo se listan los flujos que el
    juego realmente usa (ver main.c/idle.c):
-     MENU      -> JUGANDO    (ENTER en la pantalla de bienvenida)
-     JUGANDO   -> PRESTAMO   (el saldo no alcanza para la ficha minima)
-     PRESTAMO  -> JUGANDO    (se acepta el prestamo y la deuda es pagable)
-     PRESTAMO  -> GAME_OVER  (se acepta el prestamo pero la deuda ya es
-                              impagable)
-     GAME_OVER -> JUGANDO    (ENTER reinicia la partida)
+     MENU               -> JUGANDO             (ENTER en la pantalla de bienvenida)
+     JUGANDO            -> PRESTAMO             (el saldo no alcanza para la ficha minima)
+     JUGANDO            -> MENSAJE_REFLEXIVO    (se disparo una condicion de concientizacion, ver jugador.h)
+     MENSAJE_REFLEXIVO  -> JUGANDO              (ENTER descarta el mensaje; main.c revisa fondos de nuevo despues)
+     PRESTAMO           -> JUGANDO              (se acepta el prestamo y la deuda es pagable)
+     PRESTAMO           -> GAME_OVER            (se acepta el prestamo pero la deuda ya es
+                                                  impagable)
+     GAME_OVER          -> JUGANDO              (ENTER reinicia la partida)
    Cualquier otra transicion (por ejemplo MENU -> GAME_OVER directo, o
    JUGANDO -> MENU) se considera invalida y se ignora. */
 static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
@@ -48,7 +50,10 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
         return nuevo == ESTADO_JUGANDO;
 
     case ESTADO_JUGANDO:
-        return nuevo == ESTADO_PRESTAMO;
+        return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO;
+
+    case ESTADO_MENSAJE_REFLEXIVO:
+        return nuevo == ESTADO_JUGANDO;
 
     case ESTADO_PRESTAMO:
         return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_GAME_OVER;

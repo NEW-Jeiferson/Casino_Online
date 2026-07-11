@@ -150,6 +150,12 @@ void construir_malla_rueda(void) {
 }
 
 void dibujar_mesa(void) {
+    /* Ancho del borde de madera alrededor del fieltro. Se dibuja FUERA
+       del cuadrado del fieltro (nunca se superpone con el), asi que no
+       hay riesgo de z-fighting entre los dos aunque ambos esten en
+       Y=0. */
+    const float BORDE_MESA = 0.5f;
+
     glPushMatrix();
 
     aplicar_material(MATERIAL_FIELTRO);
@@ -160,6 +166,47 @@ void dibujar_mesa(void) {
     glVertex3f(-RADIO_MESA, 0.0f, RADIO_MESA);
     glVertex3f(RADIO_MESA, 0.0f, RADIO_MESA);
     glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
+    glEnd();
+
+    /* BUGFIX (codigo muerto): MATERIAL_MADERA estaba completamente
+       definido en materiales.c (ambient/diffuse/specular/shininess
+       calibrados) pero no se aplicaba a ninguna geometria en toda la
+       escena -el propio comentario en materiales.c lo admitia ("aun
+       no aplicado... no hay bordes/patas de mesa todavia"). Se le da
+       uso real aca: un marco de madera alrededor del fieltro, como en
+       una mesa de casino real. Son 4 quads (arriba/abajo cubren las
+       esquinas completas; izquierda/derecha solo el tramo central,
+       para no dibujar dos veces la misma esquina). */
+    aplicar_material(MATERIAL_MADERA);
+
+    glBegin(GL_QUADS);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+
+    /* Borde superior (incluye las 2 esquinas de ese lado) */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
+
+    /* Borde inferior (incluye las otras 2 esquinas) */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
+
+    /* Borde izquierdo (solo el tramo central, las esquinas ya las
+       cubrieron los dos quads de arriba) */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.0f, -RADIO_MESA);
+
+    /* Borde derecho */
+    glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
+
     glEnd();
 
     glPopMatrix();
@@ -230,10 +277,11 @@ void dibujar_vidrio_protector(void) {
       ruleta_geometria.h (ruleta_animacion.c los necesita para orbitar la
       bolita en el centro de la banda, no adivinar un radio a mano) */
 
-      /* Altura a la que se dibuja la pista: justo por encima del punto mas
-         alto del perfil en esa banda (p1.y = 0.40), para que no quede
-         "enterrada" dentro de la superficie curva en ningun punto. */
-#define ALTURA_PISTA 0.42f
+      /* Altura a la que se dibujaba la pista en la version original
+         (constante, 0.42): reemplazada por el calculo dinamico
+         altura_superficie_en_radio() de abajo, asi que ya no existe
+         como #define -queda solo esta nota para no dejar una
+         constante sin usar dando vueltas en el archivo. */
 
          /* BUGFIX (numeros deformados/desbordados en la rueda): antes se usaba
             una escala fija (0.0022) sin importar cuantos digitos tuviera el
@@ -261,7 +309,6 @@ static void dibujar_numero_pista(int numero) {
     char texto[4];
     int i, len;
     GLboolean iluminacion_estaba_activa;
-    GLboolean line_smooth_estaba_activo, blend_estaba_activo;
     float escala, ancho_total;
 
     snprintf(texto, sizeof(texto), "%d", numero);
@@ -292,17 +339,15 @@ static void dibujar_numero_pista(int numero) {
           PROPORCIONALMENTE mucho mas gruesa que en un numero de 1
           digito sin reducir -las curvas de los digitos (3, 6, 8, 9...)
           se embarran entre si y dejan de leerse como numero.
-       Fix: se activa antialiasing de lineas solo para este trazo (se
-       restaura el estado previo despues), y el grosor de linea ahora
-       escala junto con 'escala' (mismo factor que ya se le aplico al
-       tamano del numero), con un piso de 1.1f para que nunca quede
-       invisible. */
-    line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
-    blend_estaba_activo = glIsEnabled(GL_BLEND);
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+       Fix: GL_LINE_SMOOTH/GL_BLEND ahora los activa UNA sola vez el
+       llamador (dibujar_pista_numerada, antes de dibujar los 37
+       numeros) en vez de aca -esta funcion se llama una vez por cada
+       numero de la rueda, asi que antes se hacian 37 activaciones y
+       37 restauraciones de estado por frame para nada, ya que el
+       valor no cambia entre un numero y otro. El grosor de linea si
+       sigue calculandose por numero, porque CADA numero puede tener
+       una 'escala' distinta (numeros de 1 vs 2 digitos no se achican
+       igual). */
 
     escala = ESCALA_NUMERO_PISTA_BASE;
     ancho_total = (float)len * 104.76f * escala;
@@ -329,8 +374,6 @@ static void dibujar_numero_pista(int numero) {
     glPopMatrix();
 
     glLineWidth(1.0f);
-    if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
-    if (!blend_estaba_activo) glDisable(GL_BLEND);
     if (iluminacion_estaba_activa) glEnable(GL_LIGHTING);
 }
 
@@ -339,6 +382,8 @@ static void dibujar_numero_pista(int numero) {
 void dibujar_pista_numerada(void) {
     int sector;
     const float paso_angular = 360.0f / 37.0f;
+    GLboolean line_smooth_estaba_activo;
+    GLboolean blend_estaba_activo;
 
     /* FIX: alturas leidas de la superficie real (Bezier) en vez del
        ALTURA_PISTA fijo original. El perfil se hunde entre el radio
@@ -352,6 +397,21 @@ void dibujar_pista_numerada(void) {
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
     glDisable(GL_CULL_FACE);
+
+    /* BUENA PRACTICA (antes activado/restaurado 37 veces por frame,
+       una por numero, dentro de dibujar_numero_pista): GL_LINE_SMOOTH
+       y GL_BLEND no cambian de valor entre un numero y el siguiente,
+       asi que alcanza con activarlos una sola vez aca afuera del loop,
+       y restaurarlos una sola vez al final. No afecta a las cuñas de
+       color (GL_TRIANGLE_STRIP opacos, alpha=1) dibujadas dentro del
+       mismo loop -con blending activado pero alpha=1 se ven identicas
+       a sin blending. */
+    line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
+    blend_estaba_activo = glIsEnabled(GL_BLEND);
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
     for (sector = 0; sector < 37; sector++) {
         int numero = ORDEN_RUEDA_EUROPEA[sector];
@@ -439,4 +499,6 @@ void dibujar_pista_numerada(void) {
 
     glEnable(GL_CULL_FACE);
     glDisable(GL_COLOR_MATERIAL);
+    if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
+    if (!blend_estaba_activo) glDisable(GL_BLEND);
 }

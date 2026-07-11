@@ -51,6 +51,12 @@ typedef struct {
        se detenga, sin volver a derivarlo del angulo final (evita
        cualquier imprecision numerica de la animacion). */
     int numero_ganador_pendiente;
+
+    /* Mensaje de concientizacion pendiente de mostrar (ver
+       core/jugador.h, verificar_mensaje_reflexivo). Apunta a un string
+       constante devuelto por esa funcion -nunca a memoria propia de
+       EstadoPartida-, asi que no hace falta liberarlo ni copiarlo. */
+    const char* mensaje_reflexivo_actual;
 } EstadoPartida;
 
 static EstadoPartida partida;
@@ -81,6 +87,21 @@ static float monto_apostado_en_ronda(void) {
 
 static int saldo_alcanza_para_ficha(float monto_ficha) {
     return (partida.jugador.saldo - monto_apostado_en_ronda()) >= monto_ficha;
+}
+
+/* Si el saldo no alcanza ni para la ficha minima seleccionada, manda
+   al jugador a la pantalla de prestamo. Se llama desde dos lugares:
+   1) al resolver una ronda en idle() (cuando NO hubo mensaje reflexivo
+      ese mismo round), y 2) justo despues de descartar un mensaje
+      reflexivo con ENTER (por si la condicion de fondos tambien se
+      cumplia esa misma ronda -se prioriza mostrar primero el mensaje
+      reflexivo, y recien al continuar se revisa si ademas hace falta
+      pedir prestamo). Antes esta logica estaba duplicada a mano en los
+      dos lugares; ahora hay una sola version. */
+static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
+    if (estado_actual == ESTADO_JUGANDO && partida.jugador.saldo < partida.monto_ficha_actual) {
+        cambiar_estado(ESTADO_PRESTAMO);
+    }
 }
 
 /* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
@@ -162,7 +183,7 @@ void display(void) {
     glPopMatrix();
 
     dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
-    dibujar_pantalla_segun_estado(estado_actual, &partida.jugador);
+    dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, partida.mensaje_reflexivo_actual);
 
     glutSwapBuffers();
 }
@@ -266,7 +287,18 @@ void teclado(unsigned char tecla, int x, int y) {
         else if (estado_actual == ESTADO_GAME_OVER) {
             inicializar_jugador(&partida.jugador, 1000.0f);
             partida.num_apuestas_activas = 0;
+            partida.mensaje_reflexivo_actual = NULL;
             cambiar_estado(ESTADO_JUGANDO);
+        }
+        else if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
+            /* Se descarta el mensaje y se vuelve a jugar. Si la MISMA
+               ronda que disparo el mensaje reflexivo tambien dejo al
+               jugador sin fondos para la ficha actual, recien ahora
+               (al continuar) se manda a la pantalla de prestamo -ver
+               comentario de verificar_fondos_y_pedir_prestamo_si_hace_falta(). */
+            partida.mensaje_reflexivo_actual = NULL;
+            cambiar_estado(ESTADO_JUGANDO);
+            verificar_fondos_y_pedir_prestamo_si_hace_falta();
         }
         break;
 
@@ -398,8 +430,18 @@ void idle(void) {
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
 
-        if (partida.jugador.saldo < partida.monto_ficha_actual) {
-            cambiar_estado(ESTADO_PRESTAMO);
+        /* Concientizacion sobre ludopatia: se revisa DESPUES de aplicar
+           el resultado (necesita el saldo/racha/total_apostado ya
+           actualizados) pero ANTES del chequeo de fondos de abajo -si
+           dispara un mensaje, se prioriza mostrarlo primero; el chequeo
+           de fondos para prestamo se reintenta automaticamente al
+           descartar el mensaje con ENTER (ver teclado()). */
+        partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
+        if (partida.mensaje_reflexivo_actual != NULL) {
+            cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
+        }
+        else {
+            verificar_fondos_y_pedir_prestamo_si_hace_falta();
         }
     }
 
@@ -435,6 +477,7 @@ int main(int argc, char** argv) {
     partida.ficha_actual_index = 0;
     partida.monto_ficha_actual = FICHAS[0];
     partida.numero_ganador_pendiente = -1;
+    partida.mensaje_reflexivo_actual = NULL;
 
     generar_perfil_bezier_rueda();
     construir_malla_rueda();

@@ -4,7 +4,9 @@
  */
 #include <GL/glut.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "pantallas.h"
 
  /* Funcion auxiliar para dibujar texto (duplicada de hud.c a proposito,
@@ -136,6 +138,110 @@ void dibujar_pantalla_prestamo(const Jugador* jugador) {
     glPopMatrix();
 }
 
+void dibujar_pantalla_mensaje_reflexivo(const char* mensaje) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    /* Ancho promedio aproximado de un caracter en HELVETICA_18 (bitmap
+       font de GLUT), usado solo para centrar cada linea horizontalmente
+       -no hace falta mas precision que esta para un mensaje de texto
+       corto, y evita acoplar esta pantalla a la metrica exacta de la
+       fuente (que GLUT no expone facil para fuentes bitmap). */
+    const float ANCHO_CHAR_APROX = 10.5f;
+
+    /* --- Entrar en modo 2D (igual que el resto de las pantallas) --- */
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    /* --- Overlay semitransparente. Azul oscuro en vez del negro/rojo
+       que usan prestamo/game-over: esta pantalla no es un castigo ni
+       una derrota, es una pausa reflexiva -se busca un tono calmo,
+       no alarmante. --- */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glColor4f(0.02f, 0.05f, 0.12f, 0.82f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glDisable(GL_BLEND);
+
+    /* --- Titulo --- */
+    glColor3f(0.55f, 0.75f, 1.0f);
+    {
+        const char* titulo = "UN MOMENTO...";
+        dibujar_texto_2d(cx - (float)strlen(titulo) * ANCHO_CHAR_APROX / 2.0f, cy + 130.0f, titulo);
+    }
+
+    /* --- Cuerpo del mensaje: se separa por '\n' y cada linea se
+       centra por separado. El mensaje lo arma verificar_mensaje_reflexivo()
+       (core/jugador.c) con los saltos de linea ya puestos a mano en
+       largos razonables, asi que no hace falta un word-wrap automatico
+       por ancho de pantalla aca. --- */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    {
+        char copia[512];
+        char* inicio;
+        float y = cy + 80.0f;
+        const float ALTO_LINEA = 24.0f;
+
+        /* Se recorre a mano con strchr en vez de usar strtok: strtok
+           colapsa delimitadores consecutivos (nunca devuelve un token
+           vacio), asi que un "\n\n" -usado a proposito en los mensajes
+           para dejar una linea en blanco entre parrafos- se hubiera
+           perdido por completo (los parrafos habrian quedado pegados,
+           sin el espacio visual). Este recorrido manual si preserva
+           las lineas vacias: no dibuja texto en ellas, pero igual
+           avanza 'y' un renglon. */
+        strncpy_s(copia, sizeof(copia), mensaje, _TRUNCATE);
+
+        inicio = copia;
+        for (;;) {
+            char* fin = strchr(inicio, '\n');
+            if (fin != NULL) *fin = '\0';
+
+            if (inicio[0] != '\0') {
+                dibujar_texto_2d(cx - (float)strlen(inicio) * ANCHO_CHAR_APROX / 2.0f, y, inicio);
+            }
+            y -= ALTO_LINEA;
+
+            if (fin == NULL) break;
+            inicio = fin + 1;
+        }
+    }
+
+    /* --- Instruccion para continuar --- */
+    glColor3f(0.55f, 0.75f, 1.0f);
+    {
+        const char* instruccion = "[ENTER] Continuar jugando";
+        dibujar_texto_2d(cx - (float)strlen(instruccion) * ANCHO_CHAR_APROX / 2.0f, cy - 150.0f, instruccion);
+    }
+
+    /* --- Restaurar estado 3D --- */
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
 void dibujar_pantalla_game_over(const Jugador* jugador) {
     int ancho = glutGet(GLUT_WINDOW_WIDTH);
     int alto = glutGet(GLUT_WINDOW_HEIGHT);
@@ -210,7 +316,7 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
     glPopMatrix();
 }
 
-void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador) {
+void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, const char* mensaje_reflexivo) {
     switch (estado) {
     case ESTADO_MENU:
         dibujar_pantalla_menu();
@@ -220,6 +326,9 @@ void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador) {
         break;
     case ESTADO_GAME_OVER:
         dibujar_pantalla_game_over(jugador);
+        break;
+    case ESTADO_MENSAJE_REFLEXIVO:
+        if (mensaje_reflexivo != NULL) dibujar_pantalla_mensaje_reflexivo(mensaje_reflexivo);
         break;
     default:
         break; /* ESTADO_JUGANDO no requiere overlay */

@@ -82,7 +82,10 @@ typedef enum {
     ESTADO_MENU,
     ESTADO_JUGANDO,
     ESTADO_PRESTAMO,
-    ESTADO_GAME_OVER
+    ESTADO_GAME_OVER,
+    ESTADO_MENSAJE_REFLEXIVO /* pantalla de concientizacion (ver jugador.h,
+                                 verificar_mensaje_reflexivo); interrumpe el
+                                 juego brevemente, se descarta con ENTER */
 } EstadoJuego;
 
 /* Estado global actual (definido en estado_juego.c) */

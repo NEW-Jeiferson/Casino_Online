@@ -13,9 +13,14 @@
  /* Velocidad a la que debe girar la RUEDA (no la bolita) mientras la
     bolita esta en movimiento. Se expone aqui, y main.c debe usar ESTA
     misma constante en su idle() para incrementar angulo_rueda -no un
-    numero repetido a mano-, porque iniciar_giro_bolita_hacia_absoluto()
-    asume este valor exacto al resolver la duracion del giro. Si alguna
-    vez cambia, hay que cambiarla solo aqui.
+    numero repetido a mano-, para que no queden dos copias del mismo
+    valor que se puedan desincronizar.
+    ACLARACION (corrige un comentario viejo de esta misma constante):
+    esto NO afecta el calculo de duracion del giro de la bolita -ver la
+    derivacion completa en iniciar_giro_bolita_hacia_absoluto()
+    (ruleta_animacion.c), que explica por que el angulo/velocidad de la
+    rueda se cancela de esa ecuacion. Esta constante solo controla que
+    tan rapido gira la rueda VISUALMENTE mientras dura la animacion.
     DOBLADA de 81 a 162 (a pedido explicito: "el doble de rapido"), junto
     con VELOCIDAD_TIPICA_GIRO y los limites de duracion en
     ruleta_animacion.c, para que la rueda y la bolita se sigan viendo a
