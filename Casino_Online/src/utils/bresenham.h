@@ -1,13 +1,4 @@
-/*
- * bresenham.h
- * -----------------------------------------------------------------------
- * Implementacion propia del algoritmo de Bresenham para dibujar lineas,
- * usada en las lineas del tablero de apuestas (en vez de GL_LINES nativo)
- * como ejercicio de rasterizacion manual.
- *
- * Responsable sugerido: Persona C
- * -----------------------------------------------------------------------
- */
+
 #ifndef BRESENHAM_H
 #define BRESENHAM_H
 
