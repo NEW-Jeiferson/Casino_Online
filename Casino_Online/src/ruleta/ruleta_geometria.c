@@ -241,13 +241,21 @@ static void dibujar_numero_pista(int numero) {
     snprintf(texto, sizeof(texto), "%d", numero);
     len = (int)strlen(texto);
 
+    /* FIX legibilidad: ROMAN tiene curvas/remates que a esta escala se
+       ven como garabatos. MONO_ROMAN es de trazo simple y ancho fijo
+       por caracter (~104.76 unidades, similar a ROMAN), asi que el
+       centrado (len * 52) sigue siendo valido. */
+    glLineWidth(2.0f); /* el stroke por defecto (1px) es casi invisible a la distancia de camara */
+
     glPushMatrix();
-    glScalef(0.0022f, 0.0022f, 1.0f); /* la fuente stroke es "grande" por defecto */
-    glTranslatef(-(float)len * 52.0f, 0.0f, 0.0f); /* centrar aproximadamente */
+    glScalef(0.0022f, 0.0022f, 1.0f);
+    glTranslatef(-(float)len * 52.0f, 0.0f, 0.0f);
     for (i = 0; i < len; i++) {
-        glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
+        glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, texto[i]);
     }
     glPopMatrix();
+
+    glLineWidth(1.0f); /* restaurar, no afectar otras lineas (Bresenham del tablero) */
 }
 
 #define OFFSET_PISTA 0.006f /* separacion minima sobre la malla metalica, para evitar z-fighting */
@@ -304,6 +312,66 @@ void dibujar_pista_numerada(void) {
             dibujar_numero_pista(numero);
             glPopMatrix();
         }
+    }
+
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+}
+
+/* ------------------------------------------------------------------- */
+/* Emblema central: anillo dorado + aspas tipo insignia sobre el domo  */
+/* central de la rueda (radio 0 a RADIO_INTERNO_PISTA). Misma tecnica  */
+/* que la pista (GL_COLOR_MATERIAL sobre MATERIAL_METAL), apoyado en   */
+/* la curva real del domo con altura_superficie_en_radio().            */
+/* ------------------------------------------------------------------- */
+#define RADIO_ANILLO_EMBLEMA_INT 1.15f
+#define RADIO_ANILLO_EMBLEMA_EXT 1.25f
+#define RADIO_CENTRO_EMBLEMA     0.18f
+#define NUM_ASPAS_EMBLEMA        12
+#define OFFSET_EMBLEMA           0.006f
+
+void dibujar_emblema_central(void) {
+    int i;
+    const float paso = 360.0f / NUM_ASPAS_EMBLEMA;
+
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glDisable(GL_CULL_FACE);
+
+    /* Anillo dorado, mismo tono que fichas/HUD */
+    glColor3f(1.0f, 0.85f, 0.0f);
+    {
+        int k;
+        const int segmentos_anillo = 48;
+        float altura_int = altura_superficie_en_radio(RADIO_ANILLO_EMBLEMA_INT) + OFFSET_EMBLEMA;
+        float altura_ext = altura_superficie_en_radio(RADIO_ANILLO_EMBLEMA_EXT) + OFFSET_EMBLEMA;
+
+        glBegin(GL_TRIANGLE_STRIP);
+        for (k = 0; k <= segmentos_anillo; k++) {
+            float ang = (float)k / segmentos_anillo * 2.0f * PI_GEOMETRIA;
+            glNormal3f(0.0f, 1.0f, 0.0f);
+            glVertex3f(RADIO_ANILLO_EMBLEMA_INT * cosf(ang), altura_int, RADIO_ANILLO_EMBLEMA_INT * sinf(ang));
+            glVertex3f(RADIO_ANILLO_EMBLEMA_EXT * cosf(ang), altura_ext, RADIO_ANILLO_EMBLEMA_EXT * sinf(ang));
+        }
+        glEnd();
+    }
+
+    /* Aspas del centro hacia el anillo, alternando dorado/verde fieltro */
+    for (i = 0; i < NUM_ASPAS_EMBLEMA; i++) {
+        float ang_centro = i * paso * PI_GEOMETRIA / 180.0f;
+        float medio_ancho = (paso * 0.18f) * PI_GEOMETRIA / 180.0f;
+        float altura_centro = altura_superficie_en_radio(RADIO_CENTRO_EMBLEMA) + OFFSET_EMBLEMA;
+        float altura_punta = altura_superficie_en_radio(RADIO_ANILLO_EMBLEMA_INT) + OFFSET_EMBLEMA;
+
+        if (i % 2 == 0) glColor3f(1.0f, 0.85f, 0.0f);
+        else             glColor3f(0.05f, 0.32f, 0.10f);
+
+        glBegin(GL_TRIANGLES);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.0f, altura_centro, 0.0f);
+        glVertex3f(RADIO_ANILLO_EMBLEMA_INT * cosf(ang_centro - medio_ancho), altura_punta, RADIO_ANILLO_EMBLEMA_INT * sinf(ang_centro - medio_ancho));
+        glVertex3f(RADIO_ANILLO_EMBLEMA_INT * cosf(ang_centro + medio_ancho), altura_punta, RADIO_ANILLO_EMBLEMA_INT * sinf(ang_centro + medio_ancho));
+        glEnd();
     }
 
     glEnable(GL_CULL_FACE);

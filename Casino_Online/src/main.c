@@ -115,6 +115,7 @@ void display(void) {
     glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
     dibujar_rueda();
     dibujar_pista_numerada(); /* debe ir aqui: mientras la matriz de la rueda sigue activa, para que gire junto con ella */
+    dibujar_emblema_central();
 
     glPushMatrix();
     dibujar_bolita(&partida.bolita);
