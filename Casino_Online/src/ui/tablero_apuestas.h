@@ -1,34 +1,32 @@
-/*
- * tablero_apuestas.h
- * -----------------------------------------------------------------------
- * Dibuja la cuadricula de apuestas (numeros 0-36) plana sobre la mesa,
- * usando el algoritmo de Bresenham para las lineas divisorias.
- * -----------------------------------------------------------------------
+/** Interfaz del tablero de apuestas.
+ * Tiene las funciones para dibujar el tapete y saber donde hace clic el jugador.
  */
 #ifndef TABLERO_APUESTAS_H
 #define TABLERO_APUESTAS_H
 
-#include "../core/estado_juego.h"  /* agregar este include, para Apuesta */
+#include "../core/estado_juego.h"  
 
+ /* Dibuja el tablero en pantalla con sus números, zonas especiales y las fichas apostadas. */
 void dibujar_tablero_apuestas(const Apuesta apuestas_activas[], int num_apuestas);
 
-
+/* Convierte el clic del raton en 3D a la columna y fila del tapete.
+   Devuelve 1 si tocaste el tablero, o 0 si hiciste clic afuera. */
 int obtener_celda_en_punto(float x, float z, int* col_out, int* fila_out);
+
+/* Averigua si el clic cayo exactamente sobre un numero del 0 al 36.
+   Devuelve 1 si acerto en un numero, o 0 si no. */
 int obtener_numero_en_punto(float x, float z, int* numero_out);
 
-/* Zonas de apuesta adicionales dibujadas debajo del grid de numeros:
-   docena (1ra 12 / 2da 12 / 3ra 12), mitad (1-18 / 19-36) y par/impar,
-   al estilo de un tablero de casino real. Devuelve 1 y escribe el tipo
-   y valor de apuesta correspondientes (mismo convenio que Apuesta.valor
-   en estado_juego.h) si el punto (x, z) cae dentro de alguna de esas
-   zonas; 0 si no. */
+/* Averigua si el clic cayo en zonas como docenas, rojo/negro o par/impar.
+   Guarda que tipo de apuesta es y devuelve 1 si acerto. */
 int obtener_zona_especial_en_punto(float x, float z, TipoApuesta* tipo_out, int* valor_out);
 
-/* Celda con hover activo (-1,-1 si ninguna). Dubenny puede incluir
-   este header y leer estas dos variables extern para dibujar el
-   resaltado visual de la celda seleccionada. */
+/* Variables para recordar que casilla esta señalando el raton en este momento (hover). */
 extern int celda_hover_col;
 extern int celda_hover_fila;
+
+/* Guarda la posicion de la casilla que el raton esta apuntando ahora mismo
+   para poder iluminarla en pantalla. */
 void fijar_celda_hover(int col, int fila);
 
-#endif /* TABLERO_APUESTAS_H */
+#endif
