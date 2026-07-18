@@ -1,32 +1,46 @@
 /*
- * ruleta_geometria.h
- * -----------------------------------------------------------------------
- * Generacion de la geometria de la mesa y la rueda de ruleta a partir de
- * un perfil de Bezier revolucionado (superficie de revolucion), y su
- * dibujo usando la pila de matrices para la jerarquia mesa -> rueda ->
- * casillas -> bolita.
- *
- * Responsable sugerido: Persona A
- * -----------------------------------------------------------------------
- */
+* Generacion de la geometria de la mesa y la rueda de ruleta a partir de
+* un perfil de Bezier revolucionado (superficie de revolucion).
+*/
 #ifndef RULETA_GEOMETRIA_H
 #define RULETA_GEOMETRIA_H
 
-/* Genera los puntos del perfil de la rueda usando una curva de Bezier
-   cubica, y los guarda para usarse en la superficie de revolucion */
+
+/* Define el radio exterior de la rueda (lado del cuadrado) */
+#define RADIO_EXTERIOR_RUEDA 3.0f
+
+
+/* Define el radio de la mesa (lado del cuadrado) */
+#define RADIO_MESA 6.0f
+
+
+/* Sirve para generar el perfil de Bezier de la rueda, esto para poder crear la superficie de revolucion */
 void generar_perfil_bezier_rueda(void);
 
-/* Construye la malla 3D de la rueda (superficie de revolucion) a partir
-   del perfil generado, calculando normales de vertice */
+
+/* Sirve para construir la malla 3D de la rueda a partir del perfil de Bezier */
 void construir_malla_rueda(void);
 
-/* Dibuja la mesa (plano/paño con material fieltro) */
+
+/* Sirve para construir la malla 3D de la mesa a partir del perfil de Bezier */
 void dibujar_mesa(void);
 
-/* Dibuja la rueda ya construida, aplicando su rotacion actual */
-void dibujar_rueda(float angulo_rotacion);
 
-/* Dibuja el vidrio protector semitransparente sobre la rueda (blending) */
+/* Dibuja la rueda de la ruleta, con su malla 3D y su textura. */
+void dibujar_rueda(void);
+
+
+/* Dibuja el vidrio protector de la ruleta, con su malla 3D y su textura. */
 void dibujar_vidrio_protector(void);
 
-#endif /* RULETA_GEOMETRIA_H */
+
+/* Dibuja la pista numerada de la ruleta, con su malla 3D y su textura. */
+void dibujar_pista_numerada(void);
+float altura_superficie_en_radio(float radio);
+
+
+/* Define el radio interior y exterior de la pista numerada de la ruleta */
+#define RADIO_INTERNO_PISTA 1.6f
+#define RADIO_EXTERNO_PISTA 2.6f
+
+#endif

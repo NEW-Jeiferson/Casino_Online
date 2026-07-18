@@ -1,12 +1,14 @@
-/*
- * hud.c
- * Implementacion del HUD. Ver hud.h.
+/** Implementacion del HUD (Heads-Up Display).
+ * Contiene las funciones para renderizar la interfaz 2D sobrepuesta al juego 3D,
+ * mostrando informacion en tiempo real del jugador como saldo, apuestas y configuracion actual.
  */
 #include <GL/glut.h>
 #include <stdio.h>
 #include "hud.h"
 
-/* Funcion auxiliar para dibujar texto con glutBitmapCharacter */
+ /* Funcion auxiliar para dibujar una cadena de texto en pantalla en 2D.
+    Utiliza la fuente  de 18 puntos de GLUT y renderiza caracter por caracter
+    empezando en las coordenadas especificadas (x, y). */
 static void dibujar_texto_2d(float x, float y, const char* texto) {
     const char* c;
     glRasterPos2f(x, y);
@@ -15,23 +17,70 @@ static void dibujar_texto_2d(float x, float y, const char* texto) {
     }
 }
 
-void dibujar_hud(const Jugador* jugador) {
+/* Dibuja en pantalla toda la informacion de la interfaz del usuario (HUD).
+   Maneja internamente la transicion temporal a modo ortogonal (2D), renderiza
+   los datos del jugador y restaura el estado 3D al finalizar. */
+
+void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apuestas_activas) {
     char buffer[128];
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
 
-    /* TODO: cambiar a proyeccion ortografica 2D antes de dibujar
-       (glMatrixMode(GL_PROJECTION) + glLoadIdentity + glOrtho),
-       deshabilitar GL_LIGHTING y GL_DEPTH_TEST temporalmente,
-       dibujar el texto, y restaurar el estado despues. */
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
 
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    
+    {
+        const float UMBRAL_SALDO_BAJO = 200.0f;
+        float t = jugador->saldo / UMBRAL_SALDO_BAJO;
+        float r, g, b;
+
+        if (t > 1.0f) t = 1.0f;
+        if (t < 0.0f) t = 0.0f;
+
+        r = 1.0f;
+        g = t;
+        b = t;
+
+        glColor3f(r, g, b);
+    }
+
+    /* Dibuja las lineas de informacion del HUD.
+       Las posiciones en Y se calculan dinamicamente usando el alto total (glutGet)
+       menos margenes fijos. Esto garantiza que si la ventana se redimensiona,
+       el HUD se mantenga siempre anclado correctamente a la esquina superior izquierda
+       sin cortarse ni flotar fuera de lugar. */
     sprintf_s(buffer, sizeof(buffer), "Saldo: %.2f", jugador->saldo);
-    dibujar_texto_2d(10.0f, 730.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 38.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
-    dibujar_texto_2d(10.0f, 705.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 63.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Prestamos activos: %d", jugador->prestamos_activos);
-    dibujar_texto_2d(10.0f, 680.0f, buffer);
+    dibujar_texto_2d(10.0f, (float)alto - 88.0f, buffer);
 
-    /* TODO: si jugador->saldo es bajo, interpolar el color del texto
-       de blanco a rojo (interpolacion de color) para llamar la atencion */
+ 
+    sprintf_s(buffer, sizeof(buffer), "Ficha actual: %.2f", monto_ficha_actual);
+    dibujar_texto_2d(10.0f, (float)alto - 113.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Apuestas colocadas: %d", num_apuestas_activas);
+    dibujar_texto_2d(10.0f, (float)alto - 138.0f, buffer);
+
+   
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
 }

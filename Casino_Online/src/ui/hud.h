@@ -1,20 +1,13 @@
-/*
- * hud.h
- * -----------------------------------------------------------------------
- * Dibuja el HUD en pantalla: saldo actual, total apostado, numero de
- * prestamos y otras estadisticas de sesion, usando texto en pantalla y
- * colores RGBA (con interpolacion si el saldo es bajo).
- *
- * Responsable sugerido: Persona C
- * -----------------------------------------------------------------------
- */
+// Definicion de la interfaz del HUD//
+ 
 #ifndef HUD_H
 #define HUD_H
 
 #include "../core/jugador.h"
 
-/* Dibuja el HUD con la informacion actual del jugador. Debe llamarse en
-   modo de proyeccion ortografica 2D (superpuesto a la escena 3D) */
-void dibujar_hud(const Jugador* jugador);
+ /* Dibuja en pantalla toda la informacion de la interfaz del usuario y
+	Recibe el estado actual del jugador, el valor de la ficha seleccionada
+	y la cantidad de apuestas en la mesa */
+void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apuestas_activas);
 
-#endif /* HUD_H */
+#endif

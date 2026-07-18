@@ -1,102 +1,35 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="src">
-      <UniqueIdentifier>{aeae488e-ae87-4412-b802-4044bd5b4122}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\ui">
-      <UniqueIdentifier>{c9120489-b164-4a68-97fe-2ebcd21c3ba6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\render">
-      <UniqueIdentifier>{0a706d0b-9a62-4530-94c7-894120444374}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\ruleta">
-      <UniqueIdentifier>{f7cae665-4f68-48de-bde1-fbdd1c434322}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\core">
-      <UniqueIdentifier>{a6cb3a2a-3a9f-45f2-8df2-9a2a30592fde}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\utils">
-      <UniqueIdentifier>{fe0ad60e-980f-4bd6-81d5-1648904737f3}</UniqueIdentifier>
-    </Filter>
+    <ClCompile Include="src\ui\tablero_apuestas.c" />
+    <ClCompile Include="src\ui\tablero_apuestas.h" />
+    <ClCompile Include="src\core\estado_juego.c" />
+    <ClCompile Include="src\core\jugador.c" />
+    <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\render\iluminacion.c" />
+    <ClCompile Include="src\render\materiales.c" />
+    <ClCompile Include="src\ruleta\mouse_picking.c" />
+    <ClCompile Include="src\ruleta\ruleta_animacion.c" />
+    <ClCompile Include="src\ruleta\ruleta_geometria.c" />
+    <ClCompile Include="src\ui\hud.c" />
+    <ClCompile Include="src\ui\pantallas.c" />
+    <ClCompile Include="src\utils\bezier.c" />
+    <ClCompile Include="src\utils\bresenham.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\estado_juego.c">
-      <Filter>src\core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\jugador.c">
-      <Filter>src\core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\utils\bezier.c">
-      <Filter>src\utils</Filter>
-    </ClCompile>
-    <ClCompile Include="src\utils\bresenham.c">
-      <Filter>src\utils</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ruleta\ruleta_animacion.c">
-      <Filter>src\ruleta</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ruleta\ruleta_geometria.c">
-      <Filter>src\ruleta</Filter>
-    </ClCompile>
-    <ClCompile Include="src\render\iluminacion.c">
-      <Filter>src\render</Filter>
-    </ClCompile>
-    <ClCompile Include="src\render\materiales.c">
-      <Filter>src\render</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ui\hud.c">
-      <Filter>src\ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ui\pantallas.c">
-      <Filter>src\ui</Filter>
-    </ClCompile>
+    <ClInclude Include="src\core\estado_juego.h" />
+    <ClInclude Include="src\core\jugador.h" />
+    <ClInclude Include="src\render\iluminacion.h" />
+    <ClInclude Include="src\render\materiales.h" />
+    <ClInclude Include="src\ruleta\mouse_picking.h" />
+    <ClInclude Include="src\ruleta\ruleta_animacion.h" />
+    <ClInclude Include="src\ruleta\ruleta_geometria.h" />
+    <ClInclude Include="src\ui\hud.h" />
+    <ClInclude Include="src\ui\pantallas.h" />
+    <ClInclude Include="src\utils\bezier.h" />
+    <ClInclude Include="src\utils\bresenham.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\core\estado_juego.h">
-      <Filter>src\core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\jugador.h">
-      <Filter>src\core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\bezier.h">
-      <Filter>src\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\bresenham.h">
-      <Filter>src\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ruleta\ruleta_animacion.h">
-      <Filter>src\ruleta</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ruleta\ruleta_geometria.h">
-      <Filter>src\ruleta</Filter>
-    </ClInclude>
-    <ClInclude Include="src\render\iluminacion.h">
-      <Filter>src\render</Filter>
-    </ClInclude>
-    <ClInclude Include="src\render\materiales.h">
-      <Filter>src\render</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ui\hud.h">
-      <Filter>src\ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ui\pantallas.h">
-      <Filter>src\ui</Filter>
-    </ClInclude>
+    <None Include="..\README.md" />
   </ItemGroup>
 </Project>
