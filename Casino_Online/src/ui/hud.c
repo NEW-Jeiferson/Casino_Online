@@ -1,12 +1,14 @@
-/*
- * hud.c
- * Implementacion del HUD. Ver hud.h.
+/** Implementacion del HUD (Heads-Up Display).
+ * Contiene las funciones para renderizar la interfaz 2D sobrepuesta al juego 3D,
+ * mostrando informacion en tiempo real del jugador como saldo, apuestas y configuracion actual.
  */
 #include <GL/glut.h>
 #include <stdio.h>
 #include "hud.h"
 
- /* Funcion auxiliar para dibujar texto con glutBitmapCharacter */
+ /* Funcion auxiliar para dibujar una cadena de texto en pantalla en 2D.
+    Utiliza la fuente  de 18 puntos de GLUT y renderiza caracter por caracter
+    empezando en las coordenadas especificadas (x, y). */
 static void dibujar_texto_2d(float x, float y, const char* texto) {
     const char* c;
     glRasterPos2f(x, y);
@@ -15,12 +17,15 @@ static void dibujar_texto_2d(float x, float y, const char* texto) {
     }
 }
 
+/* Dibuja en pantalla toda la informacion de la interfaz del usuario (HUD).
+   Maneja internamente la transicion temporal a modo ortogonal (2D), renderiza
+   los datos del jugador y restaura el estado 3D al finalizar. */
+
 void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apuestas_activas) {
     char buffer[128];
     int ancho = glutGet(GLUT_WINDOW_WIDTH);
     int alto = glutGet(GLUT_WINDOW_HEIGHT);
 
-    /* --- Guardar estado 3D y entrar en modo 2D --- */
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
@@ -33,7 +38,7 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
 
-    /* --- Interpolacion de color segun saldo bajo --- */
+    
     {
         const float UMBRAL_SALDO_BAJO = 200.0f;
         float t = jugador->saldo / UMBRAL_SALDO_BAJO;
@@ -49,19 +54,11 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
         glColor3f(r, g, b);
     }
 
-    /* --- Dibujo del HUD ---
-       BUGFIX: antes las posiciones Y eran constantes absolutas
-       (730, 705, 680...) calculadas a mano para una ventana de
-       1024x768. pantallas.c ya calculaba todo en base al ancho/alto
-       reales (glutGet), pero hud.c no -si la ventana se redimensionaba
-       (reshape() lo permite sin restriccion), el HUD podia quedar
-       cortado (ventana mas chica que 768 de alto) o "flotando" lejos
-       de la esquina superior (ventana mas grande). Ahora las Y se
-       anclan a 'alto', con el mismo espaciado vertical de 25px y el
-       mismo margen superior de 38px que tenia el layout original a
-       768 de alto (768 - 730 = 38, 768 - 705 = 63, etc.), asi que a
-       1024x768 se ve identico a antes, y en cualquier otro tamano de
-       ventana se mantiene pegado a la esquina superior izquierda. */
+    /* Dibuja las lineas de informacion del HUD.
+       Las posiciones en Y se calculan dinamicamente usando el alto total (glutGet)
+       menos margenes fijos. Esto garantiza que si la ventana se redimensiona,
+       el HUD se mantenga siempre anclado correctamente a la esquina superior izquierda
+       sin cortarse ni flotar fuera de lugar. */
     sprintf_s(buffer, sizeof(buffer), "Saldo: %.2f", jugador->saldo);
     dibujar_texto_2d(10.0f, (float)alto - 38.0f, buffer);
 
@@ -71,15 +68,14 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     sprintf_s(buffer, sizeof(buffer), "Prestamos activos: %d", jugador->prestamos_activos);
     dibujar_texto_2d(10.0f, (float)alto - 88.0f, buffer);
 
-    /* Ficha actualmente seleccionada (1-4), para que el jugador sepa
-       cuanto esta a punto de apostar antes de hacer clic. */
+ 
     sprintf_s(buffer, sizeof(buffer), "Ficha actual: %.2f", monto_ficha_actual);
     dibujar_texto_2d(10.0f, (float)alto - 113.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Apuestas colocadas: %d", num_apuestas_activas);
     dibujar_texto_2d(10.0f, (float)alto - 138.0f, buffer);
 
-    /* --- Restaurar estado 3D --- */
+   
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
 
