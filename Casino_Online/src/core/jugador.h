@@ -33,6 +33,14 @@ typedef struct {
     int   mensajes_reflexivos_mostrados;     /* cuantos mensajes reflexivos van en esta sesion (para escalar friccion, ver dibujar_pantalla_mensaje_reflexivo) */
     int   rondas_jugadas;                    /* total de rondas resueltas en la sesion, ganes o pierdas */
     int   ultima_ronda_notificada;           /* rondas_jugadas en el ultimo aviso de "reality check" por cantidad de rondas */
+
+    /* --- Simulacion de consecuencias (tiempo) ---
+       Ver tiempo_jugado_minutos(). El reloj real (glutGet) lo consulta
+       main.c -este archivo no depende de GLUT a proposito, para que
+       la logica de Jugador se pueda seguir leyendo/probando sin
+       arrastrar dependencias de la libreria grafica-, pero el valor
+       en si vive aca junto con el resto del estado de sesion. */
+    int   tiempo_inicio_ms;                  /* glutGet(GLUT_ELAPSED_TIME) al arrancar esta sesion */
 } Jugador;
 
 /* Resta el monto del total apostado cuando el jugador deshace una
@@ -40,8 +48,14 @@ typedef struct {
    descontado, solo se contabilizaba en las estadisticas). */
 void anular_apuesta(Jugador* j, float monto);
 
-/* Inicializa el jugador con saldo inicial y estadisticas en cero */
-void inicializar_jugador(Jugador* j, float saldo_inicial);
+/* Inicializa el jugador con saldo inicial y estadisticas en cero.
+   'tiempo_actual_ms' es glutGet(GLUT_ELAPSED_TIME) tomado por el
+   llamador (jugador.c no depende de GLUT a proposito) -se guarda como
+   el arranque del reloj de la sesion, ver tiempo_jugado_minutos(). Se
+   pide como parametro (en vez de dejar que main.c lo asigne aparte en
+   una linea suelta despues de llamar a esta funcion) para que no se
+   pueda arrancar una sesion nueva olvidando reiniciar el reloj. */
+void inicializar_jugador(Jugador* j, float saldo_inicial, int tiempo_actual_ms);
 
 /* Se llama apenas se coloca una ficha (clic o tecla), no al resolver
    la ronda. Suma el monto al total apostado de la sesion de inmediato,
@@ -82,5 +96,13 @@ int deuda_es_impagable(const Jugador* j, float limite_deuda);
    falta. Se debe llamar una vez por ronda resuelta (despues de
    aplicar_resultado_apuesta), no en cada frame. */
 const char* verificar_mensaje_reflexivo(Jugador* j);
+
+/* --- Simulacion de consecuencias (tiempo) ---
+   Minutos reales transcurridos desde que arranco esta sesion.
+   'tiempo_actual_ms' es glutGet(GLUT_ELAPSED_TIME) tomado por el
+   llamador en el momento de pedir el dato (no se guarda un "tiempo
+   actual" en Jugador, solo el de arranque, para que este numero
+   siempre refleje el instante real en que se pide). */
+float tiempo_jugado_minutos(const Jugador* j, int tiempo_actual_ms);
 
 #endif /* JUGADOR_H */

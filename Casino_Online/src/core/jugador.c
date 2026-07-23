@@ -7,7 +7,7 @@
 #include <stddef.h> /* NULL, usado por verificar_mensaje_reflexivo */
 #include <stdio.h>  /* sprintf_s, para insertar cifras reales en los mensajes reflexivos */
 
-void inicializar_jugador(Jugador* j, float saldo_inicial) {
+void inicializar_jugador(Jugador* j, float saldo_inicial, int tiempo_actual_ms) {
     j->saldo = saldo_inicial;
     j->deuda = 0.0f;
     j->prestamos_activos = 0;
@@ -23,6 +23,7 @@ void inicializar_jugador(Jugador* j, float saldo_inicial) {
     j->mensajes_reflexivos_mostrados = 0;
     j->rondas_jugadas = 0;
     j->ultima_ronda_notificada = 0;
+    j->tiempo_inicio_ms = tiempo_actual_ms;
 }
 
 void registrar_apuesta(Jugador* j, float monto) {
@@ -109,6 +110,46 @@ int deuda_es_impagable(const Jugador* j, float limite_deuda) {
 #define MULTIPLICADOR_HITO_APOSTADO 2.0f /* cada 2x el saldo inicial apostado en total */
 #define RONDAS_ENTRE_REALITY_CHECK 5 /* aviso neutral cada N rondas, sin importar el resultado */
 
+   /* MEJORA (parte 3, contenido educativo general): el disparador de cada
+      N rondas (ver mas abajo) alterna entre el "reality check" personal
+      ("llevas X rondas...") y uno de estos datos generales, para que no
+      se sienta repetitivo si aparece varias veces en una sesion larga, y
+      para reforzar la concientizacion con contenido distinto al
+      personalizado. Mismo respaldo que el resto (ver
+      docs/analisis-ludopatia.md); complementan, no repiten, el contenido
+      de la pantalla de Informacion ([I] desde el menu). */
+static const char* DATOS_EDUCATIVOS_GENERALES[4] = {
+    "Dato: en la ruleta, cada giro es totalmente\n"
+    "independiente del anterior.\n"
+    "\n"
+    "Una racha de perdidas (o de victorias) no hace\n"
+    "que el proximo resultado sea mas o menos\n"
+    "probable. Es la base matematica del juego.",
+
+    "Dato: la ludopatia esta reconocida como un\n"
+    "trastorno clinico real (DSM-5), no como una\n"
+    "falta de fuerza de voluntad.\n"
+    "\n"
+    "Se trata igual que otras adicciones, aunque no\n"
+    "involucre ninguna sustancia.",
+
+    "Dato: necesitar apostar montos cada vez\n"
+    "mayores para sentir la misma emocion se llama\n"
+    "tolerancia, y es una de las senales de alerta\n"
+    "reconocidas del juego problematico.\n"
+    "\n"
+    "Si notas que te esta pasando, vale la pena\n"
+    "prestarle atencion.",
+
+    "Dato: definir un presupuesto y un limite de\n"
+    "tiempo ANTES de jugar, y respetarlo pase lo\n"
+    "que pase, es una de las formas mas efectivas\n"
+    "de jugar de manera responsable.\n"
+    "\n"
+    "Hay mas info en la pantalla de Informacion\n"
+    "([I] desde el menu)."
+};
+
 const char* verificar_mensaje_reflexivo(Jugador* j) {
     /* Buffer estatico: ver la advertencia en jugador.h sobre su
        tiempo de vida (valido solo hasta la proxima llamada). */
@@ -137,9 +178,11 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
         j->mensajes_reflexivos_mostrados++;
         sprintf_s(buffer, sizeof(buffer),
             "Llevas %d rondas seguidas perdiendo.\n"
-            "Perseguir las perdidas -seguir apostando\n"
-            "para \"recuperar\" lo perdido- es una de las\n"
-            "senales mas comunes del juego problematico.\n"
+            "\n"
+            "Cuando seguimos jugando solo para recuperar\n"
+            "lo que perdimos, se llama \"perseguir las\n"
+            "perdidas\": es una de las señales mas\n"
+            "comunes del juego problematico.\n"
             "\n"
             "De verdad necesitas jugar la proxima ronda,\n"
             "o podrias parar aca?",
@@ -152,12 +195,11 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
         j->mensajes_reflexivos_mostrados++;
         sprintf_s(buffer, sizeof(buffer),
             "Van %d veces que te quedas sin saldo en\n"
-            "esta sesion. Ya acumulas %.2f de deuda\n"
-            "(%.2f de eso es puro interes).\n"
+            "esta sesion. Ya acumulas %.2f de deuda,\n"
+            "y %.2f de eso es puro interes.\n"
             "\n"
             "Asi es como una deuda real empieza a\n"
-            "escalar de verdad. Es este el momento\n"
-            "de parar?",
+            "escalar. Es este el momento de parar?",
             j->veces_sin_fondos, j->deuda, j->interes_acumulado);
         return buffer;
     }
@@ -169,8 +211,8 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
             j->ultimo_hito_apostado_notificado = siguiente_hito;
             j->mensajes_reflexivos_mostrados++;
             sprintf_s(buffer, sizeof(buffer),
-                "Llevas apostado %.2f en total: %.1fx tu\n"
-                "saldo inicial de %.2f.\n"
+                "Llevas apostado %.2f en total: %.1f veces\n"
+                "tu saldo inicial de %.2f.\n"
                 "\n"
                 "Fuera de un simulador, eso es haber puesto\n"
                 "en juego mucho mas dinero del que tenias\n"
@@ -193,20 +235,43 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
        rondas jugadas, siempre, independiente del resultado.
        Prioridad mas baja a proposito -si esta ronda YA disparo alguno
        de los 3 anteriores, este se salta y espera a la siguiente ronda
-       multiplo de 5 (nunca se apilan dos mensajes el mismo round). */
+       multiplo de 5 (nunca se apilan dos mensajes el mismo round).
+
+       MEJORA (parte 3): en vez de mostrar SIEMPRE el mismo "llevas X
+       rondas...", alterna con un dato educativo general (ver
+       DATOS_EDUCATIVOS_GENERALES arriba) -ocurrencias impares (1ra,
+       3ra, 5ta...) muestran el reality check personal; ocurrencias
+       pares muestran un dato, rotando por el pool para no repetir
+       siempre el mismo. Asi el disparador se siente menos repetitivo
+       en sesiones largas, y refuerza la concientizacion con contenido
+       distinto al personalizado. */
     if (j->rondas_jugadas > 0 && j->rondas_jugadas % RONDAS_ENTRE_REALITY_CHECK == 0 && j->rondas_jugadas != j->ultima_ronda_notificada) {
+        int ocurrencia = j->rondas_jugadas / RONDAS_ENTRE_REALITY_CHECK;
         j->ultima_ronda_notificada = j->rondas_jugadas;
         j->mensajes_reflexivos_mostrados++;
-        sprintf_s(buffer, sizeof(buffer),
-            "Llevas %d rondas jugadas en esta sesion.\n"
-            "\n"
-            "No es ni bueno ni malo -es solo un\n"
-            "recordatorio de cuanto tiempo llevas en\n"
-            "la mesa. Es el ritmo que querias tener\n"
-            "cuando te sentaste a jugar?",
-            j->rondas_jugadas);
+
+        if (ocurrencia % 2 == 1) {
+            sprintf_s(buffer, sizeof(buffer),
+                "Llevas %d rondas jugadas en esta sesion.\n"
+                "\n"
+                "No es ni bueno ni malo, es solo un\n"
+                "recordatorio de cuanto tiempo llevas en\n"
+                "la mesa. Es el ritmo que querias tener\n"
+                "cuando te sentaste a jugar?",
+                j->rondas_jugadas);
+        }
+        else {
+            int indice_dato = (ocurrencia / 2 - 1) % 4;
+            sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES[indice_dato]);
+        }
         return buffer;
     }
 
     return NULL;
+}
+
+float tiempo_jugado_minutos(const Jugador* j, int tiempo_actual_ms) {
+    int delta_ms = tiempo_actual_ms - j->tiempo_inicio_ms;
+    if (delta_ms < 0) delta_ms = 0; /* proteccion, no deberia pasar nunca */
+    return (float)delta_ms / 60000.0f;
 }
