@@ -181,7 +181,7 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
             "\n"
             "Cuando seguimos jugando solo para recuperar\n"
             "lo que perdimos, se llama \"perseguir las\n"
-            "perdidas\": es una de las señales mas\n"
+            "perdidas\": es una de las muestras mas\n"
             "comunes del juego problematico.\n"
             "\n"
             "De verdad necesitas jugar la proxima ronda,\n"
