@@ -23,7 +23,7 @@
 #endif
 
 
-/* Funcion para obtener el monto de una ficha por su indice */
+ /* Funcion para obtener el monto de una ficha por su indice */
 static const float FICHAS[4] = { 10.0f, 25.0f, 50.0f, 100.0f };
 
 /* --- Estado global de la partida (TODO propio resuelto) ---
@@ -266,7 +266,7 @@ void teclado(unsigned char tecla, int x, int y) {
 
             partida.numero_ganador_pendiente = numero_ganador;
 
-            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 1 /* vuelta extra visual */);
+            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6 /* vueltas extra visuales: subido de 3 a 6 para llegar a los 10.7s pedidos, ver ruleta_animacion.c */);
         }
         else if (estado_actual == ESTADO_EDUCACION) {
             /* Avanza de pagina con wrap-around (de la ultima vuelve a
@@ -523,8 +523,8 @@ int main(int argc, char** argv) {
     glEnable(GL_MULTISAMPLE);
 
     inicializar_iluminacion();
-    inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME)); 
-    inicializar_estado_juego();                     
+    inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
+    inicializar_estado_juego();
     inicializar_bolita(&partida.bolita);
     partida.angulo_rueda = 0.0f;
     partida.num_apuestas_activas = 0;
