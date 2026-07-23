@@ -1,7 +1,7 @@
-/** Punto de entrada principal del Simulador de Ruleta 3D.
- * Coordina el bucle principal de OpenGL (GLUT), el estado global de la partida,
- * la interaccion del usuario (teclado/raton) y la integracion de los distintos modulos.
+/*
+ * main.c
  */
+
 #include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,16 +23,11 @@
 #define GL_MULTISAMPLE 0x809D
 #endif
 
- /* Valores fijos de las fichas seleccionables con las teclas 1-4.
-    Como es una tabla estatica que no cambia durante la partida,
-    se mantiene fuera de la estructura dinamica EstadoPartida. */
+/* Se encarga de almacenar los valores de las fichas disponibles */
 static const float FICHAS[4] = { 10.0f, 25.0f, 50.0f, 100.0f };
 
-/** Estructura central que agrupa todo el estado de una partida en curso.
- * Anteriormente estas variables estaban dispersas como variables globales estaticas.
- * Agruparlas facilita la inspeccion de datos, la coordinacion entre sistemas y
- * permite en un futuro reiniciar o guardar la partida de forma centralizada.
- */
+
+/* Estruct encargada de almacenar el estado de la partida en curso */
 typedef struct {
     Jugador      jugador;
     EstadoBolita bolita;
@@ -44,22 +39,17 @@ typedef struct {
     int   ficha_actual_index;
     float monto_ficha_actual;
 
-    /* FIX DE ALEATORIEDAD: El numero ganador ahora se decide ANTES de iniciar
-       la animacion del giro (usando rand() % 37) y se guarda aqui. La funcion idle()
-       resuelve la apuesta contra ESTE numero exacto, desvinculando la logica de
-       ganancias de la animacion visual y evitando imprecisiones numericas. */
     int numero_ganador_pendiente;
 
-    /* Puntero al mensaje de concientizacion sobre ludopatia.
-       Apunta a una cadena de solo lectura devuelta por el modulo del jugador,
-       por lo que no requiere liberacion de memoria. */
     const char* mensaje_reflexivo_actual;
 } EstadoPartida;
 
+
+/* Variable global que mantiene el estado de la partida en curso */
 static EstadoPartida partida;
 
-/* Calcula el total de dinero que el jugador ha comprometido en la mesa
-   durante la ronda actual, sumando todas las apuestas activas. */
+
+/* Funcion que calcula el monto total apostado en la ronda actual */
 static float monto_apostado_en_ronda(void) {
     float total = 0.0f;
     int i;
@@ -69,43 +59,37 @@ static float monto_apostado_en_ronda(void) {
     return total;
 }
 
-/* Verifica la integridad economica al momento de colocar una ficha.
-   BUGFIX: Antes se validaba cada ficha nueva contra el saldo absoluto. Como el saldo
-   solo se descuenta al finalizar la ronda, un jugador podia colocar fichas infinitas.
-   Ahora, se exige que el saldo sea suficiente para cubrir lo que YA aposto
-   en esta ronda mas el valor de la nueva ficha que intenta colocar. */
+
+/* Funcion que verifica si el saldo alcanza para colocar una ficha */
 static int saldo_alcanza_para_ficha(float monto_ficha) {
     return (partida.jugador.saldo - monto_apostado_en_ronda()) >= monto_ficha;
 }
 
-/* Evalua si el saldo actual le permite al jugador seguir apostando.
-   Si el jugador no tiene fondos suficientes ni para la ficha minima, cambia
-   el estado del juego hacia la pantalla de solicitud de prestamo.
-   Centraliza la validacion posterior a la resolucion de rondas y mensajes reflexivos. */
+
+
+/* Funcion que verifica los fondos y pide un prestamo si es necesario */
 static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
     if (estado_actual == ESTADO_JUGANDO && partida.jugador.saldo < partida.monto_ficha_actual) {
         cambiar_estado(ESTADO_PRESTAMO);
     }
 }
 
-/* Registra una nueva apuesta en la mesa si se cumplen los requisitos.
-   Retorna 1 si la apuesta fue agregada con exito, o 0 si se alcanzo el
-   limite maximo de apuestas permitidas simultaneamente. */
-static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
-    if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
 
+/* Funcion que agrega una apuesta al arreglo activo si hay espacio y saldo suficiente */
+static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
+
+    if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
     partida.apuestas_activas[partida.num_apuestas_activas].tipo = tipo;
     partida.apuestas_activas[partida.num_apuestas_activas].valor = valor;
     partida.apuestas_activas[partida.num_apuestas_activas].monto = monto;
     partida.num_apuestas_activas++;
 
-    /* Actualiza inmediatamente el monto total mostrado en el HUD */
-    registrar_apuesta(&partida.jugador, monto);
+    registrar_apuesta(&partida.jugador, monto); /* suma al HUD ya */
     return 1;
 }
 
-/* Elimina una apuesta especifica del arreglo, compactando los elementos
-   restantes para evitar huecos en la memoria y descontando el monto del HUD. */
+
+/* Funcion que quita una apuesta del arreglo activo y ajusta el saldo del jugador */
 static void quitar_apuesta(int indice) {
     int i;
     if (indice < 0 || indice >= partida.num_apuestas_activas) return;
@@ -118,9 +102,8 @@ static void quitar_apuesta(int indice) {
     partida.num_apuestas_activas--;
 }
 
-/* Busca y elimina la ultima ficha colocada en una zona o numero especifico.
-   Se utiliza para procesar el "clic derecho" deshaciendo apuestas sobre la celda
-   actualmente apuntada, unificando la logica para numeros y zonas especiales. */
+
+/* Funcion que quita la ultima apuesta de un tipo y valor especifico */
 static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
     int i;
     for (i = partida.num_apuestas_activas - 1; i >= 0; i--) {
@@ -131,15 +114,14 @@ static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
     }
 }
 
-/* Funcion principal de renderizado .
-   Gestiona la secuencia de dibujado de la escena 3D, iluminacion, camara,
-   elementos de la mesa y superposicion de interfaces 2D (HUD y pantallas). */
+
+/* Funcion que dibuja la escena completa, incluyendo la mesa, la rueda, la bolita y el HUD */
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    
+
     gluLookAt(0.0, 15.0, 7.0,
         0.0, 0.0, 1.0,
         0.0, 1.0, 0.0);
@@ -152,8 +134,7 @@ void display(void) {
     glTranslatef(0.0f, 0.05f, 0.0f);
     glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
     dibujar_rueda();
-   
-    dibujar_pista_numerada();
+    dibujar_pista_numerada(); 
 
     glPushMatrix();
     dibujar_bolita(&partida.bolita);
@@ -169,7 +150,8 @@ void display(void) {
     glutSwapBuffers();
 }
 
-/* Callback de redimensionamiento de ventana */
+
+/* Funcion que se llama cuando la ventana se redimensiona, ajustando la proyeccion y el viewport */
 void reshape(int ancho, int alto) {
     float aspecto;
     if (alto == 0) alto = 1;
@@ -182,16 +164,17 @@ void reshape(int ancho, int alto) {
     glMatrixMode(GL_MODELVIEW);
 }
 
-/* Manejador de eventos de teclado .
-   Procesa comandos principales como eleccion de fichas, giros de ruleta y menu. */
+
+/* Funcion que maneja la entrada del teclado, incluyendo la seleccion de fichas, apuestas y giro de la bolita */
 void teclado(unsigned char tecla, int x, int y) {
     (void)x; (void)y;
     switch (tecla) {
-    case 27: /* ESC - Cierra la aplicacion */
+    case 27: 
         exit(0);
         break;
 
-        /* Controles de seleccion del monto de ficha --- */
+
+		/* Seleccion de ficha actual: 1-4 */
     case '1': partida.ficha_actual_index = 0; partida.monto_ficha_actual = FICHAS[0]; break;
     case '2': partida.ficha_actual_index = 1; partida.monto_ficha_actual = FICHAS[1]; break;
     case '3': partida.ficha_actual_index = 2; partida.monto_ficha_actual = FICHAS[2]; break;
@@ -199,7 +182,7 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'r':
     case 'R':
-        /* Apuesta rapida a color ROJO por teclado. */
+        
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_ROJO, partida.monto_ficha_actual);
@@ -208,7 +191,6 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'n':
     case 'N':
-        /* Apuesta rapida a color NEGRO por teclado. */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_NEGRO, partida.monto_ficha_actual);
@@ -216,10 +198,8 @@ void teclado(unsigned char tecla, int x, int y) {
         break;
 
     case ' ':
-        /* Inicia el giro de la ruleta (Barra Espaciadora).
-           El calculo matematico determina el angulo absoluto de la caida basado en un numero
-           aleatorio real.*/
 
+        /* Giro de la bolita */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
 
@@ -235,7 +215,6 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'p':
     case 'P':
-        /* Solicitud de prestamo financiero ante falta de fondos. */
         if (estado_actual == ESTADO_PRESTAMO) {
             pedir_prestamo(&partida.jugador, 200.0f, 0.20f);
 
@@ -248,27 +227,42 @@ void teclado(unsigned char tecla, int x, int y) {
         }
         break;
 
-    case 8: /* BACKSPACE Deshace la ultima ficha colocada en la mesa (Sistema LIFO) */
+    case 's':
+    case 'S':
+		/* Salir de la sesion actual y volver al menu principal */
+        if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
+            partida.mensaje_reflexivo_actual = NULL;
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_PRESTAMO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        break;
+    case 8: 
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
             quitar_apuesta(partida.num_apuestas_activas - 1);
         }
         break;
 
-    case 13: /* ENTER Transicion generica entre estados */
+    case 13: 
         if (estado_actual == ESTADO_MENU) {
             cambiar_estado(ESTADO_JUGANDO);
         }
         else if (estado_actual == ESTADO_GAME_OVER) {
-            /* Reinicio completo de la partida */
+            inicializar_jugador(&partida.jugador, 1000.0f);
+            partida.num_apuestas_activas = 0;
+            partida.mensaje_reflexivo_actual = NULL;
+            cambiar_estado(ESTADO_JUGANDO);
+        }
+        else if (estado_actual == ESTADO_SESION_TERMINADA) {
             inicializar_jugador(&partida.jugador, 1000.0f);
             partida.num_apuestas_activas = 0;
             partida.mensaje_reflexivo_actual = NULL;
             cambiar_estado(ESTADO_JUGANDO);
         }
         else if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
-            /* Descarta el mensaje reflexivo y verifica si adicionalmente
-               es necesario pedir un prestamo para poder continuar. */
+
             partida.mensaje_reflexivo_actual = NULL;
             cambiar_estado(ESTADO_JUGANDO);
             verificar_fondos_y_pedir_prestamo_si_hace_falta();
@@ -281,8 +275,8 @@ void teclado(unsigned char tecla, int x, int y) {
     glutPostRedisplay();
 }
 
-/* Manejador de eventos de los clics del raton .
-   Clic Izquierdo = Apostar, Clic Derecho = Deshacer. */
+
+/* Funcion que maneja los clics del mouse, agregando o quitando apuestas segun el boton presionado */
 void mouse_click(int boton, int estado_boton, int x, int y) {
     float wx, wz;
     int numero;
@@ -293,7 +287,7 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
     if (estado_actual != ESTADO_JUGANDO || partida.bolita.girando) return;
 
     if (boton == GLUT_LEFT_BUTTON) {
-        /* Intento de colocar una nueva ficha */
+        /* Clic izquierdo: agregar ficha */
         if (!saldo_alcanza_para_ficha(partida.monto_ficha_actual)) return;
         if (!obtener_punto_clic_en_mesa(x, y, &wx, &wz)) return;
 
@@ -307,7 +301,7 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
         }
     }
     else if (boton == GLUT_RIGHT_BUTTON) {
-        /* Intento de remover la ultima ficha del numero apuntado */
+        /* Clic derecho: quitar la ultima ficha puesta en ese numero o zona */
         if (!obtener_punto_clic_en_mesa(x, y, &wx, &wz)) return;
 
         if (obtener_numero_en_punto(wx, wz, &numero)) {
@@ -321,8 +315,8 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
     }
 }
 
-/* Funcion de movimiento del raton sin botones presionados
-   Actualiza las coordenadas logicas del tapete para aplicar efectos visuales */
+
+/* Funcion que maneja el movimiento del mouse, actualizando la celda hover en el tablero de apuestas */
 void mouse_mover(int x, int y) {
     float wx, wz;
     int col, fila;
@@ -337,11 +331,10 @@ void mouse_mover(int x, int y) {
     glutPostRedisplay();
 }
 
-/* Bucle de actualizacion logica (callback Idle de GLUT).
-   Calcula la interpolacion temporal e implementa la
-   resolucion y cobro de apuestas en el instante que la bolita se detiene. */
+
+/* Funcion que se llama en cada frame, actualizando la animacion de la bolita y resolviendo el resultado cuando se detiene */
 void idle(void) {
-    
+
     static int tiempo_anterior_ms = -1;
     int   tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
     float delta_tiempo;
@@ -350,28 +343,25 @@ void idle(void) {
     if (tiempo_anterior_ms < 0) tiempo_anterior_ms = tiempo_actual_ms;
     delta_tiempo = (float)(tiempo_actual_ms - tiempo_anterior_ms) / 1000.0f;
     tiempo_anterior_ms = tiempo_actual_ms;
-
-    if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   
-    if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   
+    if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   /* por si el contador diera un valor raro */
+    if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   /* clamp anti-salto */
 
     if (partida.bolita.girando) {
-        /* Garantiza que la rueda siga girando a la misma velocidad constante */
+
         partida.angulo_rueda += VELOCIDAD_RUEDA_DURANTE_GIRO * delta_tiempo;
         if (partida.angulo_rueda >= 360.0f) partida.angulo_rueda -= 360.0f;
     }
 
     actualizar_bolita(&partida.bolita, delta_tiempo);
 
-    /* Resolucion del resultado */
+
+	/* Si la bolita estaba girando y ahora se detuvo, y hay apuestas activas, se calcula el resultado */
     if (estaba_girando && !partida.bolita.girando && partida.num_apuestas_activas > 0) {
 
-        /* El numero ganador fue pre-calculado aleatoriamente de forma estricta
-           al momento de iniciar el giro. Utilizarlo directo elimina bugs visuales de borde. */
         int   numero_ganador = partida.numero_ganador_pendiente;
         float ganancia_total = calcular_ganancia_total(partida.apuestas_activas, partida.num_apuestas_activas, numero_ganador);
 
-        /* Diagnostico exclusivo en entorno de desarrollo.
-           Desaparece automaticamente al compilar en NDEBUG (Release). */
+
 #ifdef _DEBUG
         {
             const char* color_texto = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "ROJO"
@@ -383,8 +373,6 @@ void idle(void) {
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
 
-        /* Evaluacion de riesgos de ludopatia mostrar mensajes reflexivos
-           antes de alertar por posible quiebra economica. */
         partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
         if (partida.mensaje_reflexivo_actual != NULL) {
             cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
@@ -397,13 +385,11 @@ void idle(void) {
     glutPostRedisplay();
 }
 
-/* Punto de entrada principal de la aplicacion de C.
-   Inicializa los buffers graficos, configura el entorno de la partida */
 
+/* Funcion principal del programa */
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
 
-    // ciclo de vida 
     srand((unsigned int)time(NULL));
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
@@ -429,7 +415,6 @@ int main(int argc, char** argv) {
     generar_perfil_bezier_rueda();
     construir_malla_rueda();
 
-    /* Asignacion de rutinas OpenGL */
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(teclado);

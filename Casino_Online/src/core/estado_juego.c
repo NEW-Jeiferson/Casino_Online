@@ -1,33 +1,38 @@
 /*
-* Implementacion de funciones relacionadas con el estado del juego y
-* calculo de ganancias de apuestas.
-*/
+ * estado_juego.c
+ * Implementacion de la maquina de estados. Ver estado_juego.h.
+ */
+
 #include "estado_juego.h"
 #include <stdio.h>
 
+
+/* Estado global actual (definido en estado_juego.c) */
 EstadoJuego estado_actual;
 
+
+/* Metodo encargado de inicializar el estado del juego */
 void inicializar_estado_juego(void) {
     estado_actual = ESTADO_MENU;
 }
 
-/* Orden de los numeros en la rueda europea, empezando desde el 0 y
-   siguiendo el sentido de giro de la ruleta. Se usa para simular el giro de la bolita y
-   determinar el numero ganador. */
+
+/* Metodo que devuelve el orden fijo de los numeros en la rueda de la ruleta europea */
 const int ORDEN_RUEDA_EUROPEA[37] = {
     0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23,
     10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
 };
 
 
-/* Numeros rojos en la ruleta europea. Se usa para determinar el color de un numero. */
+
+/* Metodo que devuelve los numeros rojos en una ruleta europea real */
 static const int NUMEROS_ROJOS[18] = {
     1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36
 };
 
 
-/* Determina el color real de un numero especifico (0-36), segun la
-   tabla fija de una ruleta europea real */
+
+/* Metodo que determina el color de un numero especifico */
 ColorRuleta color_de_numero(int numero) {
     int i;
     if (numero == 0) return COLOR_VERDE;
@@ -38,10 +43,12 @@ ColorRuleta color_de_numero(int numero) {
 }
 
 
-/* Determina si una transicion entre estados es valida */
+/* Metodo que determina si una transicion entre estados es valida */
 static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
-    if (actual == nuevo) return 1; 
+    if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido */
 
+
+    /* Swicht encargado de manejar las transiciones validas */
     switch (actual) {
     case ESTADO_MENU:
         return nuevo == ESTADO_JUGANDO;
@@ -50,12 +57,17 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
         return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO;
 
     case ESTADO_MENSAJE_REFLEXIVO:
-        return nuevo == ESTADO_JUGANDO;
+
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_PRESTAMO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_GAME_OVER;
+
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_GAME_OVER || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_GAME_OVER:
+        return nuevo == ESTADO_JUGANDO;
+
+    case ESTADO_SESION_TERMINADA:
         return nuevo == ESTADO_JUGANDO;
 
     default:
@@ -63,9 +75,11 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
     }
 }
 
-/* Metodo para cambiar el estado del juego cuando se produce un evento para que se actualice el estado correspondiente */
+
+/* Metodo encargado de cambiar el estado del juego */
 void cambiar_estado(EstadoJuego nuevo_estado) {
     if (!es_transicion_valida(estado_actual, nuevo_estado)) {
+
         fprintf(stderr,
             "cambiar_estado: transicion invalida (%d -> %d) ignorada\n",
             (int)estado_actual, (int)nuevo_estado);
@@ -74,7 +88,8 @@ void cambiar_estado(EstadoJuego nuevo_estado) {
     estado_actual = nuevo_estado;
 }
 
-/* Determina a que docena pertenece un numero (1-36) */
+
+/* Metodo que determina la docena a la que pertenece un numero especifico */
 int docena_de_numero(int numero) {
     if (numero <= 0 || numero > 36) return 0;
     if (numero <= 12) return 1;
@@ -83,21 +98,21 @@ int docena_de_numero(int numero) {
 }
 
 
-/* Determina si un numero es par (excluyendo el 0) */
+/* Metodo que determina si un numero es par */
 int numero_es_par(int numero) {
     return (numero != 0) && (numero % 2 == 0);
 }
 
 
-/* Determina si un numero pertenece a la primera mitad (1-18) o a la segunda mitad (19-36) */
+
+/* Metodo que determina la mitad a la que pertenece un numero especifico */
 int mitad_de_numero(int numero) {
     if (numero <= 0 || numero > 36) return 0;
     return (numero <= 18) ? 1 : 2;
 }
 
 
-/* Calcula la ganancia de una apuesta individual dado el numero ganador.
-   Retorna el monto ganado (positivo) o perdido (negativo) segun el resultado. */
+/* Metodo que calcula la ganancia/perdida de una apuesta específica */
 float calcular_ganancia_apuesta(const Apuesta* apuesta, int numero_ganador) {
     switch (apuesta->tipo) {
     case APUESTA_NUMERO:
@@ -125,8 +140,9 @@ float calcular_ganancia_apuesta(const Apuesta* apuesta, int numero_ganador) {
     }
 }
 
-/* Calcula la ganancia total de un conjunto de apuestas dado el numero ganador.
-   Retorna la suma de las ganancias individuales de cada apuesta. */
+
+
+/* Metodo que calcula la ganancia/perdida total de un conjunto de apuestas */
 float calcular_ganancia_total(const Apuesta apuestas[], int cantidad, int numero_ganador) {
     float total = 0.0f;
     int i;
