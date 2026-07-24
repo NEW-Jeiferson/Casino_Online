@@ -1,14 +1,13 @@
 /*
-* jugador.c
-* Implementacion de la logica economica del jugador.
-* Ver jugador.h para la documentacion de cada funcion.
-*/
+ * jugador.c
+ * Implementacion de la logica economica del jugador.
+ * Ver jugador.h para la documentacion de cada funcion.
+ */
 #include "jugador.h"
-#include <stddef.h> 
+#include <stddef.h> /* NULL, usado por verificar_mensaje_reflexivo */
+#include <stdio.h>  /* sprintf_s, para insertar cifras reales en los mensajes reflexivos */
 
-
-/* Inicializacion y actualizacion de estado */
-void inicializar_jugador(Jugador* j, float saldo_inicial) {
+void inicializar_jugador(Jugador* j, float saldo_inicial, int tiempo_actual_ms) {
     j->saldo = saldo_inicial;
     j->deuda = 0.0f;
     j->prestamos_activos = 0;
@@ -21,28 +20,37 @@ void inicializar_jugador(Jugador* j, float saldo_inicial) {
     j->racha_ya_advertida = 0;
     j->ultimo_hito_apostado_notificado = 0.0f;
     j->ultimo_veces_sin_fondos_notificado = 0;
+    j->mensajes_reflexivos_mostrados = 0;
+    j->rondas_jugadas = 0;
+    j->ultima_ronda_notificada = 0;
+    j->tiempo_inicio_ms = tiempo_actual_ms;
 }
 
-
-/* Logica de apuestas y prestamos */
 void registrar_apuesta(Jugador* j, float monto) {
     j->total_apostado += monto;
 }
 
-
-/* Anula una apuesta previamente registrada, para casos donde la apuesta se cancela antes de resolverse */
 void anular_apuesta(Jugador* j, float monto) {
     j->total_apostado -= monto;
     if (j->total_apostado < 0.0f) j->total_apostado = 0.0f;
 }
 
-
-/* Aplica el resultado de una apuesta (ganancia o perdida) al saldo del jugador, y actualiza la racha de perdidas consecutivas */
 void aplicar_resultado_apuesta(Jugador* j, float ganancia) {
-
+    /* Se guarda el signo ANTES de que el bloque de abajo (pago de
+       deuda) pueda achicar 'ganancia' -pagar deuda solo pasa cuando
+       ganancia > 0, asi que nunca le cambia el signo, pero se deja
+       explicito para que este calculo no dependa de ese detalle. */
     int fue_perdida = (ganancia < 0.0f);
 
-	/* Si el jugador tiene deuda, primero se aplica la ganancia a pagar la deuda antes de sumarla al saldo */
+    /* MEJORA OPCIONAL: si el jugador tiene deuda pendiente y esta
+       ronda dio ganancia neta positiva, esa ganancia abona la deuda
+       primero (hasta saldarla) antes de sumarse al saldo disponible.
+       Antes la deuda solo podia crecer (via pedir_prestamo) y nunca
+       bajaba con nada que pasara en la mesa -lo cual no reflejaba
+       "pagar la deuda apostando", una escalada real del jugador
+       problematico que el proyecto busca mostrar. Si se prefiere el
+       comportamiento original (deuda solo baja pidiendo mas
+       prestamos, nunca jugando), basta con borrar este bloque. */
     if (ganancia > 0.0f && j->deuda > 0.0f) {
         float abono = (ganancia < j->deuda) ? ganancia : j->deuda;
         j->deuda -= abono;
@@ -56,19 +64,24 @@ void aplicar_resultado_apuesta(Jugador* j, float ganancia) {
         j->veces_sin_fondos++;
     }
 
-
-	/* Actualiza la racha de perdidas consecutivas y el flag de aviso */
+    /* Racha de perdidas consecutivas, para el sistema de mensajes
+       reflexivos (ver verificar_mensaje_reflexivo). Un resultado neto
+       de exactamente 0.0 no cuenta como perdida (no bajo el saldo). */
     if (fue_perdida) {
         j->racha_perdidas_consecutivas++;
     }
     else {
         j->racha_perdidas_consecutivas = 0;
-        j->racha_ya_advertida = 0;
+        j->racha_ya_advertida = 0; /* nueva racha futura puede volver a avisar */
     }
+
+    /* Cuenta esta ronda para el "reality check" neutral por cantidad
+       de rondas jugadas (ver verificar_mensaje_reflexivo) -a diferencia
+       de los otros 3 disparadores, este no depende de que la ronda
+       haya sido buena o mala, asi que se incrementa siempre. */
+    j->rondas_jugadas++;
 }
 
-
-/* Prestamos y deuda */
 void pedir_prestamo(Jugador* j, float monto, float tasa_interes) {
     float interes = monto * tasa_interes;
     j->deuda += monto + interes;
@@ -77,60 +90,188 @@ void pedir_prestamo(Jugador* j, float monto, float tasa_interes) {
     j->saldo += monto;
 }
 
-
-/* Devuelve 1 si la deuda del jugador es mayor o igual al limite_deuda, 0 en caso contrario */
 int deuda_es_impagable(const Jugador* j, float limite_deuda) {
     return j->deuda >= limite_deuda;
 }
 
+/* --- Concientizacion sobre ludopatia ---
+   Umbrales elegidos para un MVP de demo (una sesion de juego dura
+   minutos, no dias reales), pensados para que un jugador que juega
+   "normal" rara vez los vea, pero alguien que efectivamente esta
+   mostrando el patron de juego problematico que el proyecto busca
+   ilustrar los vea con claridad. Recalibrar si en la demo se disparan
+   demasiado seguido o casi nunca.
 
+   Ver docs/analisis-ludopatia.md para la fundamentacion completa: cada
+   disparador de aca abajo mapea a un criterio clinico (DSM-5) y a
+   literatura real sobre mensajes de responsible gambling, no son
+   umbrales inventados sin respaldo. */
 #define UMBRAL_RACHA_PERDIDAS 5
-#define MULTIPLICADOR_HITO_APOSTADO 2.0f
+#define MULTIPLICADOR_HITO_APOSTADO 2.0f /* cada 2x el saldo inicial apostado en total */
+#define RONDAS_ENTRE_REALITY_CHECK 5 /* aviso neutral cada N rondas, sin importar el resultado */
 
-/* Devuelve un mensaje reflexivo si el jugador cumple alguna condicion de riesgo, o NULL si no hay mensaje que mostrar.
-   El mensaje se muestra una sola vez por cada condicion, y se resetea cuando la condicion deja de cumplirse. */
+   /* MEJORA (parte 3, contenido educativo general): el disparador de cada
+      N rondas (ver mas abajo) alterna entre el "reality check" personal
+      ("llevas X rondas...") y uno de estos datos generales, para que no
+      se sienta repetitivo si aparece varias veces en una sesion larga, y
+      para reforzar la concientizacion con contenido distinto al
+      personalizado. Mismo respaldo que el resto (ver
+      docs/analisis-ludopatia.md); complementan, no repiten, el contenido
+      de la pantalla de Informacion ([I] desde el menu). */
+static const char* DATOS_EDUCATIVOS_GENERALES[4] = {
+    "Dato: en la ruleta, cada giro es totalmente\n"
+    "independiente del anterior.\n"
+    "\n"
+    "Una racha de perdidas (o de victorias) no hace\n"
+    "que el proximo resultado sea mas o menos\n"
+    "probable. Es la base matematica del juego.",
+
+    "Dato: la ludopatia esta reconocida como un\n"
+    "trastorno clinico real (DSM-5), no como una\n"
+    "falta de fuerza de voluntad.\n"
+    "\n"
+    "Se trata igual que otras adicciones, aunque no\n"
+    "involucre ninguna sustancia.",
+
+    "Dato: necesitar apostar montos cada vez\n"
+    "mayores para sentir la misma emocion se llama\n"
+    "tolerancia, y es una de las senales de alerta\n"
+    "reconocidas del juego problematico.\n"
+    "\n"
+    "Si notas que te esta pasando, vale la pena\n"
+    "prestarle atencion.",
+
+    "Dato: definir un presupuesto y un limite de\n"
+    "tiempo ANTES de jugar, y respetarlo pase lo\n"
+    "que pase, es una de las formas mas efectivas\n"
+    "de jugar de manera responsable.\n"
+    "\n"
+    "Hay mas info en la pantalla de Informacion\n"
+    "([I] desde el menu)."
+};
+
 const char* verificar_mensaje_reflexivo(Jugador* j) {
+    /* Buffer estatico: ver la advertencia en jugador.h sobre su
+       tiempo de vida (valido solo hasta la proxima llamada). */
+    static char buffer[700];
 
+    /* Prioridad fija: si mas de una condicion se cumple en la misma
+       ronda, se muestra solo UNA (nunca se apilan dos pantallas
+       reflexivas seguidas). La que no se muestra esta vez sigue
+       "pendiente" -su propio contador no se actualiza- asi que va a
+       volver a evaluarse en la proxima ronda resuelta.
 
-	/* Mensaje por racha de perdidas consecutivas */
+       BUGFIX/MEJORA (cifras reales en vez de texto generico, a partir
+       de McGivern et al. 2019 -mensajes de perdida en un simulador de
+       ruleta online, el antecedente mas directo que existe para este
+       proyecto- y Wohl et al. sobre feedback personalizado): los tres
+       mensajes ahora insertan valores reales del jugador con
+       sprintf_s en vez de frases genericas como "varias veces tu
+       saldo inicial". Tambien se redactaron en formato de
+       autoevaluacion (le hacen una pregunta al jugador sobre SU
+       situacion) en vez de puramente informativo, porque la misma
+       literatura encontro que ese formato se recuerda y funciona
+       mejor. */
+
     if (j->racha_perdidas_consecutivas >= UMBRAL_RACHA_PERDIDAS && !j->racha_ya_advertida) {
         j->racha_ya_advertida = 1;
-        return "Llevas varias rondas seguidas perdiendo.\n"
-            "Perseguir las perdidas, es decir, seguir jugando\n"
-            "esperando \"recuperar\" lo perdido, es una de los\n"
-            "signos mas comunes del juego problematico.\n"
+        j->mensajes_reflexivos_mostrados++;
+        sprintf_s(buffer, sizeof(buffer),
+            "Llevas %d rondas seguidas perdiendo.\n"
             "\n"
-            "Este es un buen momento para hacer una pausa.";
+            "Cuando seguimos jugando solo para recuperar\n"
+            "lo que perdimos, se llama \"perseguir las\n"
+            "perdidas\": es una de las muestras mas\n"
+            "comunes del juego problematico.\n"
+            "\n"
+            "De verdad necesitas jugar la proxima ronda,\n"
+            "o podrias parar aca?",
+            j->racha_perdidas_consecutivas);
+        return buffer;
     }
 
-
-	/* Mensaje por quedarse sin fondos varias veces */
     if (j->veces_sin_fondos >= 2 && j->veces_sin_fondos != j->ultimo_veces_sin_fondos_notificado) {
         j->ultimo_veces_sin_fondos_notificado = j->veces_sin_fondos;
-        return "Te quedaste sin saldo otra vez en esta sesion.\n"
-            "En la vida real, este es exactamente el momento en\n"
-            "el que la deuda empieza a escalar de verdad.\n"
+        j->mensajes_reflexivos_mostrados++;
+        sprintf_s(buffer, sizeof(buffer),
+            "Van %d veces que te quedas sin saldo en\n"
+            "esta sesion. Ya acumulas %.2f de deuda,\n"
+            "y %.2f de eso es puro interes.\n"
             "\n"
-            "Si esto te esta pasando fuera de este simulador,\n"
-            "hablarlo con alguien de confianza o un profesional\n"
-            "puede ayudar.";
+            "Asi es como una deuda real empieza a\n"
+            "escalar. Es este el momento de parar?",
+            j->veces_sin_fondos, j->deuda, j->interes_acumulado);
+        return buffer;
     }
 
     {
-
-		/* Mensaje por haber apostado varias veces el saldo inicial */
         float siguiente_hito = j->ultimo_hito_apostado_notificado + j->saldo_inicial * MULTIPLICADOR_HITO_APOSTADO;
         if (j->saldo_inicial > 0.0f && j->total_apostado >= siguiente_hito) {
+            float multiplo = j->total_apostado / j->saldo_inicial;
             j->ultimo_hito_apostado_notificado = siguiente_hito;
-            return "Ya llevas apostado, en total, varias veces tu\n"
-                "saldo inicial en esta sesion.\n"
+            j->mensajes_reflexivos_mostrados++;
+            sprintf_s(buffer, sizeof(buffer),
+                "Llevas apostado %.2f en total: %.1f veces\n"
+                "tu saldo inicial de %.2f.\n"
                 "\n"
-                "Fuera de un simulador, esto equivale a haber puesto\n"
-                "en juego mucho mas dinero del que tenias pensado al\n"
-                "sentarte a jugar. Vale la pena preguntarse si este\n"
-                "seria el momento de parar.";
+                "Fuera de un simulador, eso es haber puesto\n"
+                "en juego mucho mas dinero del que tenias\n"
+                "pensado al sentarte a jugar. Es este el\n"
+                "momento de parar?",
+                j->total_apostado, multiplo, j->saldo_inicial);
+            return buffer;
         }
     }
 
+    /* MEJORA (disparador 4, "reality check" neutral): los 3 anteriores
+       solo se disparan si algo te esta yendo MAL (perdes seguido,
+       apostas mucho, te quedas sin fondos repetidas veces). Una sesion
+       "normal" -ganas algo, perdes algo, nunca una racha catastrofica-
+       podia jugar indefinidamente sin ver un solo mensaje, por mas
+       rondas que llevara. Las plataformas reguladas reales resuelven
+       esto con un aviso obligatorio por tiempo/cantidad de jugadas,
+       sin importar si vas ganando o perdiendo (ver
+       docs/analisis-ludopatia.md). Este es ese disparador: uno cada 5
+       rondas jugadas, siempre, independiente del resultado.
+       Prioridad mas baja a proposito -si esta ronda YA disparo alguno
+       de los 3 anteriores, este se salta y espera a la siguiente ronda
+       multiplo de 5 (nunca se apilan dos mensajes el mismo round).
+
+       MEJORA (parte 3): en vez de mostrar SIEMPRE el mismo "llevas X
+       rondas...", alterna con un dato educativo general (ver
+       DATOS_EDUCATIVOS_GENERALES arriba) -ocurrencias impares (1ra,
+       3ra, 5ta...) muestran el reality check personal; ocurrencias
+       pares muestran un dato, rotando por el pool para no repetir
+       siempre el mismo. Asi el disparador se siente menos repetitivo
+       en sesiones largas, y refuerza la concientizacion con contenido
+       distinto al personalizado. */
+    if (j->rondas_jugadas > 0 && j->rondas_jugadas % RONDAS_ENTRE_REALITY_CHECK == 0 && j->rondas_jugadas != j->ultima_ronda_notificada) {
+        int ocurrencia = j->rondas_jugadas / RONDAS_ENTRE_REALITY_CHECK;
+        j->ultima_ronda_notificada = j->rondas_jugadas;
+        j->mensajes_reflexivos_mostrados++;
+
+        if (ocurrencia % 2 == 1) {
+            sprintf_s(buffer, sizeof(buffer),
+                "Llevas %d rondas jugadas en esta sesion.\n"
+                "\n"
+                "No es ni bueno ni malo, es solo un\n"
+                "recordatorio de cuanto tiempo llevas en\n"
+                "la mesa. Es el ritmo que querias tener\n"
+                "cuando te sentaste a jugar?",
+                j->rondas_jugadas);
+        }
+        else {
+            int indice_dato = (ocurrencia / 2 - 1) % 4;
+            sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES[indice_dato]);
+        }
+        return buffer;
+    }
+
     return NULL;
+}
+
+float tiempo_jugado_minutos(const Jugador* j, int tiempo_actual_ms) {
+    int delta_ms = tiempo_actual_ms - j->tiempo_inicio_ms;
+    if (delta_ms < 0) delta_ms = 0; /* proteccion, no deberia pasar nunca */
+    return (float)delta_ms / 60000.0f;
 }
