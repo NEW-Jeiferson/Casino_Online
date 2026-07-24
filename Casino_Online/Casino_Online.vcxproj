@@ -159,6 +159,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\tragamonedas\tragamonedas_animacion.c" />
+    <ClCompile Include="src\tragamonedas\tragamonedas_geometria.c" />
+    <ClCompile Include="src\tragamonedas\tragamonedas_logica.c" />
     <ClCompile Include="src\ui\tablero_apuestas.c" />
     <ClCompile Include="src\ui\tablero_apuestas.h" />
     <ClCompile Include="src\core\estado_juego.c" />
@@ -182,6 +185,9 @@
     <ClInclude Include="src\ruleta\mouse_picking.h" />
     <ClInclude Include="src\ruleta\ruleta_animacion.h" />
     <ClInclude Include="src\ruleta\ruleta_geometria.h" />
+    <ClInclude Include="src\tragamonedas\tragamonedas_animacion.h" />
+    <ClInclude Include="src\tragamonedas\tragamonedas_geometria.h" />
+    <ClInclude Include="src\tragamonedas\tragamonedas_logica.h" />
     <ClInclude Include="src\ui\hud.h" />
     <ClInclude Include="src\ui\pantallas.h" />
     <ClInclude Include="src\utils\bezier.h" />
