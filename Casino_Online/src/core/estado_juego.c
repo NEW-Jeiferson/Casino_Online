@@ -3,7 +3,6 @@
  * Implementacion de la maquina de estados. Ver estado_juego.h.
  */
 #include "estado_juego.h"
-#include <math.h>
 #include <stdio.h>
 
 EstadoJuego estado_actual;
@@ -33,29 +32,52 @@ ColorRuleta color_de_numero(int numero) {
 
 /* Tabla de transiciones permitidas. Solo se listan los flujos que el
    juego realmente usa (ver main.c/idle.c):
-     MENU      -> JUGANDO    (ENTER en la pantalla de bienvenida)
-     JUGANDO   -> PRESTAMO   (el saldo no alcanza para la ficha minima)
-     PRESTAMO  -> JUGANDO    (se acepta el prestamo y la deuda es pagable)
-     PRESTAMO  -> GAME_OVER  (se acepta el prestamo pero la deuda ya es
-                              impagable)
-     GAME_OVER -> JUGANDO    (ENTER reinicia la partida)
+     MENU               -> JUGANDO             (ENTER en la pantalla de bienvenida)
+     JUGANDO            -> PRESTAMO             (el saldo no alcanza para la ficha minima)
+     JUGANDO            -> MENSAJE_REFLEXIVO    (se disparo una condicion de concientizacion, ver jugador.h)
+     MENSAJE_REFLEXIVO  -> JUGANDO              (ENTER descarta el mensaje; main.c revisa fondos de nuevo despues)
+     PRESTAMO           -> JUGANDO              (se acepta el prestamo y la deuda es pagable)
+     PRESTAMO           -> GAME_OVER            (se acepta el prestamo pero la deuda ya es
+                                                  impagable)
+     GAME_OVER          -> JUGANDO              (ENTER reinicia la partida)
    Cualquier otra transicion (por ejemplo MENU -> GAME_OVER directo, o
    JUGANDO -> MENU) se considera invalida y se ignora. */
 static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
-    if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido */
+    if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido -esto es lo que permite cambiar de pagina dentro de ESTADO_EDUCACION sin pasar por aca */
 
     switch (actual) {
     case ESTADO_MENU:
-        return nuevo == ESTADO_JUGANDO;
+        /* [ENTER] empieza a jugar, [I] va a la pantalla de Informacion
+           -ver main.c/teclado(). */
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION;
 
     case ESTADO_JUGANDO:
-        return nuevo == ESTADO_PRESTAMO;
+        return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO;
+
+    case ESTADO_MENSAJE_REFLEXIVO:
+        /* [ENTER] sigue jugando, [S] termina la sesion aca mismo -ver
+           main.c/teclado(). Antes solo existia la primera opcion. */
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_PRESTAMO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_GAME_OVER;
+        /* [P] pide prestamo y sigue, [S] termina la sesion en vez de
+           endeudarse -ver main.c/teclado(). Antes pedir prestamo era
+           la unica salida ademas de cerrar el programa entero. */
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_GAME_OVER || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_GAME_OVER:
-        return nuevo == ESTADO_JUGANDO;
+        /* [ENTER] reinicia, [I] va a Informacion antes de reiniciar */
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION;
+
+    case ESTADO_SESION_TERMINADA:
+        /* [ENTER] reinicia, [I] va a Informacion antes de reiniciar */
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION;
+
+    case ESTADO_EDUCACION:
+        /* Siempre vuelve al menu, sin importar desde donde se entro
+           -simplifica el flujo: no hace falta recordar "de donde vine"
+           para saber a donde volver. */
+        return nuevo == ESTADO_MENU;
 
     default:
         return 0;
@@ -74,28 +96,6 @@ void cambiar_estado(EstadoJuego nuevo_estado) {
         return;
     }
     estado_actual = nuevo_estado;
-}
-
-ColorRuleta calcular_color_ganador(float angulo_final) {
-    float angulo_normalizado = fmodf(angulo_final, 360.0f);
-    int sector;
-    if (angulo_normalizado < 0.0f) angulo_normalizado += 360.0f;
-
-    sector = (int)(angulo_normalizado / (360.0f / 37.0f)); /* 0..36 */
-
-    if (sector == 0) return COLOR_VERDE;
-    return (sector % 2 == 0) ? COLOR_NEGRO : COLOR_ROJO;
-}
-
-int calcular_numero_ganador(float angulo_final) {
-    float angulo_normalizado = fmodf(angulo_final, 360.0f);
-    int sector;
-    if (angulo_normalizado < 0.0f) angulo_normalizado += 360.0f;
-
-    sector = (int)(angulo_normalizado / (360.0f / 37.0f)); /* 0..36 */
-    if (sector > 36) sector = 36; /* proteccion por redondeo */
-
-    return ORDEN_RUEDA_EUROPEA[sector];
 }
 
 int docena_de_numero(int numero) {
@@ -128,7 +128,16 @@ float calcular_ganancia_apuesta(const Apuesta* apuesta, int numero_ganador) {
             ? apuesta->monto * 2.0f : -apuesta->monto;
 
     case APUESTA_PAR_IMPAR:
-        return (numero_ganador != 0 && numero_es_par(numero_ganador) == apuesta->valor)
+        /* BUGFIX (encontrado en analisis cruzado, no introducido por
+           Jeiferson): la comparacion original usaba == en vez de !=.
+           Convenio: apuesta->valor = 0 significa "aposte a PAR",
+           valor = 1 significa "aposte a IMPAR". numero_es_par()
+           devuelve 1 si el numero es par, 0 si es impar.
+           Con ==: apostar a PAR (valor=0) solo "ganaba" cuando
+           numero_es_par devolvia 0 (numero IMPAR) -exactamente al
+           reves. La comparacion correcta es !=, ver tabla de verdad
+           completa en la conversacion/AR correspondiente. */
+        return (numero_ganador != 0 && numero_es_par(numero_ganador) != apuesta->valor)
             ? apuesta->monto : -apuesta->monto;
 
     case APUESTA_MITAD:
