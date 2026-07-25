@@ -28,10 +28,12 @@
 #ifndef TRAGAMONEDAS_GEOMETRIA_H
 #define TRAGAMONEDAS_GEOMETRIA_H
 
- /* Dimensiones publicas del gabinete (en unidades de mundo, misma escala
-	que RADIO_MESA/RADIO_EXTERIOR_RUEDA en ruleta_geometria.h). Se dejan
-	publicas para que los proximos pasos (rodillos, palanca) puedan ubicar
-	sus piezas relativas al gabinete sin numeros magicos repetidos. */
+#include "tragamonedas_animacion.h"
+
+/* Dimensiones publicas del gabinete (en unidades de mundo, misma escala
+   que RADIO_MESA/RADIO_EXTERIOR_RUEDA en ruleta_geometria.h). Se dejan
+   publicas para que los proximos pasos (rodillos, palanca) puedan ubicar
+   sus piezas relativas al gabinete sin numeros magicos repetidos. */
 #define GABINETE_ANCHO             2.4f
 #define GABINETE_PROFUNDIDAD       2.0f
 #define GABINETE_ALTURA_BASE       0.5f
@@ -39,16 +41,27 @@
 #define GABINETE_ALTURA_MARQUESINA 1.0f
 #define GABINETE_ALTURA_TOTAL      (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO + GABINETE_ALTURA_MARQUESINA)
 
-	/* Altura (Y) a la que empieza el cuerpo principal y la marquesina,
-	   medidas desde el piso (Y = 0). Utiles para el paso 2 (rodillos), que
-	   va a tener que ubicar la ventana de los rodillos dentro del cuerpo. */
+/* Altura (Y) a la que empieza el cuerpo principal y la marquesina,
+   medidas desde el piso (Y = 0). Utiles para el paso 2 (rodillos), que
+   va a tener que ubicar la ventana de los rodillos dentro del cuerpo. */
 #define GABINETE_Y_INICIO_CUERPO      (GABINETE_ALTURA_BASE)
 #define GABINETE_Y_INICIO_MARQUESINA  (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO)
 
-	   /* Dibuja la escena 3D completa del tragamonedas (gabinete, rodillos,
-		  palanca, etc.) en el origen actual de la matriz de modelo -el
-		  llamador es responsable de la camara/proyeccion, igual que con
-		  dibujar_mesa()/dibujar_rueda() en la ruleta. */
+/* Dibuja la escena 3D completa del tragamonedas (gabinete, rodillos,
+   palanca, etc.) en el origen actual de la matriz de modelo -el
+   llamador es responsable de la camara/proyeccion, igual que con
+   dibujar_mesa()/dibujar_rueda() en la ruleta. */
 void dibujar_tragamonedas(void);
+
+/* TEMPORAL, solo para pruebas locales mientras no exista la
+   integracion real (ver "INTEGRACION FINAL" en el documento del
+   proyecto). dibujar_tragamonedas() mantiene su propio
+   EstadoTragamonedas interno (ver tragamonedas_geometria.c) porque su
+   firma no recibe parametros. Este getter deja llegar a ese mismo
+   estado desde main.c para poder probar iniciar_giro_tragamonedas() +
+   actualizar_tragamonedas() de punta a punta, sin esperar a la
+   integracion. Cuando llegue ese paso, esto se reemplaza por el
+   EstadoTragamonedas que termine viviendo en partida (main.c). */
+EstadoTragamonedas* obtener_estado_tragamonedas_para_pruebas(void);
 
 #endif /* TRAGAMONEDAS_GEOMETRIA_H */

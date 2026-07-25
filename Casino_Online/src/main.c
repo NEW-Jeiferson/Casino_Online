@@ -1,7 +1,6 @@
 /*
  * main.c
  */
-#include "tragamonedas/tragamonedas_geometria.h"
 #include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +17,9 @@
 #include "ui/hud.h"
 #include "ui/pantallas.h"
 #include "ui/tablero_apuestas.h"
+
+ /* TEMPORAL - probar el tragamonedas, quitar antes de mergear */
+#include "tragamonedas/tragamonedas_geometria.h"
 
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE 0x809D
@@ -158,9 +160,20 @@ void display(void) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-
-    gluLookAt(-6.0, 3.0, 5.0,
-        -7.6, 2.1, 0.0,
+    /* Camara mucho mas inclinada hacia abajo que antes (65 grados de
+       elevacion, antes 39), para leer mejor los numeros de la rueda y
+       el tablero, sin llegar a ser una vista totalmente plana desde
+       arriba -se conserva la perspectiva real (gluPerspective, no
+       glOrtho), asi que el volumen 3D de la rueda (domo, sombreado de
+       Phong) sigue notandose. El punto al que mira se corrio un poco
+       hacia el tablero (Z positivo) para que quede mejor encuadrado
+       junto con la rueda, en vez de mirar solo al centro de la rueda. */
+       /* TEMPORAL - probar el tragamonedas, quitar antes de mergear.
+          Este reemplaza (sin borrar el comentario original de arriba)
+          al gluLookAt de la ruleta mientras se prueba el gabinete +
+          rodillos + palanca del tragamonedas al costado. */
+    gluLookAt(-8.3, 2.5, 7.5,
+        -9.0, 2.0, 0.0,
         0.0, 1.0, 0.0);
 
     glPushMatrix();
@@ -171,7 +184,7 @@ void display(void) {
     glTranslatef(0.0f, 0.05f, 0.0f);
     glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
     dibujar_rueda();
-    dibujar_pista_numerada();
+    dibujar_pista_numerada(); /* debe ir aqui: mientras la matriz de la rueda sigue activa, para que gire junto con ella */
 
     glPushMatrix();
     dibujar_bolita(&partida.bolita);
@@ -181,7 +194,7 @@ void display(void) {
     dibujar_vidrio_protector();
     glPopMatrix();
 
-    /* TEMPORAL - probar tragamonedas, quitar antes de mergear */
+    /* TEMPORAL - probar el tragamonedas, quitar antes de mergear */
     glPushMatrix();
     glTranslatef(-9.0f, 0.0f, 0.0f);
     dibujar_tragamonedas();
@@ -239,6 +252,12 @@ void teclado(unsigned char tecla, int x, int y) {
             && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_NEGRO, partida.monto_ficha_actual);
         }
+        break;
+
+    case 'g':
+    case 'G':
+        /* TEMPORAL - probar el giro del tragamonedas, quitar antes de mergear */
+        iniciar_giro_tragamonedas(obtener_estado_tragamonedas_para_pruebas());
         break;
 
     case ' ':
@@ -462,6 +481,9 @@ void idle(void) {
     }
 
     actualizar_bolita(&partida.bolita, delta_tiempo);
+
+    /* TEMPORAL - probar el giro del tragamonedas, quitar antes de mergear */
+    actualizar_tragamonedas(obtener_estado_tragamonedas_para_pruebas(), delta_tiempo);
 
     /* --- Resolver resultado cuando la bolita se acaba de detener --- */
     if (estaba_girando && !partida.bolita.girando && partida.num_apuestas_activas > 0) {
