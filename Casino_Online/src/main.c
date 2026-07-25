@@ -662,7 +662,8 @@ int main(int argc, char** argv) {
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
     glutInitWindowSize(1024, 768);
-    glutCreateWindow("Casino Online - Ruleta (MVP)");
+    glutCreateWindow("Casino Online - Ruleta");
+    glutFullScreen();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);

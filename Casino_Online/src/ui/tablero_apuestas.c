@@ -40,7 +40,6 @@ static void dibujar_texto_stroke_centrado(const char* texto, float ancho_max) {
     escala = 0.24f;
     ancho_total = len * 104.76f * escala;
 
-   
     if (ancho_total > ancho_max) {
         escala *= ancho_max / ancho_total;
         ancho_total = ancho_max;
@@ -51,8 +50,6 @@ static void dibujar_texto_stroke_centrado(const char* texto, float ancho_max) {
     glTranslatef(-ancho_total / 2.0f, -alto_total / 2.0f, 0.0f);
     glScalef(escala, escala, 1.0f);
 
-    
-       
     {
         GLboolean line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
         GLboolean blend_estaba_activo = glIsEnabled(GL_BLEND);
@@ -73,8 +70,6 @@ static void dibujar_texto_stroke_centrado(const char* texto, float ancho_max) {
     glPopMatrix();
 }
 
-/* Dibuja un numero centrado dentro de las dimensiones de una celda estandar,
-   dejando un margen de seguridad para que el texto no toque los bordes. */
 static void dibujar_numero_centrado(int numero) {
     char texto[4];
     const float ANCHO_MAX = 34.0f; /* ancho disponible dentro de la celda (40px - margen) */

@@ -804,7 +804,7 @@ void dibujar_pantalla_educacion(int pagina) {
     glColor3f(1.0f, 0.85f, 0.0f);
     dibujar_texto_2d(cx - (float)strlen(EDUCACION_TITULOS[pagina]) * ANCHO_CHAR_APROX / 2.0f, cy + 200.0f, EDUCACION_TITULOS[pagina]);
 
-    /* --- Cuerpo, alineado a la izquierda (las vinetas se verian mal centradas) --- */
+    /* --- Cuerpo, alineado a la izquierda (bloques y vinetas ordenados) --- */
     glColor3f(1.0f, 1.0f, 1.0f);
     dibujar_texto_multilinea_izquierda(EDUCACION_CUERPOS[pagina], cx - 280.0f, cy + 150.0f, 22.0f);
 
@@ -874,7 +874,7 @@ void dibujar_pantalla_carga(float progreso) {
         glEnd();
     }
 
-    /* Titulo del juego */
+    /* Titulo del juego (centrado horizontalmente) */
     glColor3f(1.0f, 0.85f, 0.0f);
     {
         const char* titulo = "CASINO ONLINE";
@@ -886,14 +886,17 @@ void dibujar_pantalla_carga(float progreso) {
         dibujar_texto_2d(cx - (float)strlen(subtitulo) * ANCHO_CHAR_APROX / 2.0f, cy + 30.0f, subtitulo);
     }
 
-    /* Texto de carga */
+    /* Texto de carga y porcentaje (centrados horizontalmente) */
     glColor3f(1.0f, 1.0f, 1.0f);
     {
-        const char* cargando = "Cargando recursos...";
-        dibujar_texto_2d(cx - (float)strlen(cargando) * ANCHO_CHAR_APROX / 2.0f, barra_y + 30.0f, cargando);
+        char msg_carga[128];
+        int pct = (int)(progreso * 100.0f);
+        if (pct > 100) pct = 100;
+        sprintf_s(msg_carga, sizeof(msg_carga), "Cargando recursos... %d%%", pct);
+        dibujar_texto_2d(cx - (float)strlen(msg_carga) * ANCHO_CHAR_APROX / 2.0f, barra_y + 30.0f, msg_carga);
     }
 
-    /* Borde de la barra de progreso */
+    /* Borde de la barra de progreso (centrada horizontalmente) */
     glColor3f(0.4f, 0.4f, 0.4f);
     glBegin(GL_LINE_LOOP);
     glVertex2f(barra_x, barra_y);
@@ -919,7 +922,7 @@ void dibujar_pantalla_carga(float progreso) {
         glEnd();
     }
 
-    /* Texto pie de pagina */
+    /* Texto pie de pagina (centrado horizontalmente) */
     glColor3f(0.5f, 0.5f, 0.5f);
     {
         const char* footer = "Practica de Computacion Grafica - OpenGL";

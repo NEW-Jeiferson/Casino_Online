@@ -42,11 +42,14 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     /* Fondo semitransparente (Glassmorphism) */
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    /* Fondo semitransparente (Glassmorphism) */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
     glBegin(GL_QUADS);
     glVertex2f(5.0f, (float)alto - 150.0f);
-    glVertex2f(250.0f, (float)alto - 150.0f);
-    glVertex2f(250.0f, (float)alto - 10.0f);
+    glVertex2f(270.0f, (float)alto - 150.0f);
+    glVertex2f(270.0f, (float)alto - 10.0f);
     glVertex2f(5.0f, (float)alto - 10.0f);
     glEnd();
     glDisable(GL_BLEND);
@@ -56,8 +59,8 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     glLineWidth(1.5f);
     glBegin(GL_LINE_LOOP);
     glVertex2f(5.0f, (float)alto - 150.0f);
-    glVertex2f(250.0f, (float)alto - 150.0f);
-    glVertex2f(250.0f, (float)alto - 10.0f);
+    glVertex2f(270.0f, (float)alto - 150.0f);
+    glVertex2f(270.0f, (float)alto - 10.0f);
     glVertex2f(5.0f, (float)alto - 10.0f);
     glEnd();
     glLineWidth(1.0f);
@@ -91,7 +94,7 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
         glColor3f(0.7f, 0.7f, 0.7f);
     }
     sprintf_s(buffer, sizeof(buffer), "%.2f", jugador->total_apostado);
-    dibujar_texto_2d(15.0f + 120.0f, (float)alto - 63.0f, buffer);
+    dibujar_texto_2d(15.0f + 140.0f, (float)alto - 63.0f, buffer);
 
     /* 3. Prestamos */
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -102,7 +105,7 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
         glColor3f(0.7f, 0.7f, 0.7f);
     }
     sprintf_s(buffer, sizeof(buffer), "%d", jugador->prestamos_activos);
-    dibujar_texto_2d(15.0f + 95.0f, (float)alto - 88.0f, buffer);
+    dibujar_texto_2d(15.0f + 100.0f, (float)alto - 88.0f, buffer);
 
     /* 4. Ficha seleccionada y circulo de color */
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -123,7 +126,7 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     {
         const int SEGMENTOS = 16;
         int k;
-        float cx = 150.0f;
+        float cx = 155.0f;
         float cy = (float)alto - 108.0f;
         float rad = 8.0f;
         
