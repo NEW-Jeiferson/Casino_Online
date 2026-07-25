@@ -1,7 +1,6 @@
 /*
  * main.c
  */
-#include "tragamonedas/tragamonedas_geometria.h"
 #include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -278,8 +277,8 @@ void display(void) {
     glLoadIdentity();
 
 
-    gluLookAt(-6.0, 3.0, 5.0,
-        -7.6, 2.1, 0.0,
+    gluLookAt(0.0, 15.0, 7.0,
+        0.0, 0.0, 1.0,
         0.0, 1.0, 0.0);
 
     glPushMatrix();
@@ -298,12 +297,6 @@ void display(void) {
     glPopMatrix();
 
     dibujar_vidrio_protector();
-    glPopMatrix();
-
-    /* TEMPORAL - probar tragamonedas, quitar antes de mergear */
-    glPushMatrix();
-    glTranslatef(-9.0f, 0.0f, 0.0f);
-    dibujar_tragamonedas();
     glPopMatrix();
 
     dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
