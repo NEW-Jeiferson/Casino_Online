@@ -348,30 +348,59 @@ static void dibujar_numeros(void) {
     glPopMatrix();
 }
 
-/* Representa la capa superior de las fichas. Dibuja discos dorados centrados
-   unicamente sobre las casillas numericas 0-36 donde existe una apuesta activa. */
+static void aplicar_color_ficha(float monto) {
+    if (monto <= 10.0f) {
+        glColor3f(1.0f, 0.9f, 0.0f);   /* Amarillo */
+    } else if (monto <= 25.0f) {
+        glColor3f(0.0f, 0.7f, 0.1f);   /* Verde */
+    } else if (monto <= 50.0f) {
+        glColor3f(0.1f, 0.4f, 0.9f);   /* Azul */
+    } else {
+        glColor3f(0.6f, 0.1f, 0.7f);   /* Morado (para >50) */
+    }
+}
 
+/* Representa la capa superior de las fichas. Dibuja discos con colores segun su valor
+   y apilados tridimensionalmente sobre las casillas numericas 0-36. */
 static void dibujar_fichas_apostadas(const Apuesta apuestas[], int cantidad) {
-    int col, fila, numero, i, hay_ficha;
+    int i, j, count;
+    float cx, cy;
+    float offset_x, offset_y, offset_z;
 
     glPushMatrix();
     glTranslatef(-2.9f, 0.14f, 4.9f);
     glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
     glScalef(ESCALA_TABLERO, ESCALA_TABLERO, 1.0f);
 
-    glColor3f(1.0f, 0.85f, 0.0f);
-
-   
-    hay_ficha = 0;
     for (i = 0; i < cantidad; i++) {
-        if (apuestas[i].tipo == APUESTA_NUMERO && apuestas[i].valor == 0) {
-            hay_ficha = 1;
-            break;
+        if (apuestas[i].tipo != APUESTA_NUMERO) continue;
+
+        /* Contar apuestas previas en la misma casilla para el apilamiento */
+        count = 0;
+        for (j = 0; j < i; j++) {
+            if (apuestas[j].tipo == APUESTA_NUMERO && apuestas[j].valor == apuestas[i].valor) {
+                count++;
+            }
         }
-    }
-    if (hay_ficha) {
+        if (count > 5) count = 5; /* Limite visual de apilado */
+
+        offset_x = (float)count * 1.5f;
+        offset_y = (float)count * 1.5f;
+        offset_z = (float)count * 0.02f; /* Unidades de mundo ya que Z no esta escalado */
+
+        if (apuestas[i].valor == 0) {
+            cx = -ANCHO_CELDA_CERO_PX / 2.0f;
+            cy = (TABLERO_FILAS * CELDA_PX) / 2.0f;
+        } else {
+            int col = (apuestas[i].valor - 1) / 3;
+            int fila = (apuestas[i].valor - 1) % 3;
+            cx = col * CELDA_PX + CELDA_PX / 2.0f;
+            cy = fila * CELDA_PX + CELDA_PX / 2.0f;
+        }
+
         glPushMatrix();
-        glTranslatef(-ANCHO_CELDA_CERO_PX / 2.0f, (TABLERO_FILAS * CELDA_PX) / 2.0f, 0.0f);
+        glTranslatef(cx + offset_x, cy + offset_y, offset_z);
+        aplicar_color_ficha(apuestas[i].monto);
         {
             const int SEGMENTOS = 16;
             const float RADIO = 12.0f;
@@ -387,58 +416,40 @@ static void dibujar_fichas_apostadas(const Apuesta apuestas[], int cantidad) {
         glPopMatrix();
     }
 
-    for (col = 0; col < TABLERO_COLUMNAS; col++) {
-        for (fila = 0; fila < TABLERO_FILAS; fila++) {
-            numero = numero_de_celda(col, fila);
-            hay_ficha = 0;
-            for (i = 0; i < cantidad; i++) {
-                if (apuestas[i].tipo == APUESTA_NUMERO && apuestas[i].valor == numero) {
-                    hay_ficha = 1;
-                    break;
-                }
-            }
-            if (!hay_ficha) continue;
-
-            glPushMatrix();
-            glTranslatef(col * CELDA_PX + CELDA_PX / 2.0f,
-                fila * CELDA_PX + CELDA_PX / 2.0f, 0.0f);
-            {
-                const int SEGMENTOS = 16;
-                const float RADIO = 12.0f;
-                int k;
-                glBegin(GL_TRIANGLE_FAN);
-                glVertex2f(0.0f, 0.0f);
-                for (k = 0; k <= SEGMENTOS; k++) {
-                    float ang = (float)k / SEGMENTOS * 2.0f * 3.14159265f;
-                    glVertex2f(cosf(ang) * RADIO, sinf(ang) * RADIO);
-                }
-                glEnd();
-            }
-            glPopMatrix();
-        }
-    }
-
     glPopMatrix();
 }
 
-// Dibuja discos dorados centrados sobre las franjas de apuestas 
-   
+/* Dibuja discos con colores segun su valor y apilados tridimensionalmente 
+   sobre las franjas de apuestas especiales. */
 static void dibujar_fichas_zonas_especiales(const Apuesta apuestas[], int cantidad) {
     const int ANCHO_ZONA_DOCENA = 4 * CELDA_PX;
     const int ANCHO_CELDA_INF = (TABLERO_COLUMNAS * CELDA_PX) / 6;
     const int Y_TOP = 0;
     const int Y_MID = -ALTO_ZONA_DOCENA_PX;
-    int i;
+    int i, j, count;
+    float cx, cy;
+    float offset_x, offset_y, offset_z;
 
     glPushMatrix();
     glTranslatef(-2.9f, 0.14f, 4.9f);
     glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
     glScalef(ESCALA_TABLERO, ESCALA_TABLERO, 1.0f);
 
-    glColor3f(1.0f, 0.85f, 0.0f); /* dorado, igual que las fichas del grid */
-
     for (i = 0; i < cantidad; i++) {
-        float cx, cy;
+        if (apuestas[i].tipo == APUESTA_NUMERO) continue;
+
+        /* Contar apuestas previas en la misma zona especial */
+        count = 0;
+        for (j = 0; j < i; j++) {
+            if (apuestas[j].tipo == apuestas[i].tipo && apuestas[j].valor == apuestas[i].valor) {
+                count++;
+            }
+        }
+        if (count > 5) count = 5;
+
+        offset_x = (float)count * 1.5f;
+        offset_y = (float)count * 1.5f;
+        offset_z = (float)count * 0.02f;
 
         if (apuestas[i].tipo == APUESTA_DOCENA) {
             cx = (apuestas[i].valor - 1) * ANCHO_ZONA_DOCENA + ANCHO_ZONA_DOCENA / 2.0f;
@@ -450,21 +461,22 @@ static void dibujar_fichas_zonas_especiales(const Apuesta apuestas[], int cantid
             cy = Y_MID + ALTO_ZONA_INFERIOR_PX / 2.0f;
         }
         else if (apuestas[i].tipo == APUESTA_PAR_IMPAR) {
-            int indice = (apuestas[i].valor == 0) ? 1 : 4; 
+            int indice = (apuestas[i].valor == 0) ? 1 : 4;
             cx = indice * ANCHO_CELDA_INF + ANCHO_CELDA_INF / 2.0f;
             cy = Y_MID + ALTO_ZONA_INFERIOR_PX / 2.0f;
         }
         else if (apuestas[i].tipo == APUESTA_COLOR) {
-            int indice = (apuestas[i].valor == (int)COLOR_ROJO) ? 2 : 3; 
+            int indice = (apuestas[i].valor == (int)COLOR_ROJO) ? 2 : 3;
             cx = indice * ANCHO_CELDA_INF + ANCHO_CELDA_INF / 2.0f;
             cy = Y_MID + ALTO_ZONA_INFERIOR_PX / 2.0f;
         }
         else {
-            continue; 
+            continue;
         }
 
         glPushMatrix();
-        glTranslatef(cx, cy, 0.0f);
+        glTranslatef(cx + offset_x, cy + offset_y, offset_z);
+        aplicar_color_ficha(apuestas[i].monto);
         {
             const int SEGMENTOS = 16;
             const float RADIO = 10.0f;

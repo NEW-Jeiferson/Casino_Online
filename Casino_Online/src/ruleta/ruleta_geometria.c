@@ -149,7 +149,7 @@ void dibujar_mesa(void) {
     glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
     glEnd();
 
-    aplicar_material(MATERIAL_MADERA);
+    aplicar_material(MATERIAL_MADERA_OSCURA);
 
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 1.0f, 0.0f);
@@ -192,7 +192,7 @@ void dibujar_mesa(void) {
 void dibujar_rueda(void) {
     int i, j, jj;
 
-    aplicar_material(MATERIAL_METAL);
+    aplicar_material(MATERIAL_MADERA_OSCURA);
 
     for (i = 0; i < PERFIL_SEGMENTOS - 1; i++) {
         glBegin(GL_TRIANGLE_STRIP);
@@ -368,4 +368,115 @@ void dibujar_pista_numerada(void) {
     glDisable(GL_COLOR_MATERIAL);
     if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
     if (!blend_estaba_activo) glDisable(GL_BLEND);
+}
+
+void dibujar_emblema_central(void) {
+    int i, k;
+    int segmentos_cono;
+    int segmentos_anillo;
+    float h_cero;
+    
+    segmentos_cono = 24;
+    segmentos_anillo = 36;
+    h_cero = altura_superficie_en_radio(0.0f);
+    
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    aplicar_material(MATERIAL_METAL);
+    glColor3f(1.0f, 0.84f, 0.0f); /* Dorado pulido -va DESPUES de aplicar_material()
+                                      a proposito: con GL_COLOR_MATERIAL activo en
+                                      GL_AMBIENT_AND_DIFFUSE, este glColor3f tiene
+                                      que ser lo ULTIMO que toque ambient/diffuse,
+                                      si no cualquier llamada a aplicar_material()
+                                      despues lo pisa (ver bug ya corregido aca) */
+
+    /* 1. Eje central (cono) */
+    glBegin(GL_TRIANGLE_FAN);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(0.0f, h_cero + 0.15f, 0.0f);
+    for (k = 0; k <= segmentos_cono; k++) {
+        float ang = (float)k / segmentos_cono * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        glNormal3f(nx * 0.7f, 0.7f, nz * 0.7f);
+        glVertex3f(0.12f * nx, h_cero + 0.05f, 0.12f * nz);
+    }
+    glEnd();
+
+    /* Pared del eje (cilindro) */
+    glBegin(GL_QUAD_STRIP);
+    for (k = 0; k <= segmentos_cono; k++) {
+        float ang = (float)k / segmentos_cono * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        float h_edge = altura_superficie_en_radio(0.15f);
+        glNormal3f(nx, 0.0f, nz);
+        glVertex3f(0.12f * nx, h_cero + 0.05f, 0.12f * nz);
+        glVertex3f(0.15f * nx, h_edge, 0.15f * nz);
+    }
+    glEnd();
+
+    /* 2. Aspas de la insignia (8 aspas tridimensionales) */
+    for (i = 0; i < 8; i++) {
+        float ang_spoke = (float)i * (2.0f * 3.14159265f / 8.0f);
+        float cos_s = cosf(ang_spoke);
+        float sin_s = sinf(ang_spoke);
+
+        float ang_izq = ang_spoke - 0.12f;
+        float ang_der = ang_spoke + 0.12f;
+
+        float h_inner_izq = altura_superficie_en_radio(0.15f);
+        float h_inner_der = altura_superficie_en_radio(0.15f);
+        float h_outer = altura_superficie_en_radio(0.80f);
+
+        /* Cara superior de la cuña */
+        glBegin(GL_TRIANGLES);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.15f * cosf(ang_izq), h_inner_izq + 0.03f, 0.15f * sinf(ang_izq));
+        glVertex3f(0.15f * cosf(ang_der), h_inner_der + 0.03f, 0.15f * sinf(ang_der));
+        glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+        glEnd();
+
+        /* Lados para dar volumen 3D */
+        glBegin(GL_QUADS);
+        /* Lado izquierdo */
+        {
+            float nx_l = -sinf(ang_izq);
+            float nz_l = cosf(ang_izq);
+            glNormal3f(nx_l, 0.1f, nz_l);
+            glVertex3f(0.15f * cosf(ang_izq), h_inner_izq + 0.03f, 0.15f * sinf(ang_izq));
+            glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+            glVertex3f(0.80f * cos_s, h_outer, 0.80f * sin_s);
+            glVertex3f(0.15f * cosf(ang_izq), h_inner_izq, 0.15f * sinf(ang_izq));
+        }
+
+        /* Lado derecho */
+        {
+            float nx_r = sinf(ang_der);
+            float nz_r = -cosf(ang_der);
+            glNormal3f(nx_r, 0.1f, nz_r);
+            glVertex3f(0.15f * cosf(ang_der), h_inner_der + 0.03f, 0.15f * sinf(ang_der));
+            glVertex3f(0.15f * cosf(ang_der), h_inner_der, 0.15f * sinf(ang_der));
+            glVertex3f(0.80f * cos_s, h_outer, 0.80f * sin_s);
+            glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+        }
+        glEnd();
+    }
+
+    /* 3. Anillo de realce concéntrico */
+    glBegin(GL_QUAD_STRIP);
+    for (k = 0; k <= segmentos_anillo; k++) {
+        float ang = (float)k / segmentos_anillo * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        float h_in = altura_superficie_en_radio(0.88f) + 0.01f;
+        float h_out = altura_superficie_en_radio(0.94f) + 0.01f;
+
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.88f * nx, h_in, 0.88f * nz);
+        glVertex3f(0.94f * nx, h_out, 0.94f * nz);
+    }
+    glEnd();
+
+    glDisable(GL_COLOR_MATERIAL);
 }

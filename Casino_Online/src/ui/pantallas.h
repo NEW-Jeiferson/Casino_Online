@@ -15,9 +15,14 @@
 #include "../core/jugador.h"
 #include "../core/estado_juego.h"
 
- /* Dibuja la pantalla de bienvenida (ESTADO_MENU): titulo, aviso de que
-    se juega con saldo virtual, y la lista de controles del juego. */
-void dibujar_pantalla_menu(void);
+/* Inicializa las IDs de texturas OpenGL cargadas */
+void inicializar_texturas_pantallas(unsigned int tex_carga, unsigned int tex_casino);
+
+/* Dibuja la pantalla de carga inicial con barra de progreso */
+void dibujar_pantalla_carga(float progreso);
+
+/* Dibuja la pantalla de bienvenida y selector de juego (ESTADO_MENU) */
+void dibujar_pantalla_menu(int opcion_seleccionada);
 
 /* Dibuja el overlay y mensaje reflexivo de la pantalla de prestamo.
    Ofrece [P] pedir prestamo y seguir, o [S] terminar la sesion aqui
@@ -57,14 +62,15 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
    [ENTER] vuelve al menu -ver main.c/teclado(). */
 void dibujar_pantalla_educacion(int pagina);
 
-/* Parametros transitorios que algunas pantallas necesitan y otras no
-   -se agrupan aca en vez de seguir sumando parametros sueltos a
-   dibujar_pantalla_segun_estado() cada vez que se agrega una pantalla
-   nueva que necesita "un dato mas". Los campos que no aplican al
-   estado actual simplemente no se leen. */
+/* Dibuja la pantalla placeholder para el modulo de tragamonedas */
+void dibujar_pantalla_tragamonedas_placeholder(void);
+
+/* Parametros transitorios que algunas pantallas necesitan y otras no */
 typedef struct {
     const char* mensaje_reflexivo; /* solo se usa si estado == ESTADO_MENSAJE_REFLEXIVO */
     int pagina_educacion;          /* solo se usa si estado == ESTADO_EDUCACION */
+    int opcion_menu;               /* solo se usa si estado == ESTADO_MENU */
+    float progreso_carga;          /* solo se usa si estado == ESTADO_CARGA */
 } InfoPantalla;
 
 /* Despacha a la funcion de dibujo correspondiente segun el estado

@@ -4,6 +4,7 @@
  */
 #include <GL/glut.h>
 #include <stdio.h>
+#include <math.h>
 #include "hud.h"
 
  /* Funcion auxiliar para dibujar una cadena de texto en pantalla en 2D.
@@ -38,7 +39,32 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
 
-    
+    /* Fondo semitransparente (Glassmorphism) */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+    glBegin(GL_QUADS);
+    glVertex2f(5.0f, (float)alto - 150.0f);
+    glVertex2f(250.0f, (float)alto - 150.0f);
+    glVertex2f(250.0f, (float)alto - 10.0f);
+    glVertex2f(5.0f, (float)alto - 10.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    /* Borde dorado */
+    glColor3f(1.0f, 0.85f, 0.0f);
+    glLineWidth(1.5f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(5.0f, (float)alto - 150.0f);
+    glVertex2f(250.0f, (float)alto - 150.0f);
+    glVertex2f(250.0f, (float)alto - 10.0f);
+    glVertex2f(5.0f, (float)alto - 10.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    /* 1. Saldo */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d(15.0f, (float)alto - 38.0f, "Saldo: ");
     {
         const float UMBRAL_SALDO_BAJO = 200.0f;
         float t = jugador->saldo / UMBRAL_SALDO_BAJO;
@@ -53,29 +79,77 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
 
         glColor3f(r, g, b);
     }
+    sprintf_s(buffer, sizeof(buffer), "%.2f", jugador->saldo);
+    dibujar_texto_2d(15.0f + 65.0f, (float)alto - 38.0f, buffer);
 
-    /* Dibuja las lineas de informacion del HUD.
-       Las posiciones en Y se calculan dinamicamente usando el alto total (glutGet)
-       menos margenes fijos. Esto garantiza que si la ventana se redimensiona,
-       el HUD se mantenga siempre anclado correctamente a la esquina superior izquierda
-       sin cortarse ni flotar fuera de lugar. */
-    sprintf_s(buffer, sizeof(buffer), "Saldo: %.2f", jugador->saldo);
-    dibujar_texto_2d(10.0f, (float)alto - 38.0f, buffer);
+    /* 2. Total apostado */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d(15.0f, (float)alto - 63.0f, "Total apostado: ");
+    if (jugador->total_apostado > 0.0f) {
+        glColor3f(1.0f, 0.6f, 0.2f);
+    } else {
+        glColor3f(0.7f, 0.7f, 0.7f);
+    }
+    sprintf_s(buffer, sizeof(buffer), "%.2f", jugador->total_apostado);
+    dibujar_texto_2d(15.0f + 120.0f, (float)alto - 63.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
-    dibujar_texto_2d(10.0f, (float)alto - 63.0f, buffer);
+    /* 3. Prestamos */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d(15.0f, (float)alto - 88.0f, "Prestamos: ");
+    if (jugador->prestamos_activos > 0) {
+        glColor3f(1.0f, 0.3f, 0.3f);
+    } else {
+        glColor3f(0.7f, 0.7f, 0.7f);
+    }
+    sprintf_s(buffer, sizeof(buffer), "%d", jugador->prestamos_activos);
+    dibujar_texto_2d(15.0f + 95.0f, (float)alto - 88.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Prestamos activos: %d", jugador->prestamos_activos);
-    dibujar_texto_2d(10.0f, (float)alto - 88.0f, buffer);
+    /* 4. Ficha seleccionada y circulo de color */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d(15.0f, (float)alto - 113.0f, "Ficha: ");
+    if (monto_ficha_actual <= 10.0f) {
+        glColor3f(1.0f, 0.9f, 0.0f); /* Amarillo */
+    } else if (monto_ficha_actual <= 25.0f) {
+        glColor3f(0.0f, 0.7f, 0.1f); /* Verde */
+    } else if (monto_ficha_actual <= 50.0f) {
+        glColor3f(0.1f, 0.4f, 0.9f); /* Azul */
+    } else {
+        glColor3f(0.6f, 0.1f, 0.7f); /* Morado */
+    }
+    sprintf_s(buffer, sizeof(buffer), "%.2f", monto_ficha_actual);
+    dibujar_texto_2d(15.0f + 60.0f, (float)alto - 113.0f, buffer);
 
- 
-    sprintf_s(buffer, sizeof(buffer), "Ficha actual: %.2f", monto_ficha_actual);
-    dibujar_texto_2d(10.0f, (float)alto - 113.0f, buffer);
+    /* Circulo indicador al lado */
+    {
+        const int SEGMENTOS = 16;
+        int k;
+        float cx = 150.0f;
+        float cy = (float)alto - 108.0f;
+        float rad = 8.0f;
+        
+        glBegin(GL_TRIANGLE_FAN);
+        glVertex2f(cx, cy);
+        for (k = 0; k <= SEGMENTOS; k++) {
+            float ang = (float)k / SEGMENTOS * 2.0f * 3.14159265f;
+            glVertex2f(cx + cosf(ang) * rad, cy + sinf(ang) * rad);
+        }
+        glEnd();
+        
+        /* Borde interior blanco del circulo */
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_LINE_LOOP);
+        for (k = 0; k <= SEGMENTOS; k++) {
+            float ang = (float)k / SEGMENTOS * 2.0f * 3.14159265f;
+            glVertex2f(cx + cosf(ang) * (rad - 2.0f), cy + sinf(ang) * (rad - 2.0f));
+        }
+        glEnd();
+    }
 
-    sprintf_s(buffer, sizeof(buffer), "Apuestas colocadas: %d", num_apuestas_activas);
-    dibujar_texto_2d(10.0f, (float)alto - 138.0f, buffer);
+    /* 5. Cantidad apuestas */
+    glColor3f(0.7f, 0.7f, 0.7f);
+    sprintf_s(buffer, sizeof(buffer), "Apuestas: %d", num_apuestas_activas);
+    dibujar_texto_2d(15.0f, (float)alto - 138.0f, buffer);
 
-   
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
 
