@@ -1,14 +1,6 @@
 /*
- * ruleta_geometria.c
- * Implementacion de la geometria de la rueda. Ver ruleta_geometria.h.
- *
- * VERSION CON JERARQUIA REAL: dibujar_rueda() ya no gestiona su propia
- * traslacion/rotacion de nodo. Quien la llama (main.c -> display()) es
- * responsable de dejar la matriz ModelView posicionada antes de
- * invocarla, y de mantenerla activa mientras se dibujan sus hijos
- * (la bolita), para lograr una jerarquia real con la pila de matrices
- * (mesa -> rueda -> bolita), en vez de objetos independientes.
- */
+* Implementacion de la geometria de la rueda
+*/
 #include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
@@ -16,26 +8,21 @@
 #include "ruleta_geometria.h"
 #include "../render/materiales.h"
 #include "../utils/bezier.h"
-#include "../core/estado_juego.h" /* ORDEN_RUEDA_EUROPEA, color_de_numero: para la pista numerada */
+#include "../core/estado_juego.h" 
 
- /* RADIO_MESA ahora se expone en ruleta_geometria.h (Luis la necesita
-    para el mapeo de posicion 3D a celda del tablero de apuestas) */
-#define PERFIL_SEGMENTOS     12   /* puntos a lo largo del perfil (radio-altura) */
-#define REVOLUCION_SEGMENTOS 36   /* divisiones angulares (360 / 36 = 10 grados) */
+
+#define PERFIL_SEGMENTOS     12   
+#define REVOLUCION_SEGMENTOS 36   
 #define PI_GEOMETRIA         3.14159265358979323846f
 
-    /* ------------------------------------------------------------------- */
-    /* Datos de la malla generada.                                          */
-    /* perfil_puntos[i].x = radio, perfil_puntos[i].y = altura (el campo z  */
-    /* del perfil no se usa, se deja en 0).                                 */
-    /* ------------------------------------------------------------------- */
+
+/* Datos para la malla de la rueda */
 static Punto3D perfil_puntos[PERFIL_SEGMENTOS];
 static Punto3D malla_vertices[PERFIL_SEGMENTOS][REVOLUCION_SEGMENTOS];
 static Punto3D malla_normales[PERFIL_SEGMENTOS][REVOLUCION_SEGMENTOS];
 
-/* ------------------------------------------------------------------- */
-/* Utilidades vectoriales pequenas (solo usadas aqui).                  */
-/* ------------------------------------------------------------------- */
+
+/* Funciones auxiliares para calculos de vectores 3D */
 static Punto3D producto_cruz(Punto3D a, Punto3D b) {
     Punto3D r;
     r.x = a.y * b.z - a.z * b.y;
@@ -44,6 +31,8 @@ static Punto3D producto_cruz(Punto3D a, Punto3D b) {
     return r;
 }
 
+
+/* Sirve para normalizar un vector 3D, el cual debe ser no nulo */
 static Punto3D normalizar_vector(Punto3D v) {
     float longitud;
     Punto3D r;
@@ -59,8 +48,28 @@ static Punto3D normalizar_vector(Punto3D v) {
     return r;
 }
 
-/* ------------------------------------------------------------------- */
 
+/* Sirve para obtener la altura de la superficie en un radio dado, se usa para calcular la posición vertical de los vértices de la malla */
+float altura_superficie_en_radio(float radio) {
+    int i;
+
+    if (radio <= perfil_puntos[0].x) return perfil_puntos[0].y;
+    if (radio >= perfil_puntos[PERFIL_SEGMENTOS - 1].x) return perfil_puntos[PERFIL_SEGMENTOS - 1].y;
+
+    for (i = 0; i < PERFIL_SEGMENTOS - 1; i++) {
+        float r0 = perfil_puntos[i].x;
+        float r1 = perfil_puntos[i + 1].x;
+
+        if (radio >= r0 && radio <= r1) {
+            float t = (r1 - r0 < 0.00001f) ? 0.0f : (radio - r0) / (r1 - r0);
+            return perfil_puntos[i].y + t * (perfil_puntos[i + 1].y - perfil_puntos[i].y);
+        }
+    }
+    return perfil_puntos[PERFIL_SEGMENTOS - 1].y;
+}
+
+
+/* Genera el perfil de la rueda usando una curva de Bezier cúbica, se usa para calcular la posición horizontal de los vértices de la malla */
 void generar_perfil_bezier_rueda(void) {
     Punto3D p0, p1, p2, p3;
     int i;
@@ -77,6 +86,8 @@ void generar_perfil_bezier_rueda(void) {
     }
 }
 
+
+/* Construye la malla de la rueda a partir del perfil generado, calculando los vértices y normales para cada segmento de revolución */
 void construir_malla_rueda(void) {
     int i, j;
     float angulo, radio, altura, dradio, daltura;
@@ -114,17 +125,18 @@ void construir_malla_rueda(void) {
             tangente_circ.y = 0.0f;
             tangente_circ.z = cosf(angulo);
 
-            /* Orden confirmado: tangente_circ x tangente_perfil da la
-               normal apuntando hacia afuera de la superficie (ver
-               bug documentado: el orden opuesto daba normales
-               invertidas y la rueda se veia negra/sin luz). */
             normal = producto_cruz(tangente_circ, tangente_perfil);
             malla_normales[i][j] = normalizar_vector(normal);
         }
     }
 }
 
+
+/* Dibuja la mesa de la ruleta, incluyendo el fieltro y el borde de madera */
 void dibujar_mesa(void) {
+
+    const float BORDE_MESA = 0.5f;
+
     glPushMatrix();
 
     aplicar_material(MATERIAL_FIELTRO);
@@ -137,18 +149,50 @@ void dibujar_mesa(void) {
     glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
     glEnd();
 
+    aplicar_material(MATERIAL_MADERA_OSCURA);
+
+    glBegin(GL_QUADS);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+
+	/* Borde superior (incluye las otras 2 esquinas) */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
+
+
+    /* Borde inferior (incluye las otras 2 esquinas) */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
+
+
+    /* Borde izquierdo (solo el tramo central, las esquinas ya las
+       cubrieron los dos quads de arriba) */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.0f, -RADIO_MESA);
+
+
+    /* Borde derecho */
+    glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
+
+    glEnd();
+
     glPopMatrix();
 }
 
+
+/* Dibuja la rueda de la ruleta usando la malla generada, aplicando el material metálico y las normales calculadas para cada vértice */
 void dibujar_rueda(void) {
     int i, j, jj;
 
-    /* Ya NO hace glPushMatrix/glTranslatef/glRotatef/glPopMatrix aqui:
-       el llamador (main.c) posiciona el nodo "rueda" antes de invocar
-       esta funcion, y mantiene esa matriz activa para que la bolita
-       (dibujada despues, como hijo) herede la misma transformacion. */
-
-    aplicar_material(MATERIAL_METAL);
+    aplicar_material(MATERIAL_MADERA_OSCURA);
 
     for (i = 0; i < PERFIL_SEGMENTOS - 1; i++) {
         glBegin(GL_TRIANGLE_STRIP);
@@ -165,6 +209,8 @@ void dibujar_rueda(void) {
     }
 }
 
+
+/* Dibuja el vidrio protector de la rueda, aplicando un material transparente y habilitando el blending para lograr el efecto de transparencia */
 void dibujar_vidrio_protector(void) {
     glPushMatrix();
 
@@ -185,61 +231,91 @@ void dibujar_vidrio_protector(void) {
     glPopMatrix();
 }
 
-/* ------------------------------------------------------------------- */
-/* Pista numerada (Opcion A: colores geometricos por sector + numeros   */
-/* rectos, sin textura). Se llama justo despues de dibujar_rueda(),     */
-/* mientras la matriz del nodo "rueda" sigue activa, para que la pista  */
-/* gire junto con la rueda en vez de quedarse fija.                     */
-/*                                                                       */
-/* Usa ORDEN_RUEDA_EUROPEA y color_de_numero() de estado_juego.h        */
-/* (Luis) -misma fuente de verdad que usa main.c para decidir el       */
-/* numero ganador, asi que lo que se VE en la rueda siempre coincide    */
-/* con lo que CUENTA como resultado. No hay copia local de estos datos. */
-/* ------------------------------------------------------------------- */
 
-/* Radios de la banda donde va la pista (entre el domo central y el
-   labio del borde). Ajustados a ojo contra el perfil de Bezier actual
-   (p1 en radio ~1.05, p2 en radio ~2.25, p3 -borde- en radio 3.0);
-   recalibrar viendo la escena real si hace falta. */
-#define RADIO_INTERNO_PISTA 1.6f
-#define RADIO_EXTERNO_PISTA 2.6f
+/* Dibuja los números de la pista de la ruleta, centrados en cada sector y escalados para que quepan dentro del arco correspondiente */
+#define ESCALA_NUMERO_PISTA_BASE 0.0024f
+static float ancho_max_numero_pista(void) {
+    const float paso_angular = 360.0f / 37.0f;
+    const float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
+    return 2.0f * radio_medio * sinf((paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f) * 0.95f;
+}
 
-   /* Altura a la que se dibuja la pista: justo por encima del punto mas
-      alto del perfil en esa banda (p1.y = 0.40), para que no quede
-      "enterrada" dentro de la superficie curva en ningun punto. */
-#define ALTURA_PISTA 0.42f
 
+/* Dibuja un número de la pista de la ruleta, centrado y escalado para que quepa dentro del arco correspondiente */
 static void dibujar_numero_pista(int numero) {
     char texto[4];
     int i, len;
+    GLboolean iluminacion_estaba_activa;
+    float escala, ancho_total;
 
     snprintf(texto, sizeof(texto), "%d", numero);
     len = (int)strlen(texto);
 
+
+    iluminacion_estaba_activa = glIsEnabled(GL_LIGHTING);
+    glDisable(GL_LIGHTING);
+    glColor3f(1.0f, 1.0f, 1.0f);
+
+
+	/* Calcula la escala necesaria para que el número quepa dentro del arco correspondiente, ajustando si es necesario para no exceder el ancho máximo permitido */
+    escala = ESCALA_NUMERO_PISTA_BASE;
+    ancho_total = (float)len * 104.76f * escala;
+    {
+        float ancho_max = ancho_max_numero_pista();
+        if (ancho_total > ancho_max) {
+            escala *= ancho_max / ancho_total;  
+            ancho_total = ancho_max;
+        }
+    }
+
+
+	/* Ajusta el grosor de la línea según la escala, para que los números se vean consistentes en tamaño y grosor */
+    {
+        float grosor = 2.5f * (escala / ESCALA_NUMERO_PISTA_BASE);
+        if (grosor < 1.1f) grosor = 1.1f;
+        glLineWidth(grosor);
+    }
+
+
+	/* Dibuja cada caracter del número usando glutStrokeCharacter, escalando y centrando el texto en el arco correspondiente */
     glPushMatrix();
-    glScalef(0.0022f, 0.0022f, 1.0f); /* la fuente stroke es "grande" por defecto */
-    glTranslatef(-(float)len * 52.0f, 0.0f, 0.0f); /* centrar aproximadamente */
+    glScalef(escala, escala, 1.0f);
+    glTranslatef(-(float)len * 52.38f, -59.5f, 0.0f);
     for (i = 0; i < len; i++) {
         glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
     }
     glPopMatrix();
+
+    glLineWidth(1.0f);
+    if (iluminacion_estaba_activa) glEnable(GL_LIGHTING);
 }
 
+#define OFFSET_PISTA 0.006f
+
+
+/* Dibuja la pista numerada de la ruleta, con los sectores de color correspondientes y los números centrados en cada sector */
 void dibujar_pista_numerada(void) {
     int sector;
     const float paso_angular = 360.0f / 37.0f;
+    GLboolean line_smooth_estaba_activo;
+    GLboolean blend_estaba_activo;
+
+    float altura_interna = altura_superficie_en_radio(RADIO_INTERNO_PISTA) + OFFSET_PISTA;
+    float altura_externa = altura_superficie_en_radio(RADIO_EXTERNO_PISTA) + OFFSET_PISTA;
 
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-
-    /* FIX: el winding del triangle strip de la banda queda invertido
-       (normal calculada hacia -Y en vez de +Y), por lo que GL_CULL_FACE
-       (GL_BACK, activo globalmente en main.c) lo descartaba entero -de
-       ahi que solo se vieran los numeros (son GL_LINE, no los afecta
-       el culling). Se desactiva culling solo para esta banda en vez
-       de invertir el orden de vertices, para no arriesgar romper el
-       calculo de normal que ya usa glNormal3f(0,1,0). */
     glDisable(GL_CULL_FACE);
+
+
+
+	/* Habilita suavizado de líneas y blending para que los números se vean más suaves y legibles, guardando el estado previo para restaurarlo después */
+    line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
+    blend_estaba_activo = glIsEnabled(GL_BLEND);
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
     for (sector = 0; sector < 37; sector++) {
         int numero = ORDEN_RUEDA_EUROPEA[sector];
@@ -253,30 +329,154 @@ void dibujar_pista_numerada(void) {
         else if (color == COLOR_ROJO)  glColor3f(0.75f, 0.08f, 0.08f);
         else                            glColor3f(0.05f, 0.05f, 0.05f);
 
+
+		/* Dibuja el sector de color correspondiente al número, usando un GL_TRIANGLE_STRIP para crear la banda de color entre el radio interno y externo de la pista */
         glBegin(GL_TRIANGLE_STRIP);
         for (k = 0; k <= segmentos_arco; k++) {
             float t = (float)k / segmentos_arco;
             float ang = (angulo_inicio + t * (angulo_fin - angulo_inicio)) * PI_GEOMETRIA / 180.0f;
             glNormal3f(0.0f, 1.0f, 0.0f);
-            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), ALTURA_PISTA, RADIO_INTERNO_PISTA * sinf(ang));
-            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), ALTURA_PISTA, RADIO_EXTERNO_PISTA * sinf(ang));
+
+            glVertex3f(RADIO_INTERNO_PISTA * cosf(ang), altura_interna, -RADIO_INTERNO_PISTA * sinf(ang));
+            glVertex3f(RADIO_EXTERNO_PISTA * cosf(ang), altura_externa, -RADIO_EXTERNO_PISTA * sinf(ang));
         }
         glEnd();
 
         {
+			/* Calcula la posición y orientación del número centrado en el sector correspondiente, usando la altura media de la pista y el radio medio para posicionarlo correctamente */
             float ang_medio = (angulo_inicio + paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f;
             float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
+            float altura_numero = (altura_interna + altura_externa) / 2.0f + OFFSET_PISTA * 2.0f;
 
+
+			/* Dibuja el número centrado en el sector correspondiente, deshabilitando la iluminación para que se vea correctamente y restaurando el estado después */
             glColor3f(1.0f, 1.0f, 1.0f);
             glPushMatrix();
-            glTranslatef(radio_medio * cosf(ang_medio), ALTURA_PISTA + 0.001f, radio_medio * sinf(ang_medio));
-            glRotatef(-(angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
+            glTranslatef(radio_medio * cosf(ang_medio), altura_numero, -radio_medio * sinf(ang_medio));
+            glRotatef((angulo_inicio + paso_angular / 2.0f) + 90.0f, 0.0f, 1.0f, 0.0f);
             glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+            glDisable(GL_LIGHTING);
             dibujar_numero_pista(numero);
+            glEnable(GL_LIGHTING);
             glPopMatrix();
         }
     }
 
+
+	/* Restaura el estado previo de OpenGL, reactivando el culling, deshabilitando el color material y restaurando el estado de suavizado de líneas y blending según corresponda */
     glEnable(GL_CULL_FACE);
+    glDisable(GL_COLOR_MATERIAL);
+    if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
+    if (!blend_estaba_activo) glDisable(GL_BLEND);
+}
+
+void dibujar_emblema_central(void) {
+    int i, k;
+    int segmentos_cono;
+    int segmentos_anillo;
+    float h_cero;
+    
+    segmentos_cono = 24;
+    segmentos_anillo = 36;
+    h_cero = altura_superficie_en_radio(0.0f);
+    
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    aplicar_material(MATERIAL_METAL);
+    glColor3f(1.0f, 0.84f, 0.0f); /* Dorado pulido -va DESPUES de aplicar_material()
+                                      a proposito: con GL_COLOR_MATERIAL activo en
+                                      GL_AMBIENT_AND_DIFFUSE, este glColor3f tiene
+                                      que ser lo ULTIMO que toque ambient/diffuse,
+                                      si no cualquier llamada a aplicar_material()
+                                      despues lo pisa (ver bug ya corregido aca) */
+
+    /* 1. Eje central (cono) */
+    glBegin(GL_TRIANGLE_FAN);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(0.0f, h_cero + 0.15f, 0.0f);
+    for (k = 0; k <= segmentos_cono; k++) {
+        float ang = (float)k / segmentos_cono * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        glNormal3f(nx * 0.7f, 0.7f, nz * 0.7f);
+        glVertex3f(0.12f * nx, h_cero + 0.05f, 0.12f * nz);
+    }
+    glEnd();
+
+    /* Pared del eje (cilindro) */
+    glBegin(GL_QUAD_STRIP);
+    for (k = 0; k <= segmentos_cono; k++) {
+        float ang = (float)k / segmentos_cono * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        float h_edge = altura_superficie_en_radio(0.15f);
+        glNormal3f(nx, 0.0f, nz);
+        glVertex3f(0.12f * nx, h_cero + 0.05f, 0.12f * nz);
+        glVertex3f(0.15f * nx, h_edge, 0.15f * nz);
+    }
+    glEnd();
+
+    /* 2. Aspas de la insignia (8 aspas tridimensionales) */
+    for (i = 0; i < 8; i++) {
+        float ang_spoke = (float)i * (2.0f * 3.14159265f / 8.0f);
+        float cos_s = cosf(ang_spoke);
+        float sin_s = sinf(ang_spoke);
+
+        float ang_izq = ang_spoke - 0.12f;
+        float ang_der = ang_spoke + 0.12f;
+
+        float h_inner_izq = altura_superficie_en_radio(0.15f);
+        float h_inner_der = altura_superficie_en_radio(0.15f);
+        float h_outer = altura_superficie_en_radio(0.80f);
+
+        /* Cara superior de la cuña */
+        glBegin(GL_TRIANGLES);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.15f * cosf(ang_izq), h_inner_izq + 0.03f, 0.15f * sinf(ang_izq));
+        glVertex3f(0.15f * cosf(ang_der), h_inner_der + 0.03f, 0.15f * sinf(ang_der));
+        glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+        glEnd();
+
+        /* Lados para dar volumen 3D */
+        glBegin(GL_QUADS);
+        /* Lado izquierdo */
+        {
+            float nx_l = -sinf(ang_izq);
+            float nz_l = cosf(ang_izq);
+            glNormal3f(nx_l, 0.1f, nz_l);
+            glVertex3f(0.15f * cosf(ang_izq), h_inner_izq + 0.03f, 0.15f * sinf(ang_izq));
+            glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+            glVertex3f(0.80f * cos_s, h_outer, 0.80f * sin_s);
+            glVertex3f(0.15f * cosf(ang_izq), h_inner_izq, 0.15f * sinf(ang_izq));
+        }
+
+        /* Lado derecho */
+        {
+            float nx_r = sinf(ang_der);
+            float nz_r = -cosf(ang_der);
+            glNormal3f(nx_r, 0.1f, nz_r);
+            glVertex3f(0.15f * cosf(ang_der), h_inner_der + 0.03f, 0.15f * sinf(ang_der));
+            glVertex3f(0.15f * cosf(ang_der), h_inner_der, 0.15f * sinf(ang_der));
+            glVertex3f(0.80f * cos_s, h_outer, 0.80f * sin_s);
+            glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+        }
+        glEnd();
+    }
+
+    /* 3. Anillo de realce concéntrico */
+    glBegin(GL_QUAD_STRIP);
+    for (k = 0; k <= segmentos_anillo; k++) {
+        float ang = (float)k / segmentos_anillo * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        float h_in = altura_superficie_en_radio(0.88f) + 0.01f;
+        float h_out = altura_superficie_en_radio(0.94f) + 0.01f;
+
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.88f * nx, h_in, 0.88f * nz);
+        glVertex3f(0.94f * nx, h_out, 0.94f * nz);
+    }
+    glEnd();
+
     glDisable(GL_COLOR_MATERIAL);
 }
