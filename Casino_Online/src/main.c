@@ -1,6 +1,7 @@
 /*
  * main.c
  */
+#include "tragamonedas/tragamonedas_geometria.h"
 #include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,16 +277,9 @@ void display(void) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    /* Camara mucho mas inclinada hacia abajo que antes (65 grados de
-       elevacion, antes 39), para leer mejor los numeros de la rueda y
-       el tablero, sin llegar a ser una vista totalmente plana desde
-       arriba -se conserva la perspectiva real (gluPerspective, no
-       glOrtho), asi que el volumen 3D de la rueda (domo, sombreado de
-       Phong) sigue notandose. El punto al que mira se corrio un poco
-       hacia el tablero (Z positivo) para que quede mejor encuadrado
-       junto con la rueda, en vez de mirar solo al centro de la rueda. */
-    gluLookAt(0.0, 15.0, 7.0,
-        0.0, 0.0, 1.0,
+
+    gluLookAt(-6.0, 3.0, 5.0,
+        -7.6, 2.1, 0.0,
         0.0, 1.0, 0.0);
 
     glPushMatrix();
@@ -296,7 +290,7 @@ void display(void) {
     glTranslatef(0.0f, 0.05f, 0.0f);
     glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
     dibujar_rueda();
-    dibujar_pista_numerada(); /* debe ir aqui: mientras la matriz de la rueda sigue activa, para que gire junto con ella */
+    dibujar_pista_numerada();
 
     glPushMatrix();
     dibujar_bolita(&partida.bolita);
@@ -304,6 +298,12 @@ void display(void) {
     glPopMatrix();
 
     dibujar_vidrio_protector();
+    glPopMatrix();
+
+    /* TEMPORAL - probar tragamonedas, quitar antes de mergear */
+    glPushMatrix();
+    glTranslatef(-9.0f, 0.0f, 0.0f);
+    dibujar_tragamonedas();
     glPopMatrix();
 
     dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
