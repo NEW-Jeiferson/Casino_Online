@@ -24,23 +24,24 @@
 #include <GL/glu.h>
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 #include "tragamonedas_geometria.h"
 #include "tragamonedas_animacion.h"
 #include "tragamonedas_logica.h"
 #include "../render/materiales.h"
 
-/* Alto aproximado (en unidades de fuente, antes de escalar) de una
-   mayuscula en GLUT_STROKE_ROMAN -se usa para centrar verticalmente el
-   texto, ya que glutStrokeCharacter() dibuja desde la linea de base
-   hacia arriba, no centrado. */
+ /* Alto aproximado (en unidades de fuente, antes de escalar) de una
+    mayuscula en GLUT_STROKE_ROMAN -se usa para centrar verticalmente el
+    texto, ya que glutStrokeCharacter() dibuja desde la linea de base
+    hacia arriba, no centrado. */
 #define ALTURA_APROX_MAYUSCULA_STROKE 119.05f
 
-/* Grosor de los paneles laterales que enmarcan la ventana frontal del
-   cuerpo -el paso 2 (rodillos) la necesita para saber cuanto espacio
-   libre queda adentro. */
+    /* Grosor de los paneles laterales que enmarcan la ventana frontal del
+       cuerpo -el paso 2 (rodillos) la necesita para saber cuanto espacio
+       libre queda adentro. */
 #define GROSOR_MARCO_VENTANA 0.30f
 
-/* Alto de las franjas decorativas doradas entre secciones del gabinete */
+       /* Alto de las franjas decorativas doradas entre secciones del gabinete */
 #define ALTO_FRANJA 0.08f
 
 /* Dimensiones internas de la ventana donde van los rodillos, derivadas
@@ -50,50 +51,38 @@
 #define VENTANA_PROFUNDIDAD_INTERNA (GABINETE_PROFUNDIDAD - GROSOR_MARCO_VENTANA)
 #define VENTANA_Y_CENTRO            (GABINETE_Y_INICIO_CUERPO + VENTANA_ALTO_INTERNO / 2.0f)
 
-/* Grosor de los separadores finos entre rodillos */
+   /* Grosor de los separadores finos entre rodillos */
 #define GROSOR_DIVISOR_RODILLO 0.04f
 
 /* Constantes de la palanca -brazo cilindrico inclinado con una perilla
    en la punta, montado en un soporte al costado derecho del gabinete. */
-#define PALANCA_EXTENSION_SOPORTE      0.18f
-#define PALANCA_RADIO_BRAZO            0.045f
-#define PALANCA_RADIO_BRAZO_PUNTA      0.038f
-#define PALANCA_LONGITUD_BRAZO         1.55f
-#define PALANCA_RADIO_PERILLA          0.13f
+#define PALANCA_EXTENSION_SOPORTE      0.14f
+#define PALANCA_RADIO_BRAZO            0.032f
+#define PALANCA_RADIO_BRAZO_PUNTA      0.026f
+#define PALANCA_LONGITUD_BRAZO         1.05f
+#define PALANCA_RADIO_PERILLA          0.095f
 #define PALANCA_ANGULO_INCLINACION     55.0f
 #define PALANCA_Y_PIVOTE_FACTOR        0.55f
 
-/* Cuantos simbolos se ven por rodillo (el central + uno arriba y uno
-   abajo) y cuanto espacio vertical ocupa cada "unidad de simbolo" de
-   EstadoRodillo.posicion_actual -se reparte la altura interna de la
-   ventana en 3 franjas iguales. */
+   /* Cuantos simbolos se ven por rodillo (el central + uno arriba y uno
+      abajo) y cuanto espacio vertical ocupa cada "unidad de simbolo" de
+      EstadoRodillo.posicion_actual -se reparte la altura interna de la
+      ventana en 3 franjas iguales. */
 #define SIMBOLOS_VISIBLES_POR_RODILLO 3
 #define ALTURA_UNIDAD_SIMBOLO (VENTANA_ALTO_INTERNO / (float)SIMBOLOS_VISIBLES_POR_RODILLO)
 
-/* Estado interno de la animacion, solo para poder dibujar algo
-   coherente mientras no existe la integracion real. NO es el estado
-   "oficial" del juego. */
+      /* Estado interno de la animacion, solo para poder dibujar algo
+         coherente mientras no existe la integracion real. NO es el estado
+         "oficial" del juego. */
 static EstadoTragamonedas g_estado_tragamonedas;
 static int g_estado_tragamonedas_listo = 0;
 
 
 /* Dibuja texto con la fuente stroke de GLUT, centrado aproximadamente
-   sobre el punto actual. Grosor de linea + suavizado (mismo criterio
-   que dibujar_numero_pista() en ruleta_geometria.c), porque
-   glutStrokeCharacter() con el grosor de linea por defecto (1px) queda
-   casi ilegible a la distancia -se ve como un rayón fino en vez de un
-   letrero. Guarda y restaura el estado de blend/line-smooth previo. */
+   sobre el punto actual. */
 static void dibujar_texto_stroke_simple(const char* texto, float escala) {
     int i;
     int len = (int)strlen(texto);
-    GLboolean line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
-    GLboolean blend_estaba_activo = glIsEnabled(GL_BLEND);
-
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glLineWidth(3.0f);
 
     glPushMatrix();
     glScalef(escala, escala, 1.0f);
@@ -102,10 +91,6 @@ static void dibujar_texto_stroke_simple(const char* texto, float escala) {
         glutStrokeCharacter(GLUT_STROKE_ROMAN, texto[i]);
     }
     glPopMatrix();
-
-    glLineWidth(1.0f);
-    if (!blend_estaba_activo) glDisable(GL_BLEND);
-    if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
 }
 
 
@@ -191,8 +176,8 @@ static void dibujar_caja_biselada(float ancho, float alto, float profundo, float
 #define BISEL_FRANJA        0.015f
 
 
-/* Material local del cuerpo del gabinete: marron/caoba oscuro (no
-   negro), para la paleta dorado+rojo. */
+   /* Material local del cuerpo del gabinete: marron/caoba oscuro (no
+      negro), para la paleta dorado+rojo. */
 static void aplicar_material_cuerpo(void) {
     GLfloat ambient[4] = { 0.10f, 0.035f, 0.02f, 1.0f };
     GLfloat diffuse[4] = { 0.34f, 0.12f, 0.07f, 1.0f };
@@ -235,6 +220,21 @@ static void aplicar_material_acento_rojo(void) {
 }
 
 
+/* Fondo de los rodillos: negro terciopelo con un leve toque verde
+   oscuro -contraste maximo con los simbolos dorados/rojos, da el look
+   "casino de lujo" que no da el gris metalico plano. */
+static void aplicar_material_fondo_rodillo(void) {
+    GLfloat ambient[4]  = { 0.01f, 0.02f, 0.01f, 1.0f };
+    GLfloat diffuse[4]  = { 0.03f, 0.07f, 0.03f, 1.0f };
+    GLfloat specular[4] = { 0.12f, 0.20f, 0.12f, 1.0f };
+    GLfloat shininess   = 20.0f;
+    glMaterialfv(GL_FRONT, GL_AMBIENT,   ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE,   diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,  specular);
+    glMaterialf (GL_FRONT, GL_SHININESS, shininess);
+}
+
+
 /* ------------------------------------------------------------------- */
 /* Gabinete (PASO 1)                                                    */
 /* ------------------------------------------------------------------- */
@@ -250,16 +250,30 @@ static void dibujar_base(void) {
     glPopMatrix();
 }
 
+/* Dibuja un rombo/diamante decorativo de 4 caras, centrado en el
+   origen actual -se usa como motivo ornamental en las columnas. */
+static void dibujar_rombo_decorativo(float radio) {
+    glBegin(GL_QUADS);
+    /* cara frontal: rombo en XY */
+    glNormal3f(0.0f, 0.0f, 1.0f);
+    glVertex3f(0.0f,   radio,  0.002f);
+    glVertex3f(radio,  0.0f,   0.002f);
+    glVertex3f(0.0f,  -radio,  0.002f);
+    glVertex3f(-radio, 0.0f,   0.002f);
+    glEnd();
+}
+
 static void dibujar_cuerpo_principal(void) {
     float ancho_columna;
     float profundidad_util;
     float x_columna;
+    int   k;
 
     ancho_columna = GROSOR_MARCO_VENTANA;
     profundidad_util = GABINETE_PROFUNDIDAD - GROSOR_MARCO_VENTANA;
     x_columna = (GABINETE_ANCHO - ancho_columna) / 2.0f;
 
-    /* Columnas y panel superior: dorados (antes cromados) */
+    /* Columnas y panel superior: dorados */
     aplicar_material_dorado();
 
     glPushMatrix();
@@ -274,11 +288,6 @@ static void dibujar_cuerpo_principal(void) {
 
     glPushMatrix();
     glTranslatef(0.0f, GABINETE_Y_INICIO_CUERPO + GABINETE_ALTURA_CUERPO - GROSOR_MARCO_VENTANA / 2.0f, 0.0f);
-    /* Sin bisel a proposito: la cara de abajo de este panel casi no
-       recibe luz directa (mira hacia adentro de la ventana) y con
-       bisel se veia como una franja oscura/marron dentro del hueco de
-       los rodillos -un artefacto de iluminacion, no algo que deba
-       verse. Se deja como caja simple. */
     dibujar_caja(GABINETE_ANCHO, GROSOR_MARCO_VENTANA, GABINETE_PROFUNDIDAD);
     glPopMatrix();
 
@@ -287,6 +296,77 @@ static void dibujar_cuerpo_principal(void) {
     glTranslatef(0.0f, GABINETE_Y_INICIO_CUERPO + GABINETE_ALTURA_CUERPO / 2.0f, -profundidad_util / 2.0f);
     dibujar_caja(GABINETE_ANCHO - 2.0f * ancho_columna, GABINETE_ALTURA_CUERPO, GROSOR_MARCO_VENTANA);
     glPopMatrix();
+
+    /* Rombos dorados ornamentales en la cara frontal de cada columna:
+       5 rombos equiespaciados verticalmente, color rojo acento para
+       contrastar con el fondo caoba de las columnas. */
+    glDisable(GL_LIGHTING);
+    for (k = 0; k < 5; k++) {
+        float y_rombo = GABINETE_Y_INICIO_CUERPO + GABINETE_ALTURA_CUERPO * ((float)(k + 1) / 6.0f);
+        float z_front = GABINETE_PROFUNDIDAD / 2.0f + 0.001f;
+        float radio   = ancho_columna * 0.28f;
+
+        glColor3f(0.90f, 0.72f, 0.10f); /* dorado brillante */
+
+        /* columna izquierda */
+        glPushMatrix();
+        glTranslatef(-x_columna, y_rombo, z_front);
+        dibujar_rombo_decorativo(radio);
+        glPopMatrix();
+
+        /* columna derecha */
+        glPushMatrix();
+        glTranslatef(x_columna, y_rombo, z_front);
+        dibujar_rombo_decorativo(radio);
+        glPopMatrix();
+    }
+    glEnable(GL_LIGHTING);
+
+    /* Ranura de monedas: abertura horizontal en el lado derecho del
+       cuerpo, a media altura -detalle de autenticidad. */
+    {
+        float y_slot  = GABINETE_Y_INICIO_CUERPO + GABINETE_ALTURA_CUERPO * 0.30f;
+        float x_slot  = x_columna + ancho_columna / 2.0f;
+        /* Marco dorado de la ranura */
+        aplicar_material_dorado();
+        glPushMatrix();
+        glTranslatef(x_slot, y_slot, 0.0f);
+        dibujar_caja_biselada(0.10f, 0.04f, GABINETE_PROFUNDIDAD * 0.12f, 0.008f);
+        glPopMatrix();
+        /* Hendidura oscura dentro de la ranura */
+        {
+            GLfloat am[4] = {0.01f, 0.01f, 0.01f, 1.0f};
+            GLfloat di[4] = {0.02f, 0.02f, 0.02f, 1.0f};
+            GLfloat sp[4] = {0.05f, 0.05f, 0.05f, 1.0f};
+            glMaterialfv(GL_FRONT, GL_AMBIENT,   am);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE,   di);
+            glMaterialfv(GL_FRONT, GL_SPECULAR,  sp);
+            glMaterialf (GL_FRONT, GL_SHININESS, 8.0f);
+        }
+        glPushMatrix();
+        glTranslatef(x_slot + 0.001f, y_slot, 0.0f);
+        dibujar_caja(0.07f, 0.018f, GABINETE_PROFUNDIDAD * 0.08f);
+        glPopMatrix();
+    }
+
+    /* Bandeja de monedas: canaleta curva en la base del frente,
+       donde caen las monedas -elemento esencial de aspecto real. */
+    {
+        float z_front_base = (GABINETE_PROFUNDIDAD * 1.08f) / 2.0f;
+        float y_bandeja    = GABINETE_ALTURA_BASE * 0.72f;
+        aplicar_material_cuerpo();
+        glPushMatrix();
+        glTranslatef(0.0f, y_bandeja, z_front_base);
+        glScalef(GABINETE_ANCHO * 0.50f, 0.055f, 0.12f);
+        glutSolidCube(1.0);
+        glPopMatrix();
+        /* borde dorado de la bandeja */
+        aplicar_material_dorado();
+        glPushMatrix();
+        glTranslatef(0.0f, y_bandeja, z_front_base + 0.005f);
+        dibujar_caja_biselada(GABINETE_ANCHO * 0.52f, 0.070f, 0.07f, 0.010f);
+        glPopMatrix();
+    }
 }
 
 static void dibujar_franja_dorada(float y, float ancho, float profundo) {
@@ -402,28 +482,85 @@ static void dibujar_marquesina(void) {
     glPopMatrix();
 
     glDisable(GL_LIGHTING);
-    glColor3f(1.0f, 0.85f, 0.2f);
-    glPushMatrix();
-    glTranslatef(0.0f, y_centro_marquesina, z_frente_marquesina);
-    glScalef(0.0016f, 0.0016f, 1.0f);
-    dibujar_texto_stroke_simple("TRAGAMONEDAS", 1.0f);
-    glPopMatrix();
+    /* Texto de la marquesina: muestra "WIN!" parpadeando si hay premio
+       (durante 5 segundos), o el titulo normal en otro caso. */
+    {
+        int hay_win_texto = g_estado_tragamonedas.hay_ganancia &&
+                            g_estado_tragamonedas.tiempo_desde_parada < 5.0f;
+        if (hay_win_texto) {
+            /* Parpadeo: alterna dorado brillante y blanco-amarillo */
+            float t_parpadeo = (float)glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+            int   fase_p     = (int)(t_parpadeo * 3.0f) % 2;
+            if (fase_p == 0)
+                glColor3f(1.0f, 0.95f, 0.05f);  /* dorado vivo */
+            else
+                glColor3f(1.0f, 1.0f, 0.80f);   /* blanco-amarillo */
+            glPushMatrix();
+            glTranslatef(0.0f, y_centro_marquesina + 0.05f, z_frente_marquesina);
+            glScalef(0.0025f, 0.0025f, 1.0f);
+            dibujar_texto_stroke_simple("WIN!", 1.0f);
+            glPopMatrix();
+        } else {
+            glColor3f(1.0f, 0.85f, 0.2f);
+            glPushMatrix();
+            glTranslatef(0.0f, y_centro_marquesina, z_frente_marquesina);
+            glScalef(0.0016f, 0.0016f, 1.0f);
+            dibujar_texto_stroke_simple("TRAGAMONEDAS", 1.0f);
+            glPopMatrix();
+        }
+    }
 
-    /* Foquitos en el borde superior e inferior del frente */
-    glColor3f(1.0f, 0.95f, 0.55f);
-    for (i = 0; i < NUM_FOQUITOS_POR_BORDE; i++) {
-        float t = (float)i / (float)(NUM_FOQUITOS_POR_BORDE - 1);
-        float x_foquito = -ancho_marquesina / 2.0f * 0.88f + t * (ancho_marquesina * 0.88f);
+    /* Foquitos animados en chase: cada uno se enciende en secuencia
+       a 6 ciclos/s -efecto clasico de las luces de marquesina.
+       Cuando hay ganancia y el timer de parada es menor a 5s, alterna
+       entre rojo y dorado a ritmo rapido para celebrar el premio. */
+    {
+        float tiempo_ms = (float)glutGet(GLUT_ELAPSED_TIME);
+        float t_seg     = tiempo_ms / 1000.0f;
+        int   hay_win   = g_estado_tragamonedas.hay_ganancia &&
+                          g_estado_tragamonedas.tiempo_desde_parada < 5.0f;
+        /* Fase de la ola de luces (0..NUM_FOQUITOS_POR_BORDE-1) */
+        int   fase_ola  = (int)(t_seg * 6.0f) % NUM_FOQUITOS_POR_BORDE;
+        /* Fase de parpadeo dorado/rojo en victoria (2 Hz) */
+        int   fase_win  = (int)(t_seg * 4.0f) % 2;
 
-        glPushMatrix();
-        glTranslatef(x_foquito, y_centro_marquesina + GABINETE_ALTURA_MARQUESINA / 2.0f - 0.08f, z_frente_marquesina);
-        glutSolidSphere(0.028, 8, 8);
-        glPopMatrix();
+        for (i = 0; i < NUM_FOQUITOS_POR_BORDE; i++) {
+            float x_foquito;
+            int encendido;
+            float t_pos = (float)i / (float)(NUM_FOQUITOS_POR_BORDE - 1);
 
-        glPushMatrix();
-        glTranslatef(x_foquito, y_centro_marquesina - GABINETE_ALTURA_MARQUESINA / 2.0f + 0.08f, z_frente_marquesina);
-        glutSolidSphere(0.028, 8, 8);
-        glPopMatrix();
+            x_foquito  = -ancho_marquesina / 2.0f * 0.88f + t_pos * (ancho_marquesina * 0.88f);
+
+            /* Una "ola" de 2 luces contiguas recorre la fila */
+            encendido = (i == fase_ola ||
+                         i == (fase_ola + 1) % NUM_FOQUITOS_POR_BORDE);
+
+            if (hay_win) {
+                /* Victoria: todos encendidos, alternando rojo/dorado */
+                if (fase_win == 0)
+                    glColor3f(1.0f, 0.15f, 0.05f);   /* rojo brillante */
+                else
+                    glColor3f(1.0f, 0.90f, 0.10f);   /* dorado */
+            } else if (encendido) {
+                glColor3f(1.0f, 0.95f, 0.20f);       /* dorado vivo */
+            } else {
+                glColor3f(0.45f, 0.38f, 0.10f);      /* apagado */
+            }
+
+            glPushMatrix();
+            glTranslatef(x_foquito,
+                         y_centro_marquesina + GABINETE_ALTURA_MARQUESINA / 2.0f - 0.08f,
+                         z_frente_marquesina);
+            glutSolidSphere(0.028, 8, 8);
+            glPopMatrix();
+
+            glPushMatrix();
+            glTranslatef(x_foquito,
+                         y_centro_marquesina - GABINETE_ALTURA_MARQUESINA / 2.0f + 0.08f,
+                         z_frente_marquesina);
+            glutSolidSphere(0.028, 8, 8);
+            glPopMatrix();
+        }
     }
     glEnable(GL_LIGHTING);
 }
@@ -564,10 +701,9 @@ static void dibujar_separadores_de_fila(float x_centro, float z_rodillo) {
 static void dibujar_rodillo(int indice, const EstadoRodillo* rodillo, float x_centro, float z_rodillo) {
     int offset;
 
-    /* Placa de fondo del rodillo: se deja en MATERIAL_METAL (plateado)
-       a proposito -contrasta contra el marco dorado, como el "vidrio"
-       plateado del visor en una tragamonedas dorada real. */
-    aplicar_material(MATERIAL_METAL);
+    /* Fondo negro-terciopelo del rodillo: maximo contraste con los
+       simbolos dorados/rojos, aspecto de casino premium. */
+    aplicar_material_fondo_rodillo();
     glPushMatrix();
     glTranslatef(x_centro, VENTANA_Y_CENTRO, z_rodillo);
     dibujar_caja(VENTANA_ANCHO_INTERNO / 3.0f - GROSOR_DIVISOR_RODILLO, VENTANA_ALTO_INTERNO, 0.04f);
@@ -593,41 +729,6 @@ static void dibujar_rodillo(int indice, const EstadoRodillo* rodillo, float x_ce
 }
 
 
-/* Franja de sombra degradada (negro -> transparente) pegada al borde
-   superior/inferior de la ventana de los rodillos. Sin esto, los 3
-   simbolos visibles se leen como "pegatinas" flotando en el hueco; con
-   el degradado, el simbolo de arriba/abajo se funde hacia negro como
-   si la tira real siguiera para arriba y para abajo del marco -mismo
-   truco que un visor de tragamonedas real, donde el simbolo de los
-   extremos siempre se ve parcialmente a oscuras. */
-static void dibujar_sombra_borde_ventana(float y_borde, float direccion_hacia_adentro, float z_frente) {
-    float alto_sombra = ALTURA_UNIDAD_SIMBOLO * 0.6f;
-    float y_interior = y_borde + direccion_hacia_adentro * alto_sombra;
-    float x_izq = -VENTANA_ANCHO_INTERNO / 2.0f;
-    float x_der = VENTANA_ANCHO_INTERNO / 2.0f;
-    GLboolean lighting_estaba_activo = glIsEnabled(GL_LIGHTING);
-    GLboolean blend_estaba_activo = glIsEnabled(GL_BLEND);
-
-    glDisable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);
-
-    glBegin(GL_QUADS);
-    glColor4f(0.0f, 0.0f, 0.0f, 0.85f);
-    glVertex3f(x_izq, y_borde, z_frente);
-    glVertex3f(x_der, y_borde, z_frente);
-    glColor4f(0.0f, 0.0f, 0.0f, 0.0f);
-    glVertex3f(x_der, y_interior, z_frente);
-    glVertex3f(x_izq, y_interior, z_frente);
-    glEnd();
-
-    glDepthMask(GL_TRUE);
-    if (!blend_estaba_activo) glDisable(GL_BLEND);
-    if (lighting_estaba_activo) glEnable(GL_LIGHTING);
-}
-
-
 static void dibujar_divisores_rodillos(float x_izquierdo, float x_derecho) {
     aplicar_material_dorado();
 
@@ -643,10 +744,110 @@ static void dibujar_divisores_rodillos(float x_izquierdo, float x_derecho) {
 }
 
 
+/* Anillo de foquitos alrededor del marco de la ventana de rodillos.
+   Efecto chase igual al de la marquesina pero mas rapido; en victoria
+   todos parpadean alternando rojo/dorado. Es el detalle mas
+   caracteristico de una tragamonedas fisica real. */
+static void dibujar_luces_marco_rodillos(void) {
+    float t_seg    = (float)glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    int   hay_win  = g_estado_tragamonedas.hay_ganancia &&
+                     g_estado_tragamonedas.tiempo_desde_parada < 5.0f;
+    int   fase_win = (int)(t_seg * 5.0f) % 2;
+
+    /* Borde superior e inferior (horizontal) */
+    const int N_H = 8;
+    /* Bordes izquierdo y derecho (vertical) */
+    const int N_V = 12;
+    const int TOTAL = 2 * N_H + 2 * N_V;
+    int fase = (int)(t_seg * 10.0f) % TOTAL;
+
+    float x_izq  = -VENTANA_ANCHO_INTERNO / 2.0f - GROSOR_MARCO_VENTANA * 0.6f;
+    float x_der  =  VENTANA_ANCHO_INTERNO / 2.0f + GROSOR_MARCO_VENTANA * 0.6f;
+    float y_top  = GABINETE_Y_INICIO_CUERPO + VENTANA_ALTO_INTERNO + GROSOR_MARCO_VENTANA * 0.75f;
+    float y_bot  = GABINETE_Y_INICIO_CUERPO + GROSOR_MARCO_VENTANA * 0.25f;
+    float z_luz  = GABINETE_PROFUNDIDAD / 2.0f + 0.04f;
+    float r_luz  = 0.022f;
+    int   k, idx;
+
+    glDisable(GL_LIGHTING);
+
+    /* Franja superior */
+    for (k = 0; k < N_H; k++) {
+        float t   = (float)k / (float)(N_H - 1);
+        float x   = x_izq + t * (x_der - x_izq);
+        idx = k;
+        if (hay_win) {
+            glColor3f(fase_win == 0 ? 1.0f : 1.0f,
+                      fase_win == 0 ? 0.10f : 0.85f,
+                      0.05f);
+        } else {
+            int on = (idx % TOTAL == fase || (idx+1) % TOTAL == fase);
+            glColor3f(on ? 1.0f : 0.35f, on ? 0.88f : 0.28f, on ? 0.15f : 0.06f);
+        }
+        glPushMatrix();
+        glTranslatef(x, y_top, z_luz);
+        glutSolidSphere(r_luz, 6, 6);
+        glPopMatrix();
+    }
+
+    /* Franja inferior */
+    for (k = 0; k < N_H; k++) {
+        float t   = (float)k / (float)(N_H - 1);
+        float x   = x_izq + t * (x_der - x_izq);
+        idx = N_H + k;
+        if (hay_win) {
+            glColor3f(1.0f, fase_win == 0 ? 0.10f : 0.85f, 0.05f);
+        } else {
+            int on = (idx % TOTAL == fase || (idx+1) % TOTAL == fase);
+            glColor3f(on ? 1.0f : 0.35f, on ? 0.88f : 0.28f, on ? 0.15f : 0.06f);
+        }
+        glPushMatrix();
+        glTranslatef(x, y_bot, z_luz);
+        glutSolidSphere(r_luz, 6, 6);
+        glPopMatrix();
+    }
+
+    /* Borde izquierdo */
+    for (k = 0; k < N_V; k++) {
+        float t = (float)k / (float)(N_V - 1);
+        float y = y_bot + t * (y_top - y_bot);
+        idx = 2 * N_H + k;
+        if (hay_win) {
+            glColor3f(1.0f, fase_win == 0 ? 0.10f : 0.85f, 0.05f);
+        } else {
+            int on = (idx % TOTAL == fase || (idx+1) % TOTAL == fase);
+            glColor3f(on ? 1.0f : 0.35f, on ? 0.88f : 0.28f, on ? 0.15f : 0.06f);
+        }
+        glPushMatrix();
+        glTranslatef(x_izq, y, z_luz);
+        glutSolidSphere(r_luz, 6, 6);
+        glPopMatrix();
+    }
+
+    /* Borde derecho */
+    for (k = 0; k < N_V; k++) {
+        float t = (float)k / (float)(N_V - 1);
+        float y = y_bot + t * (y_top - y_bot);
+        idx = 2 * N_H + N_V + k;
+        if (hay_win) {
+            glColor3f(1.0f, fase_win == 0 ? 0.10f : 0.85f, 0.05f);
+        } else {
+            int on = (idx % TOTAL == fase || (idx+1) % TOTAL == fase);
+            glColor3f(on ? 1.0f : 0.35f, on ? 0.88f : 0.28f, on ? 0.15f : 0.06f);
+        }
+        glPushMatrix();
+        glTranslatef(x_der, y, z_luz);
+        glutSolidSphere(r_luz, 6, 6);
+        glPopMatrix();
+    }
+
+    glEnable(GL_LIGHTING);
+}
+
+
 static void dibujar_rodillos(const EstadoTragamonedas* estado) {
     const float ancho_rodillo = VENTANA_ANCHO_INTERNO / 3.0f;
     const float z_rodillo = 0.15f;
-    const float z_sombra_bordes = z_rodillo + 0.055f; /* delante de los simbolos (z_rodillo+0.03), detras del vidrio */
     int i;
 
     for (i = 0; i < NUM_RODILLOS; i++) {
@@ -657,33 +858,7 @@ static void dibujar_rodillos(const EstadoTragamonedas* estado) {
     dibujar_divisores_rodillos(-VENTANA_ANCHO_INTERNO / 2.0f + ancho_rodillo,
         -VENTANA_ANCHO_INTERNO / 2.0f + 2.0f * ancho_rodillo);
 
-    dibujar_sombra_borde_ventana(VENTANA_Y_CENTRO + VENTANA_ALTO_INTERNO / 2.0f, -1.0f, z_sombra_bordes);
-    dibujar_sombra_borde_ventana(VENTANA_Y_CENTRO - VENTANA_ALTO_INTERNO / 2.0f, 1.0f, z_sombra_bordes);
-}
-
-
-/* Vidrio protector frente a los rodillos -mismo material/tecnica que
-   dibujar_vidrio_protector() en ruleta_geometria.c (MATERIAL_VIDRIO +
-   blending), pero como un panel plano en vez de una cupula, ya que
-   ademas de dar la misma sensacion de "vitrina" resuelve un problema
-   real: sin el, la ventana es un hueco vacio hasta el fondo del
-   gabinete y se ve como un tunel oscuro en vez del visor cerrado de
-   una maquina real. */
-static void dibujar_vidrio_rodillos(void) {
-    float z_vidrio = GABINETE_PROFUNDIDAD / 2.0f - 0.02f;
-
-    aplicar_material(MATERIAL_VIDRIO);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE);
-
-    glPushMatrix();
-    glTranslatef(0.0f, VENTANA_Y_CENTRO, z_vidrio);
-    dibujar_caja(VENTANA_ANCHO_INTERNO, VENTANA_ALTO_INTERNO, 0.02f);
-    glPopMatrix();
-
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
+    dibujar_luces_marco_rodillos();
 }
 
 
@@ -706,12 +881,12 @@ static void dibujar_palanca(float angulo_extra_grados) {
     aplicar_material_dorado();
     glPushMatrix();
     glTranslatef(x_lateral + PALANCA_EXTENSION_SOPORTE / 2.0f, y_pivote, 0.0f);
-    dibujar_caja(PALANCA_EXTENSION_SOPORTE, 0.22f, 0.32f);
+    dibujar_caja(PALANCA_EXTENSION_SOPORTE, 0.17f, 0.24f);
     glPopMatrix();
 
     glPushMatrix();
     glTranslatef(x_pivote, y_pivote, 0.0f);
-    glScalef(0.10f, 0.10f, 0.06f);
+    glScalef(0.075f, 0.075f, 0.045f);
     glutSolidSphere(1.0, 16, 16);
     glPopMatrix();
 
@@ -749,11 +924,170 @@ EstadoTragamonedas* obtener_estado_tragamonedas_para_pruebas(void) {
 }
 
 
+/* Duracion y amplitud de la animacion visual de "tirar la palanca"
+   -no es una animacion de fisica real, es un gesto corto (bajar y
+   volver) que arranca apenas el rodillo 0 empieza a girar. Se calcula
+   en base a tiempo_transcurrido de ese rodillo, que ya vive en
+   g_estado_tragamonedas -no hace falta ningun campo ni cambio en
+   tragamonedas_animacion.c para esto. */
+#define DURACION_TIRON_PALANCA 0.4f
+#define AMPLITUD_TIRON_PALANCA 45.0f
+
+   /* Devuelve el angulo extra (en grados) que hay que sumarle a la
+      inclinacion de reposo de la palanca en este instante: 0 si no hay
+      ningun giro en marcha (o el tiron ya termino), y una curva tipo seno
+      -baja rapido y vuelve- durante los primeros DURACION_TIRON_PALANCA
+      segundos del giro. */
+static float calcular_angulo_tiron_palanca(void) {
+    const double PI_LOCAL = 3.14159265358979323846;
+    float t;
+
+    if (!g_estado_tragamonedas_listo) return 0.0f;
+
+    t = g_estado_tragamonedas.rodillos[0].tiempo_transcurrido;
+    if (t <= 0.0f || t >= DURACION_TIRON_PALANCA) return 0.0f;
+
+    return -AMPLITUD_TIRON_PALANCA * (float)sin(PI_LOCAL * (double)(t / DURACION_TIRON_PALANCA));
+}
+
+
+/* ------------------------------------------------------------------- */
+/* PASO 5: Indicador de linea de pago, display de creditos              */
+/* ------------------------------------------------------------------- */
+
+/* Linea de pago central: una raya dorada y dos flechas que apuntan
+   al rodillo central (la fila ganadora). Parpadea durante 5s si hay
+   premio, para guiar la vista del jugador al resultado. */
+static void dibujar_linea_pago(void) {
+    float z_frente   = GABINETE_PROFUNDIDAD / 2.0f + 0.09f;
+    float x_izq      = -VENTANA_ANCHO_INTERNO / 2.0f - 0.14f;
+    float x_der      =  VENTANA_ANCHO_INTERNO / 2.0f + 0.14f;
+    float y          = VENTANA_Y_CENTRO;
+    float r, g, b;
+
+    /* Calcular color: parpadeo rapido si hay ganancia reciente */
+    if (g_estado_tragamonedas.hay_ganancia &&
+        g_estado_tragamonedas.tiempo_desde_parada < 5.0f) {
+        float t_s    = (float)glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        float pulso  = 0.5f + 0.5f * (float)sinf(t_s * 10.0f);
+        r = 1.0f;
+        g = 0.7f + pulso * 0.3f;
+        b = 0.0f;
+    } else {
+        /* Dorado tenue en reposo */
+        r = 0.85f; g = 0.70f; b = 0.10f;
+    }
+
+    glDisable(GL_LIGHTING);
+    glLineWidth(2.5f);
+    glColor3f(r, g, b);
+
+    /* Linea horizontal a lo ancho de la ventana */
+    glBegin(GL_LINES);
+    glVertex3f(x_izq, y, z_frente);
+    glVertex3f(x_der, y, z_frente);
+    glEnd();
+
+    /* Flecha izquierda: triangulo apuntando a la derecha */
+    glBegin(GL_TRIANGLES);
+    glVertex3f(x_izq + 0.11f, y,          z_frente);
+    glVertex3f(x_izq,         y + 0.055f, z_frente);
+    glVertex3f(x_izq,         y - 0.055f, z_frente);
+    glEnd();
+
+    /* Flecha derecha: triangulo apuntando a la izquierda */
+    glBegin(GL_TRIANGLES);
+    glVertex3f(x_der - 0.11f, y,          z_frente);
+    glVertex3f(x_der,         y + 0.055f, z_frente);
+    glVertex3f(x_der,         y - 0.055f, z_frente);
+    glEnd();
+
+    glLineWidth(1.0f);
+    glEnable(GL_LIGHTING);
+}
+
+
+/* Display de creditos: panel digital en el frente de la base que
+   muestra el monto apostado y el ultimo resultado (PREMIO o PERDIDA).
+   Usa texto stroke escalado, sobre un fondo oscuro con marco dorado. */
+static void dibujar_display_creditos(void) {
+    float z_frente    = (GABINETE_PROFUNDIDAD * 1.08f) / 2.0f + 0.015f;
+    float ancho_disp  = GABINETE_ANCHO * 0.55f;
+    float alto_disp   = 0.15f;
+    float y_disp      = GABINETE_ALTURA_BASE * 0.80f; /* justo encima del panel de botones */
+    char  buf_apuesta[32];
+    char  buf_premio[32];
+    float ganancia    = g_estado_tragamonedas.ganancia_ultima;
+    float apuesta     = g_estado_tragamonedas.monto_apuesta;
+
+    /* Formato de textos */
+    sprintf_s(buf_apuesta, sizeof(buf_apuesta), "BET:%.0f", apuesta);
+    if (g_estado_tragamonedas.todos_detenidos && g_estado_tragamonedas.hay_ganancia)
+        sprintf_s(buf_premio, sizeof(buf_premio), "WIN:%.0f", ganancia);
+    else if (g_estado_tragamonedas.todos_detenidos && !g_estado_tragamonedas.hay_ganancia &&
+             g_estado_tragamonedas.tiempo_desde_parada < 4.0f && ganancia < 0.0f)
+        sprintf_s(buf_premio, sizeof(buf_premio), "LOSE");
+    else
+        sprintf_s(buf_premio, sizeof(buf_premio), "---");
+
+    /* Marco dorado */
+    aplicar_material_dorado();
+    glPushMatrix();
+    glTranslatef(0.0f, y_disp, z_frente - 0.01f);
+    dibujar_caja_biselada(ancho_disp + 0.05f, alto_disp + 0.04f, 0.04f, BISEL_FRANJA);
+    glPopMatrix();
+
+    /* Panel oscuro (casi negro) */
+    {
+        GLfloat amb[4]  = { 0.02f, 0.02f, 0.02f, 1.0f };
+        GLfloat dif[4]  = { 0.05f, 0.05f, 0.05f, 1.0f };
+        GLfloat spe[4]  = { 0.10f, 0.10f, 0.10f, 1.0f };
+        glMaterialfv(GL_FRONT, GL_AMBIENT,   amb);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE,   dif);
+        glMaterialfv(GL_FRONT, GL_SPECULAR,  spe);
+        glMaterialf (GL_FRONT, GL_SHININESS, 10.0f);
+    }
+    glPushMatrix();
+    glTranslatef(0.0f, y_disp, z_frente + 0.01f);
+    dibujar_caja(ancho_disp, alto_disp, 0.03f);
+    glPopMatrix();
+
+    /* Texto: BET a la izquierda, WIN/LOSE a la derecha */
+    glDisable(GL_LIGHTING);
+
+    /* BET: verde digital */
+    glColor3f(0.10f, 0.95f, 0.25f);
+    glPushMatrix();
+    glTranslatef(-ancho_disp * 0.22f, y_disp, z_frente + 0.03f);
+    glScalef(0.00100f, 0.00100f, 1.0f);
+    glTranslatef(0.0f, -ALTURA_APROX_MAYUSCULA_STROKE / 2.0f, 0.0f);
+    dibujar_texto_stroke_simple(buf_apuesta, 1.0f);
+    glPopMatrix();
+
+    /* WIN/LOSE: dorado si gana, rojo si pierde */
+    if (g_estado_tragamonedas.hay_ganancia)
+        glColor3f(1.0f, 0.90f, 0.05f);   /* dorado */
+    else
+        glColor3f(0.95f, 0.15f, 0.10f);  /* rojo */
+
+    glPushMatrix();
+    glTranslatef(ancho_disp * 0.22f, y_disp, z_frente + 0.03f);
+    glScalef(0.00100f, 0.00100f, 1.0f);
+    glTranslatef(0.0f, -ALTURA_APROX_MAYUSCULA_STROKE / 2.0f, 0.0f);
+    dibujar_texto_stroke_simple(buf_premio, 1.0f);
+    glPopMatrix();
+
+    glEnable(GL_LIGHTING);
+}
+
+
 void dibujar_tragamonedas(void) {
     asegurar_estado_inicializado();
 
     dibujar_gabinete();
     dibujar_rodillos(&g_estado_tragamonedas);
-    dibujar_vidrio_rodillos();
-    dibujar_palanca(0.0f);
+    dibujar_palanca(calcular_angulo_tiron_palanca());
+    dibujar_linea_pago();
+    dibujar_display_creditos();
 }
+

@@ -9,7 +9,7 @@
  * de este juego (core/ es el estado compartido entre minijuegos, no el
  * lugar para reglas de un juego en particular).
  *
- * A CARGO DE: Dubenny.
+ * A CARGO DE: Dubenny (logica) / Luis (integracion visual).
  *
  * CONTRATO IMPORTANTE con el resto del proyecto: el dinero, la deuda,
  * las estadisticas de sesion y los mensajes reflexivos de
@@ -19,7 +19,7 @@
  * ya usa la ruleta:
  *   - registrar_apuesta(jugador, monto)             al colocar la apuesta
  *   - aplicar_resultado_apuesta(jugador, ganancia)  al resolver la ronda
- *   - verificar_mensaje_reflexivo(jugador)          despues de cada ronda resuelta
+ *   - verificar_mensaje_reflexivo(jugador)           despues de cada ronda resuelta
  * Asi, jugar al tragamonedas cuenta para la misma racha de perdidas, el
  * mismo total apostado, el mismo sistema de concientizacion que ya
  * existe -no dos sistemas de plata separados y sin relacion.
@@ -29,10 +29,23 @@
  * deciden ACA. La parte visual solo pregunta "que simbolo hay en tal
  * posicion" (obtener_simbolo_en_posicion) y dibuja la respuesta -nunca
  * decide el orden ni el resultado por su cuenta.
+ *
+ * NUM_RODILLOS se define aqui (no en animacion.h) para que este header
+ * sea auto-contenido y las firmas de decidir/calcular puedan usarlo sin
+ * depender de animacion.h (evita dependencia circular, ya que
+ * animacion.h incluye este header). El #ifndef permite que animacion.h
+ * lo redefina con el mismo valor si el orden de inclusion fuera distinto.
  * -----------------------------------------------------------------------
  */
 #ifndef TRAGAMONEDAS_LOGICA_H
 #define TRAGAMONEDAS_LOGICA_H
+
+/* Numero de rodillos. Definido aqui para que las firmas de
+   decidir_resultado / calcular_ganancia sean auto-contenidas.
+   En tragamonedas_animacion.h se usa este mismo valor via #include. */
+#ifndef NUM_RODILLOS
+#define NUM_RODILLOS 3
+#endif
 
 typedef enum {
     SIMBOLO_CEREZA,
@@ -47,37 +60,41 @@ typedef enum {
                     lugares donde aparecia el numero viejo */
 } SimboloTragamonedas;
 
-/* Tira de simbolos de un rodillo (se repite en ciclo, como en una
-   maquina real). Por ahora los 3 rodillos usan la MISMA tira -se puede
-   diferenciar por rodillo mas adelante si hace falta variar la
-   probabilidad de cada uno, pero no hace falta para arrancar. */
+/* Tira de simbolos del rodillo (se repite en ciclo). Los 3 rodillos
+   comparten la misma tira; la variacion de probabilidad real se
+   controla mediante pesos en decidir_resultado_tragamonedas(), no
+   duplicando simbolos en la tira (que solo tiene una entrada por
+   simbolo distinto). */
 extern const SimboloTragamonedas ORDEN_TIRA_RODILLO[NUM_SIMBOLOS];
 
-/* Dado un rodillo (0 a NUM_RODILLOS-1, ver tragamonedas_animacion.h) y
-   su posicion actual (EstadoRodillo.posicion_actual, en "unidades de
-   simbolo": 0.0 = el primer simbolo de la tira centrado, 1.0 = el
-   siguiente, 2.5 = a mitad de camino entre el tercero y el cuarto,
-   etc., ciclando con modulo cuando pasa de NUM_SIMBOLOS), devuelve que
-   simbolo esta centrado en ese momento. La parte visual llama a esto
-   en cada frame mientras el rodillo gira, para saber que dibujar. Ya
-   esta implementada (ver tragamonedas_logica.c) -es simple aritmetica,
-   no hace falta tocarla salvo que cambie como se representa la
-   posicion. */
+/* Dado un rodillo (0 a NUM_RODILLOS-1) y su posicion actual en
+   "unidades de simbolo" (0.0 = primer simbolo centrado, 1.0 = el
+   siguiente, ciclando con modulo NUM_SIMBOLOS), devuelve que simbolo
+   esta centrado en ese momento. La parte visual llama a esto en cada
+   frame mientras el rodillo gira. */
 SimboloTragamonedas obtener_simbolo_en_posicion(int rodillo, float posicion);
 
-/* TODO (Dubenny): funcion que decida el resultado al azar (que simbolo
-   cae en cada rodillo al detenerse) - equivalente a como main.c decide
-   numero_ganador con rand() % 37 ANTES de que gire la bolita en la
-   ruleta. Sugerencia de firma:
-     void decidir_resultado_tragamonedas(SimboloTragamonedas resultado[NUM_RODILLOS]);
-*/
+/* Decide al azar el simbolo que cae en cada rodillo al terminar el
+   giro, usando probabilidades PONDERADAS (CEREZA: mas frecuente para
+   dar pequenos premios que mantienen el interes; SIETE: muy raro, es
+   el jackpot). El resultado se decide ANTES de animar, equivalente a
+   como main.c decide numero_ganador con rand()%37 antes de girar la
+   bolita de la ruleta. La animacion solo ajusta los rodillos para
+   caer visualmente ahi. */
+void decidir_resultado_tragamonedas(SimboloTragamonedas resultado[NUM_RODILLOS]);
 
-/* TODO (Dubenny): funcion equivalente a calcular_ganancia_total() de la
-   ruleta (core/estado_juego.c), que reciba el resultado (los simbolos
-   que cayeron, ver arriba) y el monto apostado, y devuelva la ganancia
-   neta (positiva si gana, negativa el monto perdido si no hay
-   combinacion que pague). Sugerencia de firma:
-     float calcular_ganancia_tragamonedas(const SimboloTragamonedas resultado[NUM_RODILLOS], float monto);
-*/
+/* Calcula la ganancia neta (positiva si gano, -monto si no hay
+   combinacion pagadora) dado el resultado de los 3 rodillos y el
+   monto apostado. Tabla de pagos (multiplicador x monto apostado):
+     3 x SIETE       -> x100   (jackpot)
+     3 x DIAMANTE    -> x50
+     3 x BARRA       -> x20
+     3 x CAMPANA     -> x15
+     3 x HERRADURA   -> x10
+     3 x CEREZA      -> x5
+     CEREZA en R0+R1 -> x2     (R2 libre)
+     CEREZA solo R0  -> x1     (R1 y R2 sin cereza)
+     Sin combinacion -> -monto (perdida) */
+float calcular_ganancia_tragamonedas(const SimboloTragamonedas resultado[NUM_RODILLOS], float monto);
 
 #endif /* TRAGAMONEDAS_LOGICA_H */
