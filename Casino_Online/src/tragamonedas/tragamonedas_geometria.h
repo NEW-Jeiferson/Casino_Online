@@ -33,25 +33,61 @@
 /* Dimensiones publicas del gabinete (en unidades de mundo, misma escala
    que RADIO_MESA/RADIO_EXTERIOR_RUEDA en ruleta_geometria.h). Se dejan
    publicas para que los proximos pasos (rodillos, palanca) puedan ubicar
-   sus piezas relativas al gabinete sin numeros magicos repetidos. */
-#define GABINETE_ANCHO             2.4f
-#define GABINETE_PROFUNDIDAD       2.0f
-#define GABINETE_ALTURA_BASE       0.5f
-#define GABINETE_ALTURA_CUERPO     3.0f
-#define GABINETE_ALTURA_MARQUESINA 1.0f
-#define GABINETE_ALTURA_TOTAL      (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO + GABINETE_ALTURA_MARQUESINA)
+   sus piezas relativas al gabinete sin numeros magicos repetidos.
 
-/* Altura (Y) a la que empieza el cuerpo principal y la marquesina,
-   medidas desde el piso (Y = 0). Utiles para el paso 2 (rodillos), que
-   va a tener que ubicar la ventana de los rodillos dentro del cuerpo. */
+   REDISENO (referencia: boceto de tragamonedas antigua tipo Mills/
+   Jennings -mueble angosto y alto, tope curvo/domo, no la caja ancha y
+   plana de la version "casino moderno" anterior): el mueble se angosta
+   y se agrega una cupula redondeada arriba de la marquesina en vez de
+   un canto recto. */
+#define GABINETE_ANCHO             1.7f
+#define GABINETE_PROFUNDIDAD       1.5f
+#define GABINETE_ALTURA_BASE       0.30f
+#define GABINETE_ALTURA_CUERPO     2.55f
+#define GABINETE_ALTURA_MARQUESINA 0.75f
+#define GABINETE_RADIO_CUPULA      (GABINETE_ANCHO / 2.0f)
+#define GABINETE_ALTURA_TOTAL      (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO + GABINETE_ALTURA_MARQUESINA + GABINETE_RADIO_CUPULA)
+
+/* Altura (Y) a la que empieza el cuerpo principal, la marquesina y la
+   cupula, medidas desde el piso (Y = 0). Utiles para el paso 2
+   (rodillos), que va a tener que ubicar la ventana de los rodillos
+   dentro del cuerpo. */
 #define GABINETE_Y_INICIO_CUERPO      (GABINETE_ALTURA_BASE)
 #define GABINETE_Y_INICIO_MARQUESINA  (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO)
+#define GABINETE_Y_INICIO_CUPULA      (GABINETE_Y_INICIO_MARQUESINA + GABINETE_ALTURA_MARQUESINA)
 
 /* Dibuja la escena 3D completa del tragamonedas (gabinete, rodillos,
    palanca, etc.) en el origen actual de la matriz de modelo -el
    llamador es responsable de la camara/proyeccion, igual que con
    dibujar_mesa()/dibujar_rueda() en la ruleta. */
 void dibujar_tragamonedas(void);
+
+/* Barra de control 2D (overlay de pantalla completa, sin perspectiva):
+   SALDO / BET (con -/+) / WIN / boton SPIN / boton AUTO-MANUAL, todo en
+   una sola franja al pie de la ventana -en vez de un boton suelto- para
+   que se lea como la interfaz del juego, no un control flotando aparte.
+   Debe llamarse DESPUES de la escena 3D (como dibujar_hud/dibujar_
+   pantalla_segun_estado), con ancho/alto = glutGet(GLUT_WINDOW_WIDTH/
+   HEIGHT). No se puede pintar literalmente sobre la textura del
+   gabinete 3D sin renderizado a textura (fuera de alcance de este
+   proyecto) -esta es la aproximacion 2D mas integrada posible. */
+void dibujar_barra_control_2d(int ancho_ventana, int alto_ventana,
+                               float saldo, float apuesta, float ganancia,
+                               int auto_activo);
+
+/* Que zona de la barra de control cae en (x_mouse, y_mouse) -coordenadas
+   de mouse de GLUT (origen arriba-izquierda, Y hacia abajo). Se llama
+   desde mouse_click() en main.c para decidir que accion disparar. */
+typedef enum {
+    ZONA_CONTROL_NINGUNA = 0,
+    ZONA_CONTROL_SPIN,
+    ZONA_CONTROL_BET_MENOS,
+    ZONA_CONTROL_BET_MAS,
+    ZONA_CONTROL_AUTO
+} ZonaControlTragamonedas;
+
+ZonaControlTragamonedas obtener_zona_control_2d(int x_mouse, int y_mouse,
+                                                 int ancho_ventana, int alto_ventana);
 
 /* TEMPORAL, solo para pruebas locales mientras no exista la
    integracion real (ver "INTEGRACION FINAL" en el documento del

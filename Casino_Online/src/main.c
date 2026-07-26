@@ -18,8 +18,25 @@
 #include "ui/pantallas.h"
 #include "ui/tablero_apuestas.h"
 
- /* TEMPORAL - probar el tragamonedas, quitar antes de mergear */
+ /* Modulos del tragamonedas y texturas (fondo + simbolos) */
 #include "tragamonedas/tragamonedas_geometria.h"
+#include "tragamonedas/simbolos_tex.h"
+#include "render/textura.h"
+
+/* Modo de juego activo: 0 = ruleta (default), 1 = tragamonedas.
+   Se cambia con las teclas 1 (ruleta) y 2 (tragamonedas) desde el menu.
+   No es un EstadoJuego porque es una seleccion de JUEGO, no un estado
+   de la partida de ruleta (estado_actual sigue manejando ruleta solo). */
+static int g_mostrar_tragamonedas = 0;
+
+/* Auto-spin del tragamonedas: cuando esta activo, idle() vuelve a
+   disparar iniciar_giro_tragamonedas() sola un rato despues de que se
+   detienen todos los rodillos (para que se alcance a leer el
+   resultado), sin que el jugador tenga que hacer clic en SPIN cada vez.
+   Se apaga con el mismo boton que lo prende (toggle). */
+static int   g_tragamonedas_auto = 0;
+static float g_tragamonedas_auto_espera = 0.0f;
+#define TRAGAMONEDAS_AUTO_ESPERA_SEG 1.2f
 
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE 0x809D
@@ -112,6 +129,30 @@ static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
     }
 }
 
+/* Intenta arrancar un giro del tragamonedas: valida que el saldo
+   alcance para la apuesta actual, registra la apuesta en las
+   estadisticas del jugador (mismo sistema que ya usa la ruleta -ver
+   registrar_apuesta() mas abajo en agregar_apuesta()) y recien
+   entonces arranca la animacion. Se centraliza aca porque hay 3 formas
+   de disparar un giro (boton SPIN con el mouse, auto-spin, y la barra
+   espaciadora) y las 3 tienen que pasar por la misma validacion -antes
+   solo la ruleta chequeaba saldo antes de apostar, el tragamonedas no
+   tenia ningun chequeo. Devuelve 1 si arranco el giro, 0 si no (saldo
+   insuficiente o ya habia un giro en marcha). */
+static int intentar_iniciar_giro_tragamonedas(void) {
+    EstadoTragamonedas* et = obtener_estado_tragamonedas_para_pruebas();
+    int i;
+
+    for (i = 0; i < NUM_RODILLOS; i++) {
+        if (et->rodillos[i].girando) return 0;
+    }
+    if (partida.jugador.saldo < et->monto_apuesta) return 0;
+
+    registrar_apuesta(&partida.jugador, et->monto_apuesta);
+    iniciar_giro_tragamonedas(et);
+    return 1;
+}
+
 /* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
    Devuelve 1 si se agrego, 0 si no (arreglo lleno). */
 static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
@@ -160,52 +201,76 @@ void display(void) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    /* Camara mucho mas inclinada hacia abajo que antes (65 grados de
-       elevacion, antes 39), para leer mejor los numeros de la rueda y
-       el tablero, sin llegar a ser una vista totalmente plana desde
-       arriba -se conserva la perspectiva real (gluPerspective, no
-       glOrtho), asi que el volumen 3D de la rueda (domo, sombreado de
-       Phong) sigue notandose. El punto al que mira se corrio un poco
-       hacia el tablero (Z positivo) para que quede mejor encuadrado
-       junto con la rueda, en vez de mirar solo al centro de la rueda. */
-       /* TEMPORAL - probar el tragamonedas, quitar antes de mergear.
-          Este reemplaza (sin borrar el comentario original de arriba)
-          al gluLookAt de la ruleta mientras se prueba el gabinete +
-          rodillos + palanca del tragamonedas al costado. */
-    gluLookAt(-8.3, 2.5, 7.5,
-        -9.0, 2.0, 0.0,
-        0.0, 1.0, 0.0);
+    if (g_mostrar_tragamonedas) {
+        /* ---- Modo Tragamonedas ---- */
+        /* Camara frontal centrada en el gabinete */
+        gluLookAt(0.0, 2.5, 9.0,
+                  0.0, 1.5, 0.0,
+                  0.0, 1.0, 0.0);
 
-    glPushMatrix();
-    dibujar_mesa();
-    dibujar_tablero_apuestas(partida.apuestas_activas, partida.num_apuestas_activas);
+        /* Fondo: imagen de casino a pantalla completa */
+        dibujar_fondo_tragamonedas(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
 
-    glPushMatrix();
-    glTranslatef(0.0f, 0.05f, 0.0f);
-    glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
-    dibujar_rueda();
-    dibujar_pista_numerada(); /* debe ir aqui: mientras la matriz de la rueda sigue activa, para que gire junto con ella */
+        /* Maquina tragamonedas centrada */
+        glPushMatrix();
+        dibujar_tragamonedas();
+        glPopMatrix();
 
-    glPushMatrix();
-    dibujar_bolita(&partida.bolita);
-    glPopMatrix();
-    glPopMatrix();
+        /* BUGFIX: el HUD generico (dibujar_hud) muestra campos propios
+           de la ruleta -"Ficha actual", "Apuestas colocadas"- que no
+           aplican al tragamonedas y quedaban dando vueltas arriba a la
+           izquierda, pisando/duplicando lo que ya muestra la barra de
+           control de abajo. En modo tragamonedas NO se llama: el saldo
+           real ya lo cubre esa barra. Las pantallas de estado (menu,
+           game over, etc.) siguen activas igual. */
+        {
+            InfoPantalla info;
+            info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
+            info.pagina_educacion  = partida.pagina_educacion;
+            dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
+        }
 
-    dibujar_vidrio_protector();
-    glPopMatrix();
+        /* Barra de control clickeable con el mouse (SALDO/BET/WIN/SPIN/
+           AUTO) -reemplaza el atajo de teclado 'G' que se saco. */
+        {
+            EstadoTragamonedas* et = obtener_estado_tragamonedas_para_pruebas();
+            dibujar_barra_control_2d(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT),
+                partida.jugador.saldo, et->monto_apuesta, et->ganancia_ultima,
+                g_tragamonedas_auto);
+        }
+    }
+    else {
+        /* ---- Modo Ruleta ---- */
+        /* Camara original de la ruleta */
+        gluLookAt(-8.3, 2.5, 7.5,
+                  -9.0, 2.0, 0.0,
+                   0.0, 1.0, 0.0);
 
-    /* TEMPORAL - probar el tragamonedas, quitar antes de mergear */
-    glPushMatrix();
-    glTranslatef(-9.0f, 0.0f, 0.0f);
-    dibujar_tragamonedas();
-    glPopMatrix();
+        glPushMatrix();
+        dibujar_mesa();
+        dibujar_tablero_apuestas(partida.apuestas_activas, partida.num_apuestas_activas);
 
-    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
-    {
-        InfoPantalla info;
-        info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
-        info.pagina_educacion = partida.pagina_educacion;
-        dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
+        glPushMatrix();
+        glTranslatef(0.0f, 0.05f, 0.0f);
+        glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
+        dibujar_rueda();
+        dibujar_pista_numerada();
+
+        glPushMatrix();
+        dibujar_bolita(&partida.bolita);
+        glPopMatrix();
+        glPopMatrix();
+
+        dibujar_vidrio_protector();
+        glPopMatrix();
+
+        dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
+        {
+            InfoPantalla info;
+            info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
+            info.pagina_educacion  = partida.pagina_educacion;
+            dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
+        }
     }
 
     glutSwapBuffers();
@@ -230,9 +295,27 @@ void teclado(unsigned char tecla, int x, int y) {
         exit(0);
         break;
 
-        /* --- Seleccion de monto de ficha --- */
-    case '1': partida.ficha_actual_index = 0; partida.monto_ficha_actual = FICHAS[0]; break;
-    case '2': partida.ficha_actual_index = 1; partida.monto_ficha_actual = FICHAS[1]; break;
+        /* --- Seleccion de monto de ficha (solo en ruleta) ---
+           En tragamonedas 1 = volver a ruleta, 2 = seleccion de tragamonedas
+           se maneja mas abajo. */
+    case '1':
+        if (g_mostrar_tragamonedas) {
+            /* Volver a la ruleta */
+            g_mostrar_tragamonedas = 0;
+        } else {
+            partida.ficha_actual_index = 0;
+            partida.monto_ficha_actual = FICHAS[0];
+        }
+        break;
+    case '2':
+        if (!g_mostrar_tragamonedas && estado_actual == ESTADO_MENU) {
+            /* Desde el menu de ruleta: entrar al tragamonedas */
+            g_mostrar_tragamonedas = 1;
+        } else if (!g_mostrar_tragamonedas) {
+            partida.ficha_actual_index = 1;
+            partida.monto_ficha_actual = FICHAS[1];
+        }
+        break;
     case '3': partida.ficha_actual_index = 2; partida.monto_ficha_actual = FICHAS[2]; break;
     case '4': partida.ficha_actual_index = 3; partida.monto_ficha_actual = FICHAS[3]; break;
 
@@ -254,12 +337,6 @@ void teclado(unsigned char tecla, int x, int y) {
         }
         break;
 
-    case 'g':
-    case 'G':
-        /* TEMPORAL - probar el giro del tragamonedas, quitar antes de mergear */
-        iniciar_giro_tragamonedas(obtener_estado_tragamonedas_para_pruebas());
-        break;
-
     case ' ':
         /* FIX DE ALEATORIEDAD (ronda 4 - correccion de fondo): las
            rondas anteriores (2 y 3) intentaban involucrar el angulo de
@@ -276,7 +353,12 @@ void teclado(unsigned char tecla, int x, int y) {
            sector elegido -ni siquiera hace falta calcular la posicion
            actual combinada. Ver el comentario largo en
            ruleta_animacion.c para la derivacion completa. */
-        if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
+        if (g_mostrar_tragamonedas) {
+            /* ESPACIO en tragamonedas: girar rodillos (mismo camino que
+               el boton SPIN, con el chequeo de saldo incluido). */
+            intentar_iniciar_giro_tragamonedas();
+        }
+        else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
 
             int sector_ganador = rand() % 37;
@@ -285,13 +367,9 @@ void teclado(unsigned char tecla, int x, int y) {
 
             partida.numero_ganador_pendiente = numero_ganador;
 
-            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6 /* vueltas extra visuales: subido de 3 a 6 para llegar a los 10.7s pedidos, ver ruleta_animacion.c */);
+            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6);
         }
         else if (estado_actual == ESTADO_EDUCACION) {
-            /* Avanza de pagina con wrap-around (de la ultima vuelve a
-               la primera), para poder recorrer las 6 en loop sin tener
-               que ir "para atras" -no hay tanto contenido como para
-               necesitar retroceder. */
             partida.pagina_educacion = (partida.pagina_educacion + 1) % EDUCACION_NUM_PAGINAS;
         }
         break;
@@ -397,6 +475,42 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
     int valor_zona;
 
     if (estado_boton != GLUT_DOWN) return;
+
+    /* Tragamonedas: barra de control clickeable con el mouse -se revisa
+       ANTES del guard de abajo (especifico de la ruleta: exige
+       ESTADO_JUGANDO) porque el tragamonedas no depende de
+       estado_actual, igual que ya pasaba con el atajo de teclado que
+       reemplaza. */
+    if (g_mostrar_tragamonedas) {
+        if (boton == GLUT_LEFT_BUTTON) {
+            EstadoTragamonedas* et = obtener_estado_tragamonedas_para_pruebas();
+            ZonaControlTragamonedas zona = obtener_zona_control_2d(
+                x, y, glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
+
+            switch (zona) {
+            case ZONA_CONTROL_SPIN:
+                intentar_iniciar_giro_tragamonedas();
+                break;
+            case ZONA_CONTROL_BET_MENOS:
+                et->monto_apuesta -= 5.0f;
+                if (et->monto_apuesta < 5.0f) et->monto_apuesta = 5.0f;
+                break;
+            case ZONA_CONTROL_BET_MAS:
+                et->monto_apuesta += 5.0f;
+                if (et->monto_apuesta > 100.0f) et->monto_apuesta = 100.0f;
+                break;
+            case ZONA_CONTROL_AUTO:
+                g_tragamonedas_auto = !g_tragamonedas_auto;
+                g_tragamonedas_auto_espera = 0.0f;
+                break;
+            default:
+                break;
+            }
+            glutPostRedisplay();
+        }
+        return;
+    }
+
     if (estado_actual != ESTADO_JUGANDO || partida.bolita.girando) return;
 
     if (boton == GLUT_LEFT_BUTTON) {
@@ -482,8 +596,30 @@ void idle(void) {
 
     actualizar_bolita(&partida.bolita, delta_tiempo);
 
-    /* TEMPORAL - probar el giro del tragamonedas, quitar antes de mergear */
-    actualizar_tragamonedas(obtener_estado_tragamonedas_para_pruebas(), delta_tiempo);
+    /* Tragamonedas: el saldo/apuesta ya se maneja con el mismo sistema
+       que la ruleta (registrar_apuesta al arrancar el giro via
+       intentar_iniciar_giro_tragamonedas(), aplicar_resultado_apuesta
+       DENTRO de actualizar_tragamonedas() cuando se detienen todos los
+       rodillos -ver tragamonedas_animacion.c). */
+    {
+        EstadoTragamonedas* et = obtener_estado_tragamonedas_para_pruebas();
+        actualizar_tragamonedas(et, delta_tiempo, &partida.jugador);
+
+        /* Auto-spin: si esta activo y los rodillos ya estan quietos,
+           espera un momento (para que se alcance a leer el resultado)
+           y vuelve a tirar sola -mismo camino que el boton SPIN,
+           incluido el chequeo de saldo (si no alcanza, simplemente no
+           arranca y se sigue esperando). */
+        if (g_tragamonedas_auto && g_mostrar_tragamonedas && et->todos_detenidos) {
+            g_tragamonedas_auto_espera += delta_tiempo;
+            if (g_tragamonedas_auto_espera >= TRAGAMONEDAS_AUTO_ESPERA_SEG) {
+                g_tragamonedas_auto_espera = 0.0f;
+                intentar_iniciar_giro_tragamonedas();
+            }
+        } else {
+            g_tragamonedas_auto_espera = 0.0f;
+        }
+    }
 
     /* --- Resolver resultado cuando la bolita se acaba de detener --- */
     if (estaba_girando && !partida.bolita.girando && partida.num_apuestas_activas > 0) {
@@ -558,6 +694,16 @@ int main(int argc, char** argv) {
 
     generar_perfil_bezier_rueda();
     construir_malla_rueda();
+
+    /* Carga la imagen de fondo del tragamonedas (PNG). Si no se
+       encuentra, la funcion imprime un aviso en consola y usa un
+       gradiente negro/rojo como fallback automatico -no revienta. */
+    cargar_textura_fondo_tragamonedas();
+
+    /* Carga las texturas PNG de los simbolos del tragamonedas (7, cereza,
+       campana, BAR, diamante). Si un PNG no se encuentra, ese simbolo se
+       dibuja en magenta solido (fallback de depuracion) -no revienta. */
+    simbolos_tex_inicializar();
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);

@@ -97,7 +97,7 @@ void inicializar_tragamonedas_animacion(EstadoTragamonedas* estado) {
 }
 
 
-void actualizar_tragamonedas(EstadoTragamonedas* estado, float delta_tiempo) {
+void actualizar_tragamonedas(EstadoTragamonedas* estado, float delta_tiempo, Jugador* jugador) {
     int i;
     int alguno_girando = 0;
 
@@ -152,6 +152,13 @@ void actualizar_tragamonedas(EstadoTragamonedas* estado, float delta_tiempo) {
                     estado->resultado_actual, estado->monto_apuesta);
             estado->ganancia_ultima = g;
             estado->hay_ganancia    = (g > 0.0f) ? 1 : 0;
+
+            /* Saldo REAL del jugador -mismo sistema que usa la ruleta
+               (ver contrato en tragamonedas_logica.h): el monto ya se
+               conto en total_apostado al arrancar el giro
+               (registrar_apuesta(), en main.c), aca solo se ajusta el
+               saldo con la ganancia/perdida neta. */
+            aplicar_resultado_apuesta(jugador, g);
         } else {
             /* Ya estaba detenido: solo avanzar el timer */
             estado->tiempo_desde_parada += delta_tiempo;

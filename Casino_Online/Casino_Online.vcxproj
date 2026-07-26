@@ -77,6 +77,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -87,8 +88,10 @@
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>xcopy /Y /I "$(ProjectDir)src\assets\tragamonedas_fondo.png" "$(OutDir)src\assets\" &gt; nul 2&gt;&amp;1
+if not exist "$(OutDir)src\assets\tragamonedas_fondo.png" xcopy /Y /I "$(ProjectDir)src\assets\tragamonedas_fondo.png" "$(OutDir)assets\" &gt; nul 2&gt;&amp;1
+xcopy /Y /I "$(ProjectDir)src\tragamonedas\simbolos\*.png" "$(OutDir)src\tragamonedas\simbolos\" &gt; nul 2&gt;&amp;1
+exit /b 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -100,6 +103,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -121,6 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,6 +149,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -169,9 +175,11 @@
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\render\iluminacion.c" />
     <ClCompile Include="src\render\materiales.c" />
+    <ClCompile Include="src\render\textura.c" />
     <ClCompile Include="src\ruleta\mouse_picking.c" />
     <ClCompile Include="src\ruleta\ruleta_animacion.c" />
     <ClCompile Include="src\ruleta\ruleta_geometria.c" />
+    <ClCompile Include="src\tragamonedas\simbolos_tex.c" />
     <ClCompile Include="src\ui\hud.c" />
     <ClCompile Include="src\ui\pantallas.c" />
     <ClCompile Include="src\utils\bezier.c" />
@@ -182,9 +190,12 @@
     <ClInclude Include="src\core\jugador.h" />
     <ClInclude Include="src\render\iluminacion.h" />
     <ClInclude Include="src\render\materiales.h" />
+    <ClInclude Include="src\render\textura.h" />
     <ClInclude Include="src\ruleta\mouse_picking.h" />
     <ClInclude Include="src\ruleta\ruleta_animacion.h" />
     <ClInclude Include="src\ruleta\ruleta_geometria.h" />
+    <ClInclude Include="src\stb_image.h" />
+    <ClInclude Include="src\tragamonedas\simbolos_tex.h" />
     <ClInclude Include="src\tragamonedas\tragamonedas_animacion.h" />
     <ClInclude Include="src\tragamonedas\tragamonedas_geometria.h" />
     <ClInclude Include="src\tragamonedas\tragamonedas_logica.h" />
@@ -195,6 +206,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
+    <None Include="src\assets\tragamonedas_fondo.png" />
+    <None Include="src\tragamonedas\simbolos\sym_7.png" />
+    <None Include="src\tragamonedas\simbolos\sym_cherry.png" />
+    <None Include="src\tragamonedas\simbolos\sym_bell.png" />
+    <None Include="src\tragamonedas\simbolos\sym_bar.png" />
+    <None Include="src\tragamonedas\simbolos\sym_diamond.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

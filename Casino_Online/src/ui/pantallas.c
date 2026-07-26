@@ -114,26 +114,34 @@ void dibujar_pantalla_menu(void) {
 
     /* --- Titulo y aviso de proposito (concientizacion, saldo virtual) --- */
     glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_2d(cx - 190.0f, cy + 190.0f, "CASINO ONLINE - SIMULADOR DE RULETA");
+    dibujar_texto_2d(cx - 190.0f, cy + 190.0f, "CASINO ONLINE - SIMULADOR");
 
     glColor3f(1.0f, 1.0f, 1.0f);
     dibujar_texto_2d(cx - 220.0f, cy + 150.0f,
         "Juegas con saldo virtual. Nunca dinero real.");
 
-    /* --- Controles --- */
-    dibujar_texto_2d(cx - 220.0f, cy + 105.0f, "Controles:");
-    dibujar_texto_2d(cx - 220.0f, cy + 78.0f, "1 - 4            Elegir monto de ficha");
-    dibujar_texto_2d(cx - 220.0f, cy + 51.0f, "Clic izquierdo   Apostar en la celda senalada");
-    dibujar_texto_2d(cx - 220.0f, cy + 24.0f, "Clic derecho     Quitar una ficha de esa celda");
-    dibujar_texto_2d(cx - 220.0f, cy - 3.0f, "BACKSPACE        Deshacer la ultima ficha");
-    dibujar_texto_2d(cx - 220.0f, cy - 30.0f, "ESPACIO          Girar la ruleta");
-    dibujar_texto_2d(cx - 220.0f, cy - 57.0f, "P                Pedir prestamo (sin saldo)");
-    dibujar_texto_2d(cx - 220.0f, cy - 84.0f, "S                Terminar la sesion (si se ofrece la opcion)");
-    dibujar_texto_2d(cx - 220.0f, cy - 111.0f, "I                Informacion sobre ludopatia");
+    /* --- Seleccion de juego --- */
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_2d(cx - 220.0f, cy + 115.0f, "Selecciona un juego:");
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_2d(cx - 220.0f, cy + 88.0f,  "[ENTER]   Ruleta Europea");
+    dibujar_texto_2d(cx - 220.0f, cy + 61.0f,  "[2]       Tragamonedas");
+
+    /* --- Controles generales --- */
+    glColor3f(0.75f, 0.75f, 0.75f);
+    dibujar_texto_2d(cx - 220.0f, cy + 26.0f,  "Controles (Ruleta):");
+    dibujar_texto_2d(cx - 220.0f, cy +  1.0f,  "1 - 4            Elegir monto de ficha");
+    dibujar_texto_2d(cx - 220.0f, cy - 24.0f,  "Clic izquierdo   Apostar en la celda senalada");
+    dibujar_texto_2d(cx - 220.0f, cy - 49.0f,  "Clic derecho     Quitar una ficha de esa celda");
+    dibujar_texto_2d(cx - 220.0f, cy - 74.0f,  "BACKSPACE        Deshacer la ultima ficha");
+    dibujar_texto_2d(cx - 220.0f, cy - 99.0f,  "ESPACIO          Girar la ruleta / palanca");
+    dibujar_texto_2d(cx - 220.0f, cy - 122.0f, "P                Pedir prestamo (sin saldo)");
+    dibujar_texto_2d(cx - 220.0f, cy - 145.0f, "I                Informacion sobre ludopatia");
+    dibujar_texto_2d(cx - 220.0f, cy - 168.0f, "1 (en tragamonedas) Volver a la ruleta");
 
     /* --- Llamado a la accion --- */
     glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_2d(cx - 150.0f, cy - 140.0f, "[ENTER] Comenzar     [ESC] Salir");
+    dibujar_texto_2d(cx - 175.0f, cy - 200.0f, "[ENTER] Ruleta  [2] Tragamonedas  [ESC] Salir");
 
     /* --- Restaurar estado 3D --- */
     glEnable(GL_DEPTH_TEST);
