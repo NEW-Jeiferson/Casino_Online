@@ -65,12 +65,19 @@ void dibujar_pantalla_educacion(int pagina);
 /* Dibuja la pantalla placeholder para el modulo de tragamonedas */
 void dibujar_pantalla_tragamonedas_placeholder(void);
 
+/* Nuevas pantallas de concientizacion y serious game */
+void dibujar_pantalla_advertencia(void);
+void dibujar_pantalla_proposito(void);
+void dibujar_pantalla_confirmacion_juego(void);
+void dibujar_pantalla_checkpoint_educativo(int indice_mensaje);
+
 /* Parametros transitorios que algunas pantallas necesitan y otras no */
 typedef struct {
     const char* mensaje_reflexivo; /* solo se usa si estado == ESTADO_MENSAJE_REFLEXIVO */
     int pagina_educacion;          /* solo se usa si estado == ESTADO_EDUCACION */
     int opcion_menu;               /* solo se usa si estado == ESTADO_MENU */
     float progreso_carga;          /* solo se usa si estado == ESTADO_CARGA */
+    int indice_checkpoint;         /* solo se usa si estado == ESTADO_CHECKPOINT_EDUCATIVO */
 } InfoPantalla;
 
 /* Despacha a la funcion de dibujo correspondiente segun el estado

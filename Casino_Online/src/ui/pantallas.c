@@ -227,7 +227,13 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     /* --- Controles de ayuda en el Menu --- */
     glColor3f(0.6f, 0.6f, 0.6f);
     dibujar_texto_2d(cx - 240.0f, cy - 140.0f, "Nota: Saldo inicial virtual de 1,000.00 creditos.");
-    dibujar_texto_2d(cx - 240.0f, cy - 165.0f, "Este software es para concientizacion sobre ludopatia.");
+
+    /* Banner permanente de Serious Game */
+    glColor3f(1.0f, 0.75f, 0.0f);
+    {
+        const char* banner = "Simulador educativo sobre ludopatia - No incentiva el juego con dinero real";
+        dibujar_texto_2d(cx - (float)strlen(banner) * ANCHO_CHAR_APROX / 2.0f, cy - 175.0f, banner);
+    }
 
     /* --- Restaurar estado 3D --- */
     glEnable(GL_DEPTH_TEST);
@@ -370,12 +376,12 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
     glEnd();
 
     /* Panel de dialogo */
-    glColor4f(0.05f, 0.08f, 0.2f, 0.9f);
+    glColor4f(0.05f, 0.08f, 0.2f, 0.94f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy + 200.0f);
-    glVertex2f(cx - 320.0f, cy + 200.0f);
+    glVertex2f(cx - 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy + 220.0f);
+    glVertex2f(cx - 330.0f, cy + 220.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -383,54 +389,54 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
     glColor3f(0.55f, 0.75f, 1.0f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy + 200.0f);
-    glVertex2f(cx - 320.0f, cy + 200.0f);
+    glVertex2f(cx - 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy + 220.0f);
+    glVertex2f(cx - 330.0f, cy + 220.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Icono informativo o de advertencia */
     if (!es_repeticion) {
-        dibujar_icono_info(cx, cy + 150.0f, 22.0f);
+        dibujar_icono_info(cx, cy + 175.0f, 22.0f);
     } else {
-        dibujar_icono_advertencia(cx, cy + 150.0f, 22.0f);
+        dibujar_icono_advertencia(cx, cy + 175.0f, 22.0f);
     }
 
     glColor3f(0.55f, 0.75f, 1.0f);
     {
         const char* titulo = "REALITY CHECK";
-        dibujar_texto_2d(cx - (float)strlen(titulo) * ANCHO_CHAR_APROX / 2.0f, cy + 100.0f, titulo);
+        dibujar_texto_2d(cx - (float)strlen(titulo) * ANCHO_CHAR_APROX / 2.0f, cy + 135.0f, titulo);
     }
 
     /* Mensaje multilinea */
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_multilinea_centrado(mensaje, cx, cy + 60.0f, 24.0f);
+    dibujar_texto_multilinea_centrado(mensaje, cx, cy + 90.0f, 21.0f);
 
     /* Linea separadora */
     glColor3f(0.4f, 0.5f, 0.7f);
     glBegin(GL_LINES);
-    glVertex2f(cx - 260.0f, cy - 100.0f);
-    glVertex2f(cx + 260.0f, cy - 100.0f);
+    glVertex2f(cx - 270.0f, cy - 120.0f);
+    glVertex2f(cx + 270.0f, cy - 120.0f);
     glEnd();
 
     /* Opciones */
     {
         const char* op_seguir = "[ENTER] Continuar jugando";
         const char* op_terminar = "[S] Terminar la sesion aqui";
-        float y_prominente = cy - 140.0f;
-        float y_secundaria = cy - 170.0f;
+        float y_prominente = cy - 155.0f;
+        float y_secundaria = cy - 190.0f;
 
         if (!es_repeticion) {
             glColor3f(0.55f, 0.75f, 1.0f);
             dibujar_texto_2d(cx - (float)strlen(op_seguir) * ANCHO_CHAR_APROX / 2.0f, y_prominente, op_seguir);
-            glColor3f(0.5f, 0.5f, 0.5f);
+            glColor3f(0.6f, 0.6f, 0.6f);
             dibujar_texto_2d(cx - (float)strlen(op_terminar) * ANCHO_CHAR_APROX / 2.0f, y_secundaria, op_terminar);
         }
         else {
             glColor3f(1.0f, 0.85f, 0.0f);
             dibujar_texto_2d(cx - (float)strlen(op_terminar) * ANCHO_CHAR_APROX / 2.0f, y_prominente, op_terminar);
-            glColor3f(0.5f, 0.5f, 0.5f);
+            glColor3f(0.6f, 0.6f, 0.6f);
             dibujar_texto_2d(cx - (float)strlen(op_seguir) * ANCHO_CHAR_APROX / 2.0f, y_secundaria, op_seguir);
         }
     }
@@ -1021,13 +1027,363 @@ void dibujar_pantalla_tragamonedas_placeholder(void) {
     glPopMatrix();
 }
 
+void dibujar_pantalla_advertencia(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glColor3f(0.0f, 0.0f, 0.0f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.08f, 0.02f, 0.02f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(1.0f, 0.3f, 0.3f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_advertencia(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(1.0f, 0.3f, 0.3f);
+    {
+        const char* title = "ADVERTENCIA";
+        dibujar_texto_2d(cx - (float)strlen(title) * ANCHO_CHAR_APROX / 2.0f, cy + 115.0f, title);
+    }
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "La ludopatia es una adiccion real que puede afectar\n"
+        "la salud mental, la economia, y las relaciones\n"
+        "personales de quien la padece.\n\n"
+        "Este programa tiene fines EXCLUSIVAMENTE educativos.\n"
+        "No busca promover ni incentivar el juego de apuestas\n"
+        "con dinero real.",
+        cx, cy + 65.0f, 22.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    {
+        const char* prompt = "[ENTER] Continuar";
+        dibujar_texto_2d(cx - (float)strlen(prompt) * ANCHO_CHAR_APROX / 2.0f, cy - 170.0f, prompt);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+void dibujar_pantalla_proposito(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glColor3f(0.03f, 0.05f, 0.1f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.05f, 0.09f, 0.2f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_info(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    {
+        const char* title = "QUE ES ESTE PROYECTO";
+        dibujar_texto_2d(cx - (float)strlen(title) * ANCHO_CHAR_APROX / 2.0f, cy + 115.0f, title);
+    }
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "Este es un simulador educativo (serious game) sobre\n"
+        "ludopatia, desarrollado para una practica de\n"
+        "Computacion Grafica.\n\n"
+        "No busca incentivar las apuestas. Su objetivo es\n"
+        "generar conciencia sobre los riesgos del juego\n"
+        "problematico, ayudar a identificar sus senales de\n"
+        "alerta, y promover la prevencion y la busqueda de\n"
+        "ayuda profesional.",
+        cx, cy + 65.0f, 22.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    {
+        const char* prompt = "[ENTER] Continuar";
+        dibujar_texto_2d(cx - (float)strlen(prompt) * ANCHO_CHAR_APROX / 2.0f, cy - 170.0f, prompt);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+void dibujar_pantalla_confirmacion_juego(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.0f, 0.0f, 0.0f, 0.85f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glColor4f(0.12f, 0.08f, 0.02f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy + 210.0f);
+    glVertex2f(cx - 340.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(1.0f, 0.75f, 0.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy + 210.0f);
+    glVertex2f(cx - 340.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_advertencia(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    {
+        const char* title = "REFLEXIONA ANTES DE JUGAR";
+        dibujar_texto_2d(cx - (float)strlen(title) * ANCHO_CHAR_APROX / 2.0f, cy + 115.0f, title);
+    }
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "Estas a punto de iniciar una simulacion de apuestas.\n\n"
+        "Recorda los riesgos asociados al juego: perdida de\n"
+        "dinero, dependencia emocional, y el riesgo real de\n"
+        "desarrollar un patron de juego problematico.\n\n"
+        "Luego de leer esta informacion, deseas continuar\n"
+        "bajo tu propia responsabilidad?",
+        cx, cy + 65.0f, 22.0f);
+
+    {
+        const char* op_si = "[ENTER] Si, continuar";
+        const char* op_no = "[N] No, volver al menu";
+        dibujar_texto_2d(cx - 210.0f, cy - 170.0f, op_si);
+        glColor3f(0.7f, 0.7f, 0.7f);
+        dibujar_texto_2d(cx + 30.0f, cy - 170.0f, op_no);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+static const char* MENSAJES_CHECKPOINT[4] = {
+    "Recorda: cada giro de la ruleta es un evento\n"
+    "independiente. Ninguna racha, buena o mala,\n"
+    "predice el resultado del proximo giro.",
+
+    "Necesitar apostar montos cada vez mayores para\n"
+    "sentir la misma emocion es una senal de alerta\n"
+    "reconocida del juego problematico.",
+
+    "El autocontrol -definir un limite de tiempo y\n"
+    "dinero antes de jugar, y respetarlo- es la\n"
+    "herramienta mas efectiva contra la ludopatia.",
+
+    "Si sentis que no podes parar de jugar, esa es\n"
+    "la senal mas importante de todas. Buscar ayuda\n"
+    "profesional a tiempo hace la diferencia."
+};
+
+void dibujar_pantalla_checkpoint_educativo(int indice_mensaje) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+    int idx;
+
+    idx = indice_mensaje % 4;
+    if (idx < 0) idx = 0;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.05f, 0.02f, 0.0f, 0.80f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glColor4f(0.18f, 0.08f, 0.01f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy + 190.0f);
+    glVertex2f(cx - 320.0f, cy + 190.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(1.0f, 0.55f, 0.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy + 190.0f);
+    glVertex2f(cx - 320.0f, cy + 190.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_info(cx, cy + 135.0f, 22.0f);
+
+    glColor3f(1.0f, 0.65f, 0.0f);
+    {
+        const char* title = "RECORDATORIO";
+        dibujar_texto_2d(cx - (float)strlen(title) * ANCHO_CHAR_APROX / 2.0f, cy + 95.0f, title);
+    }
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(MENSAJES_CHECKPOINT[idx], cx, cy + 40.0f, 24.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    {
+        const char* prompt_seguir = "[ENTER] Continuar bajo tu responsabilidad";
+        const char* prompt_terminar = "[S] Terminar la sesion aqui";
+        dibujar_texto_2d(cx - (float)strlen(prompt_seguir) * ANCHO_CHAR_APROX / 2.0f, cy - 140.0f, prompt_seguir);
+        glColor3f(0.7f, 0.7f, 0.7f);
+        dibujar_texto_2d(cx - (float)strlen(prompt_terminar) * ANCHO_CHAR_APROX / 2.0f, cy - 170.0f, prompt_terminar);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
 void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, const InfoPantalla* info) {
     switch (estado) {
     case ESTADO_CARGA:
         dibujar_pantalla_carga(info->progreso_carga);
         break;
+    case ESTADO_ADVERTENCIA:
+        dibujar_pantalla_advertencia();
+        break;
+    case ESTADO_PROPOSITO:
+        dibujar_pantalla_proposito();
+        break;
     case ESTADO_MENU:
         dibujar_pantalla_menu(info->opcion_menu);
+        break;
+    case ESTADO_CONFIRMACION_JUEGO:
+        dibujar_pantalla_confirmacion_juego();
+        break;
+    case ESTADO_CHECKPOINT_EDUCATIVO:
+        dibujar_pantalla_checkpoint_educativo(info->indice_checkpoint);
         break;
     case ESTADO_PRESTAMO:
         dibujar_pantalla_prestamo(jugador);

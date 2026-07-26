@@ -100,8 +100,12 @@ typedef enum {
                                  recursos de ayuda, prevencion). Accesible
                                  desde el menu y desde las 2 pantallas de
                                  cierre de sesion, ver main.c/teclado(). */
-    ESTADO_CARGA,            /* Pantalla de carga/titulo inicial del juego */
-    ESTADO_TRAGAMONEDAS_PLACEHOLDER /* Pantalla placeholder de maquinas tragamonedas */
+    ESTADO_CARGA,            /* Pantalla de carga inicial del juego */
+    ESTADO_TRAGAMONEDAS_PLACEHOLDER, /* Pantalla placeholder de tragamonedas */
+    ESTADO_ADVERTENCIA,      /* Advertencia inicial de ludopatia */
+    ESTADO_PROPOSITO,        /* Explicacion del proposito educativo del proyecto */
+    ESTADO_CONFIRMACION_JUEGO, /* Reflexion y confirmacion de responsabilidad previa a la partida */
+    ESTADO_CHECKPOINT_EDUCATIVO /* Recordatorio educativo periodico (cada 3 rondas y 5 min) */
 } EstadoJuego;
 
 /* Estado global actual (definido en estado_juego.c) */
