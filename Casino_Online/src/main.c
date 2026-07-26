@@ -22,6 +22,7 @@
 #include "render/iluminacion.h"
 #include "render/materiales.h"
 #include "ui/hud.h"
+#include "ui/notificaciones.h"
 #include "ui/pantallas.h"
 #include "ui/tablero_apuestas.h"
 
@@ -191,6 +192,7 @@ static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
 /* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
    Devuelve 1 si se agrego, 0 si no (arreglo lleno). */
 static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
+    char notifbuf[128];
 
     if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
     partida.apuestas_activas[partida.num_apuestas_activas].tipo = tipo;
@@ -198,7 +200,35 @@ static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
     partida.apuestas_activas[partida.num_apuestas_activas].monto = monto;
     partida.num_apuestas_activas++;
 
-    registrar_apuesta(&partida.jugador, monto); /* suma al HUD ya */
+    registrar_apuesta(&partida.jugador, monto);
+
+    if (tipo == APUESTA_NUMERO) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f al Numero %d", monto, valor);
+    } else if (tipo == APUESTA_COLOR) {
+        if (valor == (int)COLOR_ROJO) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a ROJO", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a NEGRO", monto);
+        }
+    } else if (tipo == APUESTA_PAR_IMPAR) {
+        if (valor == 0) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a PAR", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a IMPAR", monto);
+        }
+    } else if (tipo == APUESTA_MITAD) {
+        if (valor == 1) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 1-18", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 19-36", monto);
+        }
+    } else if (tipo == APUESTA_DOCENA) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a Docena %d", monto, valor);
+    } else {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta colocada: $%.0f", monto);
+    }
+    agregar_notificacion(notifbuf, 1.0f, 0.84f, 0.0f);
+
     return 1;
 }
 
@@ -300,6 +330,7 @@ void display(void) {
     glPopMatrix();
 
     dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
+    dibujar_notificaciones();
     {
         InfoPantalla info;
         info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
@@ -602,19 +633,24 @@ void idle(void) {
 
     /* --- Resolver resultado cuando la bolita se acaba de detener --- */
     if (estaba_girando && !partida.bolita.girando && partida.num_apuestas_activas > 0) {
-        /* FIX DE ALEATORIEDAD (ronda 2): el numero ganador YA se decidio
-           al presionar ESPACIO (ver partida.numero_ganador_pendiente),
-           asi que aqui simplemente se usa ese valor -ya no se vuelve a
-           derivar del angulo final de la bolita. Esto tambien elimina
-           cualquier posible desfase entre "donde cae visualmente la
-           bolita" y "que numero cuenta como ganador". */
         int   numero_ganador = partida.numero_ganador_pendiente;
         float ganancia_total = calcular_ganancia_total(partida.apuestas_activas, partida.num_apuestas_activas, numero_ganador);
+        float apostado = monto_apostado_en_ronda();
 
-        /* DIAGNOSTICO: solo en builds Debug (_DEBUG lo define el
-           .vcxproj automaticamente). En Release (NDEBUG) esto
-           desaparece del binario -ya no hace falta acordarse de
-           quitarlo a mano antes de entregar. */
+        {
+            char notifbuf[128];
+            const char* color_str = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "Rojo"
+                                  : (color_de_numero(numero_ganador) == COLOR_NEGRO) ? "Negro" : "Verde";
+
+            if (ganancia_total > 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - ¡Ganaste $%.0f!", numero_ganador, color_str, ganancia_total);
+                agregar_notificacion(notifbuf, 0.2f, 1.0f, 0.3f);
+            } else {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Perdiste $%.0f", numero_ganador, color_str, apostado);
+                agregar_notificacion(notifbuf, 1.0f, 0.35f, 0.35f);
+            }
+        }
+
 #ifdef _DEBUG
         {
             const char* color_texto = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "ROJO"
@@ -626,12 +662,6 @@ void idle(void) {
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
 
-        /* Concientizacion sobre ludopatia: se revisa DESPUES de aplicar
-           el resultado (necesita el saldo/racha/total_apostado ya
-           actualizados) pero ANTES del chequeo de fondos de abajo -si
-           dispara un mensaje, se prioriza mostrarlo primero; el chequeo
-           de fondos para prestamo se reintenta automaticamente al
-           descartar el mensaje con ENTER (ver teclado()). */
         partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
         if (partida.mensaje_reflexivo_actual != NULL) {
             cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
@@ -671,6 +701,7 @@ int main(int argc, char** argv) {
     glEnable(GL_MULTISAMPLE);
 
     inicializar_iluminacion();
+    inicializar_notificaciones();
     inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
     inicializar_estado_juego();
     inicializar_bolita(&partida.bolita);
