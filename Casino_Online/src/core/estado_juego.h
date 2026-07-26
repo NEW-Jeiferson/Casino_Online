@@ -78,11 +78,30 @@ float calcular_ganancia_apuesta(const Apuesta* apuesta, int numero_ganador);
    ronda, sin importar cuantas fichas se pusieron. */
 float calcular_ganancia_total(const Apuesta apuestas[], int cantidad, int numero_ganador);
 
+/* Estados posibles del juego (maquina de estados) */
 typedef enum {
     ESTADO_MENU,
     ESTADO_JUGANDO,
     ESTADO_PRESTAMO,
-    ESTADO_GAME_OVER
+    ESTADO_GAME_OVER,
+    ESTADO_MENSAJE_REFLEXIVO, /* pantalla de concientizacion (ver jugador.h,
+                                 verificar_mensaje_reflexivo); interrumpe el
+                                 juego brevemente, ofrece seguir jugando O
+                                 terminar la sesion aqui mismo */
+    ESTADO_SESION_TERMINADA, /* el jugador ELIGIO terminar (desde el mensaje
+                                 reflexivo o desde la pantalla de prestamo),
+                                 en vez de que el juego se lo imponga por
+                                 quedarse sin fondos. Mismo resumen de
+                                 estadisticas que Game Over, pero con tono
+                                 de cierre respetuoso, no de derrota. */
+    ESTADO_EDUCACION,        /* pilar 4 del "serious game": pantalla de
+                                 informacion paginada (que es la ludopatia,
+                                 senales de alerta, mitos, consecuencias,
+                                 recursos de ayuda, prevencion). Accesible
+                                 desde el menu y desde las 2 pantallas de
+                                 cierre de sesion, ver main.c/teclado(). */
+    ESTADO_CARGA,            /* Pantalla de carga/titulo inicial del juego */
+    ESTADO_TRAGAMONEDAS_PLACEHOLDER /* Pantalla placeholder de maquinas tragamonedas */
 } EstadoJuego;
 
 /* Estado global actual (definido en estado_juego.c) */

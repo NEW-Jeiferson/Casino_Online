@@ -7,6 +7,13 @@
 #include <math.h>
 #include <time.h>
 
+#include <windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "core/estado_juego.h"
 #include "core/jugador.h"
 #include "ruleta/ruleta_geometria.h"
@@ -22,8 +29,8 @@
 #define GL_MULTISAMPLE 0x809D
 #endif
 
- /* Fichas seleccionables con teclas 1-4 (tabla fija, no es estado que
-    cambie durante la partida, asi que se queda fuera de EstadoPartida) */
+
+ /* Funcion para obtener el monto de una ficha por su indice */
 static const float FICHAS[4] = { 10.0f, 25.0f, 50.0f, 100.0f };
 
 /* --- Estado global de la partida (TODO propio resuelto) ---
@@ -51,9 +58,92 @@ typedef struct {
        se detenga, sin volver a derivarlo del angulo final (evita
        cualquier imprecision numerica de la animacion). */
     int numero_ganador_pendiente;
+
+    /* Mensaje de concientizacion pendiente de mostrar (ver
+       core/jugador.h, verificar_mensaje_reflexivo). Apunta a un string
+       constante devuelto por esa funcion -nunca a memoria propia de
+       EstadoPartida-, asi que no hace falta liberarlo ni copiarlo. */
+    const char* mensaje_reflexivo_actual;
+
+    /* Pagina actual dentro de ESTADO_EDUCACION (0-based). Es estado de
+       NAVEGACION de UI, no del jugador -por eso vive aca y no en
+       Jugador-, se resetea a 0 cada vez que se entra a esa pantalla. */
+    int pagina_educacion;
+
+    /* Opcion actualmente seleccionada en ESTADO_MENU (0 = Ruleta, 1 = Tragamonedas) */
+    int opcion_menu;
+
+    /* Progreso acumulado de la pantalla de carga (0.0f a 1.0f) */
+    float progreso_carga;
 } EstadoPartida;
 
 static EstadoPartida partida;
+
+static GLuint g_tex_carga = 0;
+static GLuint g_tex_casino = 0;
+
+static GLuint cargar_textura(const char* ruta) {
+    int ancho, alto, canales;
+    unsigned char* data;
+    GLuint tex_id;
+    char ruta_alt[512];
+
+    tex_id = 0;
+    data = stbi_load(ruta, &ancho, &alto, &canales, 0);
+    if (!data) {
+        sprintf_s(ruta_alt, sizeof(ruta_alt), "../%s", ruta);
+        data = stbi_load(ruta_alt, &ancho, &alto, &canales, 0);
+    }
+    if (!data) {
+        fprintf(stderr, "Error al cargar textura: %s\n", ruta);
+        return 0;
+    }
+
+    glGenTextures(1, &tex_id);
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+    if (canales == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ancho, alto, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    } else if (canales == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ancho, alto, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+
+    stbi_image_free(data);
+    return tex_id;
+}
+
+static void limpiar_audio(void) {
+    mciSendStringA("close musica", NULL, 0, NULL);
+}
+
+static void iniciar_musica_fondo(void) {
+    DWORD attr;
+    const char* ruta_usada;
+    char cmd_open[512];
+
+    ruta_usada = NULL;
+    attr = GetFileAttributesA("musica\\fondo.wav");
+    if (attr != INVALID_FILE_ATTRIBUTES) {
+        ruta_usada = "musica\\fondo.wav";
+    } else {
+        attr = GetFileAttributesA("..\\musica\\fondo.wav");
+        if (attr != INVALID_FILE_ATTRIBUTES) {
+            ruta_usada = "..\\musica\\fondo.wav";
+        }
+    }
+
+    if (ruta_usada != NULL) {
+        sprintf_s(cmd_open, sizeof(cmd_open), "open \"%s\" alias musica", ruta_usada);
+        if (mciSendStringA(cmd_open, NULL, 0, NULL) == 0) {
+            mciSendStringA("play musica", NULL, 0, NULL);
+        }
+    }
+}
 
 /* BUGFIX (integridad economica): antes se validaba cada ficha nueva
    contra partida.jugador.saldo "a secas", pero registrar_apuesta() NO
@@ -81,6 +171,21 @@ static float monto_apostado_en_ronda(void) {
 
 static int saldo_alcanza_para_ficha(float monto_ficha) {
     return (partida.jugador.saldo - monto_apostado_en_ronda()) >= monto_ficha;
+}
+
+/* Si el saldo no alcanza ni para la ficha minima seleccionada, manda
+   al jugador a la pantalla de prestamo. Se llama desde dos lugares:
+   1) al resolver una ronda en idle() (cuando NO hubo mensaje reflexivo
+      ese mismo round), y 2) justo despues de descartar un mensaje
+      reflexivo con ENTER (por si la condicion de fondos tambien se
+      cumplia esa misma ronda -se prioriza mostrar primero el mensaje
+      reflexivo, y recien al continuar se revisa si ademas hace falta
+      pedir prestamo). Antes esta logica estaba duplicada a mano en los
+      dos lugares; ahora hay una sola version. */
+static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
+    if (estado_actual == ESTADO_JUGANDO && partida.jugador.saldo < partida.monto_ficha_actual) {
+        cambiar_estado(ESTADO_PRESTAMO);
+    }
 }
 
 /* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
@@ -128,17 +233,50 @@ static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
 
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* Fondo con textura de casino (si existe y no estamos en pantalla de carga) */
+    if (g_tex_casino != 0 && estado_actual != ESTADO_CARGA) {
+        int ancho = glutGet(GLUT_WINDOW_WIDTH);
+        int alto = glutGet(GLUT_WINDOW_HEIGHT);
+
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(0, ancho, 0, alto, -1, 1);
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, g_tex_casino);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, 0.0f);
+        glTexCoord2f(1.0f, 1.0f); glVertex2f((float)ancho, 0.0f);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f((float)ancho, (float)alto);
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, (float)alto);
+        glEnd();
+        glDisable(GL_TEXTURE_2D);
+
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_LIGHTING);
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    /* Camara mucho mas inclinada hacia abajo que antes (65 grados de
-       elevacion, antes 39), para leer mejor los numeros de la rueda y
-       el tablero, sin llegar a ser una vista totalmente plana desde
-       arriba -se conserva la perspectiva real (gluPerspective, no
-       glOrtho), asi que el volumen 3D de la rueda (domo, sombreado de
-       Phong) sigue notandose. El punto al que mira se corrio un poco
-       hacia el tablero (Z positivo) para que quede mejor encuadrado
-       junto con la rueda, en vez de mirar solo al centro de la rueda. */
+
     gluLookAt(0.0, 15.0, 7.0,
         0.0, 0.0, 1.0,
         0.0, 1.0, 0.0);
@@ -151,7 +289,7 @@ void display(void) {
     glTranslatef(0.0f, 0.05f, 0.0f);
     glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
     dibujar_rueda();
-    dibujar_pista_numerada(); /* debe ir aqui: mientras la matriz de la rueda sigue activa, para que gire junto con ella */
+    dibujar_pista_numerada();
 
     glPushMatrix();
     dibujar_bolita(&partida.bolita);
@@ -162,7 +300,14 @@ void display(void) {
     glPopMatrix();
 
     dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
-    dibujar_pantalla_segun_estado(estado_actual, &partida.jugador);
+    {
+        InfoPantalla info;
+        info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
+        info.pagina_educacion = partida.pagina_educacion;
+        info.opcion_menu = partida.opcion_menu;
+        info.progreso_carga = partida.progreso_carga;
+        dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
+    }
 
     glutSwapBuffers();
 }
@@ -235,7 +380,14 @@ void teclado(unsigned char tecla, int x, int y) {
 
             partida.numero_ganador_pendiente = numero_ganador;
 
-            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 1 /* vuelta extra visual */);
+            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6 /* vueltas extra visuales: subido de 3 a 6 para llegar a los 10.7s pedidos, ver ruleta_animacion.c */);
+        }
+        else if (estado_actual == ESTADO_EDUCACION) {
+            /* Avanza de pagina con wrap-around (de la ultima vuelve a
+               la primera), para poder recorrer las 6 en loop sin tener
+               que ir "para atras" -no hay tanto contenido como para
+               necesitar retroceder. */
+            partida.pagina_educacion = (partida.pagina_educacion + 1) % EDUCACION_NUM_PAGINAS;
         }
         break;
 
@@ -252,6 +404,39 @@ void teclado(unsigned char tecla, int x, int y) {
             }
         }
         break;
+
+    case 's':
+    case 'S':
+        /* MEJORA (interaccion de cierre real, no decorativa): terminar
+           la sesion aca es una eleccion tan valida como seguir jugando,
+           disponible desde los dos puntos donde antes la unica salida
+           real era continuar (el mensaje reflexivo se descartaba con
+           ENTER sin alternativa, y la pantalla de prestamo solo
+           ofrecia pedir mas plata prestada). No se pasa por
+           ESTADO_GAME_OVER -esa pantalla es para cuando el juego FUERZA
+           el cierre por deuda impagable, no para cuando el jugador elige
+           parar por su cuenta. */
+        if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
+            partida.mensaje_reflexivo_actual = NULL;
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_PRESTAMO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        break;
+
+    case 'i':
+    case 'I':
+        /* Pilar 4 del "serious game" (ver docs/analisis-ludopatia.md):
+           pantalla de informacion, accesible desde el menu y desde las
+           2 pantallas de cierre de sesion -asi se puede consultar
+           tanto antes de jugar como despues de terminar. */
+        if (estado_actual == ESTADO_MENU || estado_actual == ESTADO_GAME_OVER || estado_actual == ESTADO_SESION_TERMINADA) {
+            partida.pagina_educacion = 0;
+            cambiar_estado(ESTADO_EDUCACION);
+        }
+        break;
+
     case 8: /* BACKSPACE: deshace la ultima ficha colocada (LIFO) */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
@@ -261,12 +446,39 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 13: /* ENTER */
         if (estado_actual == ESTADO_MENU) {
-            cambiar_estado(ESTADO_JUGANDO);
+            if (partida.opcion_menu == 0) {
+                cambiar_estado(ESTADO_JUGANDO);
+            } else {
+                cambiar_estado(ESTADO_TRAGAMONEDAS_PLACEHOLDER);
+            }
+        }
+        else if (estado_actual == ESTADO_TRAGAMONEDAS_PLACEHOLDER) {
+            cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_GAME_OVER) {
-            inicializar_jugador(&partida.jugador, 1000.0f);
+            inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
             partida.num_apuestas_activas = 0;
+            partida.mensaje_reflexivo_actual = NULL;
             cambiar_estado(ESTADO_JUGANDO);
+        }
+        else if (estado_actual == ESTADO_SESION_TERMINADA) {
+            inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
+            partida.num_apuestas_activas = 0;
+            partida.mensaje_reflexivo_actual = NULL;
+            cambiar_estado(ESTADO_JUGANDO);
+        }
+        else if (estado_actual == ESTADO_EDUCACION) {
+            cambiar_estado(ESTADO_MENU);
+        }
+        else if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
+            /* Se descarta el mensaje y se vuelve a jugar. Si la MISMA
+               ronda que disparo el mensaje reflexivo tambien dejo al
+               jugador sin fondos para la ficha actual, recien ahora
+               (al continuar) se manda a la pantalla de prestamo -ver
+               comentario de verificar_fondos_y_pedir_prestamo_si_hace_falta(). */
+            partida.mensaje_reflexivo_actual = NULL;
+            cambiar_estado(ESTADO_JUGANDO);
+            verificar_fondos_y_pedir_prestamo_si_hace_falta();
         }
         break;
 
@@ -353,12 +565,28 @@ void idle(void) {
     int   tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
     float delta_tiempo;
     int estaba_girando = partida.bolita.girando;
+    char estado_musica[128];
 
     if (tiempo_anterior_ms < 0) tiempo_anterior_ms = tiempo_actual_ms;
     delta_tiempo = (float)(tiempo_actual_ms - tiempo_anterior_ms) / 1000.0f;
     tiempo_anterior_ms = tiempo_actual_ms;
     if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   /* por si el contador diera un valor raro */
     if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   /* clamp anti-salto */
+
+    /* Bucle manual de audio MCI (waveaudio no soporta la bandera repeat) */
+    mciSendStringA("status musica mode", estado_musica, sizeof(estado_musica), NULL);
+    if (strcmp(estado_musica, "stopped") == 0) {
+        mciSendStringA("seek musica to start", NULL, 0, NULL);
+        mciSendStringA("play musica", NULL, 0, NULL);
+    }
+
+    if (estado_actual == ESTADO_CARGA) {
+        partida.progreso_carga += delta_tiempo / 3.0f;
+        if (partida.progreso_carga >= 1.0f) {
+            partida.progreso_carga = 1.0f;
+            cambiar_estado(ESTADO_MENU);
+        }
+    }
 
     if (partida.bolita.girando) {
         /* Usa la MISMA constante que iniciar_giro_bolita_hacia_absoluto()
@@ -398,28 +626,44 @@ void idle(void) {
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
 
-        if (partida.jugador.saldo < partida.monto_ficha_actual) {
-            cambiar_estado(ESTADO_PRESTAMO);
+        /* Concientizacion sobre ludopatia: se revisa DESPUES de aplicar
+           el resultado (necesita el saldo/racha/total_apostado ya
+           actualizados) pero ANTES del chequeo de fondos de abajo -si
+           dispara un mensaje, se prioriza mostrarlo primero; el chequeo
+           de fondos para prestamo se reintenta automaticamente al
+           descartar el mensaje con ENTER (ver teclado()). */
+        partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
+        if (partida.mensaje_reflexivo_actual != NULL) {
+            cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
+        }
+        else {
+            verificar_fondos_y_pedir_prestamo_si_hace_falta();
         }
     }
 
     glutPostRedisplay();
 }
 
+static void teclas_especiales(int tecla, int x, int y) {
+    (void)x; (void)y;
+    if (estado_actual == ESTADO_MENU) {
+        if (tecla == GLUT_KEY_UP || tecla == GLUT_KEY_DOWN) {
+            partida.opcion_menu = (partida.opcion_menu == 0) ? 1 : 0;
+            glutPostRedisplay();
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
 
-    /* Semilla del generador de numeros aleatorios: una sola vez, al
-       arrancar el programa (ver BUGFIX de la tecla ESPACIO en teclado()
-       para el porque). Si se llamara mas de una vez -por ejemplo dentro
-       del callback de teclado- con time(NULL) como semilla, dos giros
-       ocurridos dentro del mismo segundo real quedarian con la misma
-       semilla y por lo tanto la misma "aleatoriedad", asi que va aca. */
+    /* Semilla del generador de numeros aleatorios */
     srand((unsigned int)time(NULL));
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
     glutInitWindowSize(1024, 768);
-    glutCreateWindow("Casino Online - Ruleta (MVP)");
+    glutCreateWindow("Casino Online - Ruleta");
+    glutFullScreen();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -427,21 +671,33 @@ int main(int argc, char** argv) {
     glEnable(GL_MULTISAMPLE);
 
     inicializar_iluminacion();
-    inicializar_jugador(&partida.jugador, 1000.0f); /* saldo inicial real, ya no 50.0f de prueba */
-    inicializar_estado_juego();                     /* arranca en ESTADO_MENU */
+    inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
+    inicializar_estado_juego();
     inicializar_bolita(&partida.bolita);
     partida.angulo_rueda = 0.0f;
     partida.num_apuestas_activas = 0;
     partida.ficha_actual_index = 0;
     partida.monto_ficha_actual = FICHAS[0];
     partida.numero_ganador_pendiente = -1;
+    partida.mensaje_reflexivo_actual = NULL;
+    partida.pagina_educacion = 0;
+    partida.opcion_menu = 0;
+    partida.progreso_carga = 0.0f;
 
     generar_perfil_bezier_rueda();
     construir_malla_rueda();
 
+    atexit(limpiar_audio);
+    iniciar_musica_fondo();
+
+    g_tex_carga = cargar_textura("texturas/loading_bg.png");
+    g_tex_casino = cargar_textura("texturas/casino_bg.png");
+    inicializar_texturas_pantallas(g_tex_carga, g_tex_casino);
+
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(teclado);
+    glutSpecialFunc(teclas_especiales);
     glutIdleFunc(idle);
     glutMouseFunc(mouse_click);
     glutPassiveMotionFunc(mouse_mover);

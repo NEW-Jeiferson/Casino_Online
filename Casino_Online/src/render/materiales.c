@@ -17,9 +17,8 @@ void aplicar_material(TipoMaterial tipo) {
 
     switch (tipo) {
     case MATERIAL_MADERA:
-        /* Aun no aplicado a ninguna geometria (no hay bordes/patas
-           de mesa todavia). Valores dejados listos para cuando
-           haya geometria que lo use. */
+        /* Usado en el borde de la mesa (dibujar_mesa(), alrededor del
+           fieltro) -ver ruleta_geometria.c. */
         ambient[0] = 0.3f;  ambient[1] = 0.2f;  ambient[2] = 0.1f;
         diffuse[0] = 0.5f;  diffuse[1] = 0.35f; diffuse[2] = 0.2f;
         specular[0] = 0.15f; specular[1] = 0.12f; specular[2] = 0.08f;
@@ -64,6 +63,14 @@ void aplicar_material(TipoMaterial tipo) {
         shininess = 96.0f;
         /* Nota: el componente alpha < 1.0 requiere GL_BLEND activado
            antes de dibujar el objeto con este material */
+        break;
+
+    case MATERIAL_MADERA_OSCURA:
+        /* Madera de roble oscuro, mate y sobria para unificar rueda y mesa */
+        ambient[0] = 0.15f;  ambient[1] = 0.09f;  ambient[2] = 0.05f;  ambient[3] = 1.0f;
+        diffuse[0] = 0.35f;  diffuse[1] = 0.20f;  diffuse[2] = 0.10f;  diffuse[3] = 1.0f;
+        specular[0] = 0.10f; specular[1] = 0.07f; specular[2] = 0.04f; specular[3] = 1.0f;
+        shininess = 8.0f;
         break;
 
     default:

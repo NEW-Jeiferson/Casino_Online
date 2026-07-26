@@ -5,13 +5,6 @@
 #include <GL/glut.h>
 #include "iluminacion.h"
 
- /*
-  * iluminacion.c
-  * Implementacion de la configuracion de luces. Ver iluminacion.h.
-  */
-#include <GL/glut.h>
-#include "iluminacion.h"
-
 void inicializar_iluminacion(void) {
     /* LUZ PRINCIPAL (LIGHT0): recalibrada para la camara ACTUAL de
        display() en main.c -gluLookAt(0,15,7 -> 0,0,1)-, mucho mas
