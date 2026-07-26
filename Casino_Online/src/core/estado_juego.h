@@ -94,12 +94,14 @@ typedef enum {
                                  quedarse sin fondos. Mismo resumen de
                                  estadisticas que Game Over, pero con tono
                                  de cierre respetuoso, no de derrota. */
-    ESTADO_EDUCACION        /* pilar 4 del "serious game": pantalla de
-                                informacion paginada (que es la ludopatia,
-                                senales de alerta, mitos, consecuencias,
-                                recursos de ayuda, prevencion). Accesible
-                                desde el menu y desde las 2 pantallas de
-                                cierre de sesion, ver main.c/teclado(). */
+    ESTADO_EDUCACION,        /* pilar 4 del "serious game": pantalla de
+                                 informacion paginada (que es la ludopatia,
+                                 senales de alerta, mitos, consecuencias,
+                                 recursos de ayuda, prevencion). Accesible
+                                 desde el menu y desde las 2 pantallas de
+                                 cierre de sesion, ver main.c/teclado(). */
+    ESTADO_CARGA,            /* Pantalla de carga/titulo inicial del juego */
+    ESTADO_TRAGAMONEDAS_PLACEHOLDER /* Pantalla placeholder de maquinas tragamonedas */
 } EstadoJuego;
 
 /* Estado global actual (definido en estado_juego.c) */

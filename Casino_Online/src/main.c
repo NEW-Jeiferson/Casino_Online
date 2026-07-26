@@ -7,6 +7,13 @@
 #include <math.h>
 #include <time.h>
 
+#include <windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "core/estado_juego.h"
 #include "core/jugador.h"
 #include "ruleta/ruleta_geometria.h"
@@ -15,6 +22,7 @@
 #include "render/iluminacion.h"
 #include "render/materiales.h"
 #include "ui/hud.h"
+#include "ui/notificaciones.h"
 #include "ui/pantallas.h"
 #include "ui/tablero_apuestas.h"
 
@@ -62,9 +70,81 @@ typedef struct {
        NAVEGACION de UI, no del jugador -por eso vive aca y no en
        Jugador-, se resetea a 0 cada vez que se entra a esa pantalla. */
     int pagina_educacion;
+
+    /* Opcion actualmente seleccionada en ESTADO_MENU (0 = Ruleta, 1 = Tragamonedas) */
+    int opcion_menu;
+
+    /* Progreso acumulado de la pantalla de carga (0.0f a 1.0f) */
+    float progreso_carga;
 } EstadoPartida;
 
 static EstadoPartida partida;
+
+static GLuint g_tex_carga = 0;
+static GLuint g_tex_casino = 0;
+
+static GLuint cargar_textura(const char* ruta) {
+    int ancho, alto, canales;
+    unsigned char* data;
+    GLuint tex_id;
+    char ruta_alt[512];
+
+    tex_id = 0;
+    data = stbi_load(ruta, &ancho, &alto, &canales, 0);
+    if (!data) {
+        sprintf_s(ruta_alt, sizeof(ruta_alt), "../%s", ruta);
+        data = stbi_load(ruta_alt, &ancho, &alto, &canales, 0);
+    }
+    if (!data) {
+        fprintf(stderr, "Error al cargar textura: %s\n", ruta);
+        return 0;
+    }
+
+    glGenTextures(1, &tex_id);
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+    if (canales == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ancho, alto, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    } else if (canales == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ancho, alto, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+
+    stbi_image_free(data);
+    return tex_id;
+}
+
+static void limpiar_audio(void) {
+    mciSendStringA("close musica", NULL, 0, NULL);
+}
+
+static void iniciar_musica_fondo(void) {
+    DWORD attr;
+    const char* ruta_usada;
+    char cmd_open[512];
+
+    ruta_usada = NULL;
+    attr = GetFileAttributesA("musica\\fondo.wav");
+    if (attr != INVALID_FILE_ATTRIBUTES) {
+        ruta_usada = "musica\\fondo.wav";
+    } else {
+        attr = GetFileAttributesA("..\\musica\\fondo.wav");
+        if (attr != INVALID_FILE_ATTRIBUTES) {
+            ruta_usada = "..\\musica\\fondo.wav";
+        }
+    }
+
+    if (ruta_usada != NULL) {
+        sprintf_s(cmd_open, sizeof(cmd_open), "open \"%s\" alias musica", ruta_usada);
+        if (mciSendStringA(cmd_open, NULL, 0, NULL) == 0) {
+            mciSendStringA("play musica", NULL, 0, NULL);
+        }
+    }
+}
 
 /* BUGFIX (integridad economica): antes se validaba cada ficha nueva
    contra partida.jugador.saldo "a secas", pero registrar_apuesta() NO
@@ -112,6 +192,7 @@ static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
 /* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
    Devuelve 1 si se agrego, 0 si no (arreglo lleno). */
 static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
+    char notifbuf[128];
 
     if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
     partida.apuestas_activas[partida.num_apuestas_activas].tipo = tipo;
@@ -119,7 +200,35 @@ static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
     partida.apuestas_activas[partida.num_apuestas_activas].monto = monto;
     partida.num_apuestas_activas++;
 
-    registrar_apuesta(&partida.jugador, monto); /* suma al HUD ya */
+    registrar_apuesta(&partida.jugador, monto);
+
+    if (tipo == APUESTA_NUMERO) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f al Numero %d", monto, valor);
+    } else if (tipo == APUESTA_COLOR) {
+        if (valor == (int)COLOR_ROJO) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a ROJO", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a NEGRO", monto);
+        }
+    } else if (tipo == APUESTA_PAR_IMPAR) {
+        if (valor == 0) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a PAR", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a IMPAR", monto);
+        }
+    } else if (tipo == APUESTA_MITAD) {
+        if (valor == 1) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 1-18", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 19-36", monto);
+        }
+    } else if (tipo == APUESTA_DOCENA) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a Docena %d", monto, valor);
+    } else {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta colocada: $%.0f", monto);
+    }
+    agregar_notificacion(notifbuf, 1.0f, 0.84f, 0.0f);
+
     return 1;
 }
 
@@ -154,17 +263,50 @@ static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
 
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* Fondo con textura de casino (si existe y no estamos en pantalla de carga) */
+    if (g_tex_casino != 0 && estado_actual != ESTADO_CARGA) {
+        int ancho = glutGet(GLUT_WINDOW_WIDTH);
+        int alto = glutGet(GLUT_WINDOW_HEIGHT);
+
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(0, ancho, 0, alto, -1, 1);
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, g_tex_casino);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, 0.0f);
+        glTexCoord2f(1.0f, 1.0f); glVertex2f((float)ancho, 0.0f);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f((float)ancho, (float)alto);
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, (float)alto);
+        glEnd();
+        glDisable(GL_TEXTURE_2D);
+
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_LIGHTING);
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    /* Camara mucho mas inclinada hacia abajo que antes (65 grados de
-       elevacion, antes 39), para leer mejor los numeros de la rueda y
-       el tablero, sin llegar a ser una vista totalmente plana desde
-       arriba -se conserva la perspectiva real (gluPerspective, no
-       glOrtho), asi que el volumen 3D de la rueda (domo, sombreado de
-       Phong) sigue notandose. El punto al que mira se corrio un poco
-       hacia el tablero (Z positivo) para que quede mejor encuadrado
-       junto con la rueda, en vez de mirar solo al centro de la rueda. */
+
     gluLookAt(0.0, 15.0, 7.0,
         0.0, 0.0, 1.0,
         0.0, 1.0, 0.0);
@@ -177,7 +319,7 @@ void display(void) {
     glTranslatef(0.0f, 0.05f, 0.0f);
     glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
     dibujar_rueda();
-    dibujar_pista_numerada(); /* debe ir aqui: mientras la matriz de la rueda sigue activa, para que gire junto con ella */
+    dibujar_pista_numerada();
 
     glPushMatrix();
     dibujar_bolita(&partida.bolita);
@@ -188,10 +330,13 @@ void display(void) {
     glPopMatrix();
 
     dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
+    dibujar_notificaciones();
     {
         InfoPantalla info;
         info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
         info.pagina_educacion = partida.pagina_educacion;
+        info.opcion_menu = partida.opcion_menu;
+        info.progreso_carga = partida.progreso_carga;
         dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
     }
 
@@ -332,7 +477,14 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 13: /* ENTER */
         if (estado_actual == ESTADO_MENU) {
-            cambiar_estado(ESTADO_JUGANDO);
+            if (partida.opcion_menu == 0) {
+                cambiar_estado(ESTADO_JUGANDO);
+            } else {
+                cambiar_estado(ESTADO_TRAGAMONEDAS_PLACEHOLDER);
+            }
+        }
+        else if (estado_actual == ESTADO_TRAGAMONEDAS_PLACEHOLDER) {
+            cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_GAME_OVER) {
             inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
@@ -444,12 +596,28 @@ void idle(void) {
     int   tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
     float delta_tiempo;
     int estaba_girando = partida.bolita.girando;
+    char estado_musica[128];
 
     if (tiempo_anterior_ms < 0) tiempo_anterior_ms = tiempo_actual_ms;
     delta_tiempo = (float)(tiempo_actual_ms - tiempo_anterior_ms) / 1000.0f;
     tiempo_anterior_ms = tiempo_actual_ms;
     if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   /* por si el contador diera un valor raro */
     if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   /* clamp anti-salto */
+
+    /* Bucle manual de audio MCI (waveaudio no soporta la bandera repeat) */
+    mciSendStringA("status musica mode", estado_musica, sizeof(estado_musica), NULL);
+    if (strcmp(estado_musica, "stopped") == 0) {
+        mciSendStringA("seek musica to start", NULL, 0, NULL);
+        mciSendStringA("play musica", NULL, 0, NULL);
+    }
+
+    if (estado_actual == ESTADO_CARGA) {
+        partida.progreso_carga += delta_tiempo / 3.0f;
+        if (partida.progreso_carga >= 1.0f) {
+            partida.progreso_carga = 1.0f;
+            cambiar_estado(ESTADO_MENU);
+        }
+    }
 
     if (partida.bolita.girando) {
         /* Usa la MISMA constante que iniciar_giro_bolita_hacia_absoluto()
@@ -465,19 +633,24 @@ void idle(void) {
 
     /* --- Resolver resultado cuando la bolita se acaba de detener --- */
     if (estaba_girando && !partida.bolita.girando && partida.num_apuestas_activas > 0) {
-        /* FIX DE ALEATORIEDAD (ronda 2): el numero ganador YA se decidio
-           al presionar ESPACIO (ver partida.numero_ganador_pendiente),
-           asi que aqui simplemente se usa ese valor -ya no se vuelve a
-           derivar del angulo final de la bolita. Esto tambien elimina
-           cualquier posible desfase entre "donde cae visualmente la
-           bolita" y "que numero cuenta como ganador". */
         int   numero_ganador = partida.numero_ganador_pendiente;
         float ganancia_total = calcular_ganancia_total(partida.apuestas_activas, partida.num_apuestas_activas, numero_ganador);
+        float apostado = monto_apostado_en_ronda();
 
-        /* DIAGNOSTICO: solo en builds Debug (_DEBUG lo define el
-           .vcxproj automaticamente). En Release (NDEBUG) esto
-           desaparece del binario -ya no hace falta acordarse de
-           quitarlo a mano antes de entregar. */
+        {
+            char notifbuf[128];
+            const char* color_str = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "Rojo"
+                                  : (color_de_numero(numero_ganador) == COLOR_NEGRO) ? "Negro" : "Verde";
+
+            if (ganancia_total > 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Ganaste $%.0f!", numero_ganador, color_str, ganancia_total);
+                agregar_notificacion(notifbuf, 0.2f, 1.0f, 0.3f);
+            } else {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Perdiste $%.0f", numero_ganador, color_str, apostado);
+                agregar_notificacion(notifbuf, 1.0f, 0.35f, 0.35f);
+            }
+        }
+
 #ifdef _DEBUG
         {
             const char* color_texto = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "ROJO"
@@ -489,12 +662,6 @@ void idle(void) {
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
 
-        /* Concientizacion sobre ludopatia: se revisa DESPUES de aplicar
-           el resultado (necesita el saldo/racha/total_apostado ya
-           actualizados) pero ANTES del chequeo de fondos de abajo -si
-           dispara un mensaje, se prioriza mostrarlo primero; el chequeo
-           de fondos para prestamo se reintenta automaticamente al
-           descartar el mensaje con ENTER (ver teclado()). */
         partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
         if (partida.mensaje_reflexivo_actual != NULL) {
             cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
@@ -507,6 +674,16 @@ void idle(void) {
     glutPostRedisplay();
 }
 
+static void teclas_especiales(int tecla, int x, int y) {
+    (void)x; (void)y;
+    if (estado_actual == ESTADO_MENU) {
+        if (tecla == GLUT_KEY_UP || tecla == GLUT_KEY_DOWN) {
+            partida.opcion_menu = (partida.opcion_menu == 0) ? 1 : 0;
+            glutPostRedisplay();
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
 
@@ -515,7 +692,8 @@ int main(int argc, char** argv) {
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
     glutInitWindowSize(1024, 768);
-    glutCreateWindow("Casino Online - Ruleta (MVP)");
+    glutCreateWindow("Casino Online - Ruleta");
+    glutFullScreen();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -523,6 +701,7 @@ int main(int argc, char** argv) {
     glEnable(GL_MULTISAMPLE);
 
     inicializar_iluminacion();
+    inicializar_notificaciones();
     inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
     inicializar_estado_juego();
     inicializar_bolita(&partida.bolita);
@@ -533,13 +712,23 @@ int main(int argc, char** argv) {
     partida.numero_ganador_pendiente = -1;
     partida.mensaje_reflexivo_actual = NULL;
     partida.pagina_educacion = 0;
+    partida.opcion_menu = 0;
+    partida.progreso_carga = 0.0f;
 
     generar_perfil_bezier_rueda();
     construir_malla_rueda();
 
+    atexit(limpiar_audio);
+    iniciar_musica_fondo();
+
+    g_tex_carga = cargar_textura("texturas/loading_bg.png");
+    g_tex_casino = cargar_textura("texturas/casino_bg.png");
+    inicializar_texturas_pantallas(g_tex_carga, g_tex_casino);
+
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(teclado);
+    glutSpecialFunc(teclas_especiales);
     glutIdleFunc(idle);
     glutMouseFunc(mouse_click);
     glutPassiveMotionFunc(mouse_mover);

@@ -65,6 +65,14 @@ void aplicar_material(TipoMaterial tipo) {
            antes de dibujar el objeto con este material */
         break;
 
+    case MATERIAL_MADERA_OSCURA:
+        /* Madera de roble oscuro, mate y sobria para unificar rueda y mesa */
+        ambient[0] = 0.15f;  ambient[1] = 0.09f;  ambient[2] = 0.05f;  ambient[3] = 1.0f;
+        diffuse[0] = 0.35f;  diffuse[1] = 0.20f;  diffuse[2] = 0.10f;  diffuse[3] = 1.0f;
+        specular[0] = 0.10f; specular[1] = 0.07f; specular[2] = 0.04f; specular[3] = 1.0f;
+        shininess = 8.0f;
+        break;
+
     default:
         shininess = 0.0f;
         break;

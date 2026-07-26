@@ -8,7 +8,7 @@
 EstadoJuego estado_actual;
 
 void inicializar_estado_juego(void) {
-    estado_actual = ESTADO_MENU;
+    estado_actual = ESTADO_CARGA;
 }
 
 const int ORDEN_RUEDA_EUROPEA[37] = {
@@ -46,10 +46,13 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
     if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido -esto es lo que permite cambiar de pagina dentro de ESTADO_EDUCACION sin pasar por aca */
 
     switch (actual) {
+    case ESTADO_CARGA:
+        /* Pantalla de carga inicial, transiciona automaticamente al menu */
+        return nuevo == ESTADO_MENU;
+
     case ESTADO_MENU:
-        /* [ENTER] empieza a jugar, [I] va a la pantalla de Informacion
-           -ver main.c/teclado(). */
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION;
+        /* [ENTER] empieza a jugar o va al placeholder, [I] va a la pantalla de Informacion */
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION || nuevo == ESTADO_TRAGAMONEDAS_PLACEHOLDER;
 
     case ESTADO_JUGANDO:
         return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO;
@@ -77,6 +80,10 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
         /* Siempre vuelve al menu, sin importar desde donde se entro
            -simplifica el flujo: no hace falta recordar "de donde vine"
            para saber a donde volver. */
+        return nuevo == ESTADO_MENU;
+
+    case ESTADO_TRAGAMONEDAS_PLACEHOLDER:
+        /* Vuelve al menu principal */
         return nuevo == ESTADO_MENU;
 
     default:

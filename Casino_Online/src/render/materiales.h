@@ -15,7 +15,8 @@ typedef enum {
     MATERIAL_MADERA,
     MATERIAL_METAL,
     MATERIAL_FIELTRO,
-    MATERIAL_VIDRIO
+    MATERIAL_VIDRIO,
+    MATERIAL_MADERA_OSCURA
 } TipoMaterial;
 
 /* Aplica los parametros glMaterialfv correspondientes al tipo de
