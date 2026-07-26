@@ -135,8 +135,8 @@ static const char* DATOS_EDUCATIVOS_GENERALES[4] = {
 
     "Dato: necesitar apostar montos cada vez\n"
     "mayores para sentir la misma emocion se llama\n"
-    "tolerancia, y es una de las senales de alerta\n"
-    "reconocidas del juego problematico.\n"
+    "tolerancia, y es uno de los signos de alerta\n"
+    "reconocidos del juego problematico.\n"
     "\n"
     "Si notas que te esta pasando, vale la pena\n"
     "prestarle atencion.",

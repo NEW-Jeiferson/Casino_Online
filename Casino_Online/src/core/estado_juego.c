@@ -43,47 +43,46 @@ ColorRuleta color_de_numero(int numero) {
    Cualquier otra transicion (por ejemplo MENU -> GAME_OVER directo, o
    JUGANDO -> MENU) se considera invalida y se ignora. */
 static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
-    if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido -esto es lo que permite cambiar de pagina dentro de ESTADO_EDUCACION sin pasar por aca */
+    if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido */
 
     switch (actual) {
     case ESTADO_CARGA:
-        /* Pantalla de carga inicial, transiciona automaticamente al menu */
+        return nuevo == ESTADO_ADVERTENCIA;
+
+    case ESTADO_ADVERTENCIA:
+        return nuevo == ESTADO_PROPOSITO;
+
+    case ESTADO_PROPOSITO:
         return nuevo == ESTADO_MENU;
 
     case ESTADO_MENU:
-        /* [ENTER] empieza a jugar o va al placeholder, [I] va a la pantalla de Informacion */
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION || nuevo == ESTADO_TRAGAMONEDAS_PLACEHOLDER;
+        return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION || nuevo == ESTADO_TRAGAMONEDAS_PLACEHOLDER;
+
+    case ESTADO_CONFIRMACION_JUEGO:
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_MENU;
 
     case ESTADO_JUGANDO:
-        return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO;
+        return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO || nuevo == ESTADO_CHECKPOINT_EDUCATIVO;
+
+    case ESTADO_CHECKPOINT_EDUCATIVO:
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_MENSAJE_REFLEXIVO:
-        /* [ENTER] sigue jugando, [S] termina la sesion aca mismo -ver
-           main.c/teclado(). Antes solo existia la primera opcion. */
         return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_PRESTAMO:
-        /* [P] pide prestamo y sigue, [S] termina la sesion en vez de
-           endeudarse -ver main.c/teclado(). Antes pedir prestamo era
-           la unica salida ademas de cerrar el programa entero. */
         return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_GAME_OVER || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_GAME_OVER:
-        /* [ENTER] reinicia, [I] va a Informacion antes de reiniciar */
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION;
+        return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
 
     case ESTADO_SESION_TERMINADA:
-        /* [ENTER] reinicia, [I] va a Informacion antes de reiniciar */
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_EDUCACION;
+        return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
 
     case ESTADO_EDUCACION:
-        /* Siempre vuelve al menu, sin importar desde donde se entro
-           -simplifica el flujo: no hace falta recordar "de donde vine"
-           para saber a donde volver. */
         return nuevo == ESTADO_MENU;
 
     case ESTADO_TRAGAMONEDAS_PLACEHOLDER:
-        /* Vuelve al menu principal */
         return nuevo == ESTADO_MENU;
 
     default:

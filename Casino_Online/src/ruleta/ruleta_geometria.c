@@ -134,13 +134,14 @@ void construir_malla_rueda(void) {
 
 /* Dibuja la mesa de la ruleta, incluyendo el fieltro y el borde de madera */
 void dibujar_mesa(void) {
-
-    const float BORDE_MESA = 0.5f;
+    const float BORDE_MESA = 0.65f;
+    const float FILO_GOLD = 0.05f;
+    const float H_BEVEL = 0.035f;
 
     glPushMatrix();
 
+    /* 1. Fieltro verde principal */
     aplicar_material(MATERIAL_FIELTRO);
-
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 1.0f, 0.0f);
     glVertex3f(-RADIO_MESA, 0.0f, -RADIO_MESA);
@@ -149,39 +150,68 @@ void dibujar_mesa(void) {
     glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
     glEnd();
 
-    aplicar_material(MATERIAL_MADERA_OSCURA);
+    /* 2. Filo dorado metálico de acento en la transición entre el fieltro y la madera */
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    aplicar_material(MATERIAL_METAL);
+    glColor3f(1.0f, 0.84f, 0.0f);
 
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 1.0f, 0.0f);
+    /* Superior */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, -RADIO_MESA - FILO_GOLD);
+    /* Inferior */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, RADIO_MESA);
+    /* Izquierdo */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, -RADIO_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.002f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.002f, -RADIO_MESA);
+    /* Derecho */
+    glVertex3f(RADIO_MESA, 0.002f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA, 0.002f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, -RADIO_MESA);
+    glEnd();
+    glDisable(GL_COLOR_MATERIAL);
 
-	/* Borde superior (incluye las otras 2 esquinas) */
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
+    /* 3. Marco de madera de roble oscuro con relieve/biselado 3D */
+    aplicar_material(MATERIAL_MADERA_OSCURA);
 
+    glBegin(GL_QUADS);
+    glNormal3f(0.0f, 0.8f, -0.2f);
+    /* Bisel superior */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
 
-    /* Borde inferior (incluye las otras 2 esquinas) */
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
+    glNormal3f(0.0f, 0.8f, 0.2f);
+    /* Bisel inferior */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
 
+    glNormal3f(-0.2f, 0.8f, 0.0f);
+    /* Bisel izquierdo */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
 
-    /* Borde izquierdo (solo el tramo central, las esquinas ya las
-       cubrieron los dos quads de arriba) */
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(-RADIO_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(-RADIO_MESA, 0.0f, -RADIO_MESA);
-
-
-    /* Borde derecho */
-    glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(RADIO_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
-
+    glNormal3f(0.2f, 0.8f, 0.0f);
+    /* Bisel derecho */
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
     glEnd();
 
     glPopMatrix();
