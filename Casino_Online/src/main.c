@@ -643,7 +643,7 @@ void idle(void) {
                                   : (color_de_numero(numero_ganador) == COLOR_NEGRO) ? "Negro" : "Verde";
 
             if (ganancia_total > 0.0f) {
-                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - ¡Ganaste $%.0f!", numero_ganador, color_str, ganancia_total);
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Ganaste $%.0f!", numero_ganador, color_str, ganancia_total);
                 agregar_notificacion(notifbuf, 0.2f, 1.0f, 0.3f);
             } else {
                 sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Perdiste $%.0f", numero_ganador, color_str, apostado);
