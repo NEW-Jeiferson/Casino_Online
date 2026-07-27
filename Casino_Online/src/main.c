@@ -81,6 +81,13 @@ typedef struct {
     int rondas_desde_ultimo_checkpoint;
     int indice_checkpoint_educativo;
     int ultimo_checkpoint_tiempo_ms;
+    int mensaje_probabilidad_actual;
+
+    /* Campos para el ESTADO_QUIZ_EDUCATIVO */
+    int quiz_pregunta_actual;
+    int quiz_fase;
+    int quiz_respuesta_elegida;
+    int quiz_fue_correcta;
 } EstadoPartida;
 
 static EstadoPartida partida;
@@ -334,7 +341,7 @@ void display(void) {
     dibujar_vidrio_protector();
     glPopMatrix();
 
-    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
+    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas, partida.bolita.girando, partida.mensaje_probabilidad_actual);
     dibujar_notificaciones();
     {
         InfoPantalla info;
@@ -343,6 +350,10 @@ void display(void) {
         info.opcion_menu = partida.opcion_menu;
         info.progreso_carga = partida.progreso_carga;
         info.indice_checkpoint = partida.indice_checkpoint_educativo;
+        info.quiz_pregunta_idx = partida.quiz_pregunta_actual;
+        info.quiz_fase = partida.quiz_fase;
+        info.quiz_respuesta_elegida = partida.quiz_respuesta_elegida;
+        info.quiz_fue_correcta = partida.quiz_fue_correcta;
         dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
     }
 
@@ -404,6 +415,7 @@ void teclado(unsigned char tecla, int x, int y) {
             float angulo_sector_centro = ((float)sector_ganador + 0.5f) * (360.0f / 37.0f);
 
             partida.numero_ganador_pendiente = numero_ganador;
+            partida.mensaje_probabilidad_actual = rand() % 12;
 
             iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6);
         }
@@ -437,6 +449,39 @@ void teclado(unsigned char tecla, int x, int y) {
         }
         else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
             cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_QUIZ_EDUCATIVO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        break;
+
+    case 'a':
+    case 'A':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 0;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 0);
+            partida.quiz_fase = 1;
+        }
+        break;
+
+    case 'b':
+    case 'B':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 1;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 1);
+            partida.quiz_fase = 1;
+        }
+        break;
+
+    case 'c':
+    case 'C':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 2;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 2);
+            partida.quiz_fase = 1;
         }
         break;
 
@@ -478,6 +523,9 @@ void teclado(unsigned char tecla, int x, int y) {
             cambiar_estado(ESTADO_JUGANDO);
         }
         else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
+            cambiar_estado(ESTADO_JUGANDO);
+        }
+        else if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 1) {
             cambiar_estado(ESTADO_JUGANDO);
         }
         else if (estado_actual == ESTADO_TRAGAMONEDAS_PLACEHOLDER) {
@@ -662,21 +710,19 @@ void idle(void) {
                 partida.indice_checkpoint_educativo++;
                 partida.rondas_desde_ultimo_checkpoint = 0;
                 partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
-                cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
+
+                if (partida.indice_checkpoint_educativo % 2 == 0) {
+                    cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
+                } else {
+                    partida.quiz_pregunta_actual = rand() % NUM_PREGUNTAS_QUIZ;
+                    partida.quiz_fase = 0;
+                    partida.quiz_respuesta_elegida = -1;
+                    cambiar_estado(ESTADO_QUIZ_EDUCATIVO);
+                }
             }
             else {
                 verificar_fondos_y_pedir_prestamo_si_hace_falta();
             }
-        }
-    }
-    else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando) {
-        /* Evaluador por tiempo real inactivo durante la partida */
-        int tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
-        if (tiempo_actual_ms - partida.ultimo_checkpoint_tiempo_ms >= 300000) {
-            partida.indice_checkpoint_educativo++;
-            partida.rondas_desde_ultimo_checkpoint = 0;
-            partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
-            cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
         }
     }
 

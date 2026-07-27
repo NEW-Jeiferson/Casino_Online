@@ -17,6 +17,8 @@ typedef struct {
 
     /* Estadisticas de sesion, para el HUD y el resumen final */
     float total_apostado;
+    float total_ganado;
+    float total_perdido;
     int   veces_sin_fondos;
     float interes_acumulado;
 
@@ -97,12 +99,11 @@ int deuda_es_impagable(const Jugador* j, float limite_deuda);
    aplicar_resultado_apuesta), no en cada frame. */
 const char* verificar_mensaje_reflexivo(Jugador* j);
 
-/* --- Simulacion de consecuencias (tiempo) ---
-   Minutos reales transcurridos desde que arranco esta sesion.
-   'tiempo_actual_ms' es glutGet(GLUT_ELAPSED_TIME) tomado por el
-   llamador en el momento de pedir el dato (no se guarda un "tiempo
-   actual" en Jugador, solo el de arranque, para que este numero
-   siempre refleje el instante real en que se pide). */
+/* --- Medidor de riesgo ambiental en el HUD ---
+   Calcula el nivel de riesgo (0: BAJO, 1: MODERADO, 2: ALTO, 3: RIESGO DE CONDUCTA COMPULSIVA)
+   recalculado en cada frame a partir del comportamiento en la sesion. */
+int calcular_nivel_riesgo(const Jugador* j, int tiempo_actual_ms);
+
 float tiempo_jugado_minutos(const Jugador* j, int tiempo_actual_ms);
 
 #endif /* JUGADOR_H */
