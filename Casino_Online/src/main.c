@@ -81,6 +81,7 @@ typedef struct {
     int rondas_desde_ultimo_checkpoint;
     int indice_checkpoint_educativo;
     int ultimo_checkpoint_tiempo_ms;
+    int mensaje_probabilidad_actual;
 } EstadoPartida;
 
 static EstadoPartida partida;
@@ -334,7 +335,7 @@ void display(void) {
     dibujar_vidrio_protector();
     glPopMatrix();
 
-    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
+    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas, partida.bolita.girando, partida.mensaje_probabilidad_actual);
     dibujar_notificaciones();
     {
         InfoPantalla info;
@@ -404,6 +405,7 @@ void teclado(unsigned char tecla, int x, int y) {
             float angulo_sector_centro = ((float)sector_ganador + 0.5f) * (360.0f / 37.0f);
 
             partida.numero_ganador_pendiente = numero_ganador;
+            partida.mensaje_probabilidad_actual = rand() % 12;
 
             iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6);
         }
@@ -436,6 +438,9 @@ void teclado(unsigned char tecla, int x, int y) {
             cambiar_estado(ESTADO_SESION_TERMINADA);
         }
         else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando) {
             cambiar_estado(ESTADO_SESION_TERMINADA);
         }
         break;

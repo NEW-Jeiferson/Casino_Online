@@ -470,12 +470,12 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
     }
 
     /* Dialog Panel */
-    glColor4f(0.1f, 0.0f, 0.0f, 0.9f);
+    glColor4f(0.1f, 0.0f, 0.0f, 0.94f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -483,54 +483,71 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
     glColor3f(1.0f, 0.2f, 0.2f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Icono de advertencia */
-    dibujar_icono_advertencia(cx, cy + 160.0f, 22.0f);
+    dibujar_icono_advertencia(cx, cy + 195.0f, 22.0f);
 
     glColor3f(1.0f, 0.2f, 0.2f);
-    dibujar_texto_centrado(cx, cy + 110.0f, "=== JUEGO TERMINADO ===");
+    dibujar_texto_centrado(cx, cy + 155.0f, "=== JUEGO TERMINADO ===");
 
-    /* Resumen */
+    /* Resumen Financiero Desglosado */
     glColor3f(1.0f, 1.0f, 1.0f);
-    sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
-    dibujar_texto_centrado(cx, cy + 75.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Total apostado: $%.2f", jugador->total_apostado);
+    dibujar_texto_centrado(cx, cy + 120.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Prestamos solicitados: %d", jugador->prestamos_activos);
-    dibujar_texto_centrado(cx, cy + 50.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Ganaste en total: $%.2f", jugador->total_ganado);
+    dibujar_texto_centrado(cx, cy + 98.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Interes acumulado: %.2f", jugador->interes_acumulado);
-    dibujar_texto_centrado(cx, cy + 25.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Perdiste en total: $%.2f", jugador->total_perdido);
+    dibujar_texto_centrado(cx, cy + 76.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Deuda final impagable: %.2f", jugador->deuda);
-    dibujar_texto_centrado(cx, cy, buffer);
+    {
+        float neto = jugador->total_ganado - jugador->total_perdido;
+        if (neto >= 0.0f) {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: +$%.2f", neto);
+            glColor3f(0.3f, 1.0f, 0.3f);
+        } else {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: -$%.2f", fabsf(neto));
+            glColor3f(1.0f, 0.35f, 0.35f);
+        }
+        dibujar_texto_centrado(cx, cy + 54.0f, buffer);
+    }
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    sprintf_s(buffer, sizeof(buffer), "Prestamos: %d  |  Interes: $%.2f  |  Deuda impagable: $%.2f",
+        jugador->prestamos_activos, jugador->interes_acumulado, jugador->deuda);
+    dibujar_texto_centrado(cx, cy + 30.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Tiempo jugado: %.0f minutos", tiempo_jugado_minutos(jugador, glutGet(GLUT_ELAPSED_TIME)));
-    dibujar_texto_centrado(cx, cy - 25.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 8.0f, buffer);
 
     /* Separador */
     glColor3f(0.5f, 0.2f, 0.2f);
     glBegin(GL_LINES);
-    glVertex2f(cx - 240.0f, cy - 40.0f);
-    glVertex2f(cx + 240.0f, cy - 40.0f);
+    glVertex2f(cx - 270.0f, cy - 10.0f);
+    glVertex2f(cx + 270.0f, cy - 10.0f);
     glEnd();
 
-    glColor3f(1.0f, 0.6f, 0.5f);
-    dibujar_texto_centrado(cx, cy - 65.0f, "Ese tiempo y esa deuda son el mismo costo que,");
-    dibujar_texto_centrado(cx, cy - 90.0f, "en la vida real, se le resta a la familia o estudios.");
+    glColor3f(1.0f, 0.75f, 0.3f);
+    dibujar_texto_centrado(cx, cy - 35.0f, "Esto refleja lo que ocurre en la mayoria de las apuestas:");
+    dibujar_texto_centrado(cx, cy - 57.0f, "las perdidas suelen superar a las ganancias.");
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    sprintf_s(buffer, sizeof(buffer), "Pediste %d prestamo(s) para seguir jugando,", jugador->prestamos_activos);
-    dibujar_texto_centrado(cx, cy - 130.0f, buffer);
-    dibujar_texto_centrado(cx, cy - 155.0f, "y la deuda crecio de forma descontrolada.");
+    glColor3f(1.0f, 0.6f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 90.0f, "Ese tiempo y esa deuda son el mismo costo que,");
+    dibujar_texto_centrado(cx, cy - 112.0f, "en la vida real, se le resta a la familia o estudios.");
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy - 150.0f, "Si te reconoces en algo de esta sesion, la tecla [I]");
+    dibujar_texto_centrado(cx, cy - 172.0f, "desde el menu tiene mas informacion sobre signos de alerta.");
 
     glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_centrado(cx, cy - 195.0f, "[ESC] Salir     [ENTER] Reiniciar");
+    dibujar_texto_centrado(cx, cy - 215.0f, "[ESC] Salir     [ENTER] Reiniciar");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -571,12 +588,12 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador) {
     glEnd();
 
     /* Panel de dialogo */
-    glColor4f(0.05f, 0.08f, 0.2f, 0.9f);
+    glColor4f(0.05f, 0.08f, 0.2f, 0.94f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -584,52 +601,74 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador) {
     glColor3f(0.55f, 0.75f, 1.0f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy - 250.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Icono informativo */
-    dibujar_icono_info(cx, cy + 160.0f, 22.0f);
+    dibujar_icono_info(cx, cy + 195.0f, 22.0f);
 
     glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_centrado(cx, cy + 110.0f, "SESION FINALIZADA");
+    dibujar_texto_centrado(cx, cy + 155.0f, "SESION FINALIZADA");
 
     /* Resumen */
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_centrado(cx, cy + 75.0f, "Se eligio parar antes de agravar deudas.");
+    dibujar_texto_centrado(cx, cy + 125.0f, "Se eligio parar antes de agravar deudas.");
 
-    sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
-    dibujar_texto_centrado(cx, cy + 40.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Total apostado: $%.2f", jugador->total_apostado);
+    dibujar_texto_centrado(cx, cy + 98.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Prestamos solicitados: %d", jugador->prestamos_activos);
-    dibujar_texto_centrado(cx, cy + 15.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Ganaste en total: $%.2f", jugador->total_ganado);
+    dibujar_texto_centrado(cx, cy + 76.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Deuda final con la que termina: %.2f", jugador->deuda);
-    dibujar_texto_centrado(cx, cy - 10.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Perdiste en total: $%.2f", jugador->total_perdido);
+    dibujar_texto_centrado(cx, cy + 54.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Saldo final obtenido: %.2f", jugador->saldo);
-    dibujar_texto_centrado(cx, cy - 35.0f, buffer);
+    {
+        float neto = jugador->total_ganado - jugador->total_perdido;
+        if (neto >= 0.0f) {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: +$%.2f", neto);
+            glColor3f(0.3f, 1.0f, 0.3f);
+        } else {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: -$%.2f", fabsf(neto));
+            glColor3f(1.0f, 0.35f, 0.35f);
+        }
+        dibujar_texto_centrado(cx, cy + 32.0f, buffer);
+    }
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    sprintf_s(buffer, sizeof(buffer), "Prestamos: %d  |  Deuda final: $%.2f  |  Saldo final: $%.2f",
+        jugador->prestamos_activos, jugador->deuda, jugador->saldo);
+    dibujar_texto_centrado(cx, cy + 10.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Tiempo jugado: %.0f minutos", tiempo_jugado_minutos(jugador, glutGet(GLUT_ELAPSED_TIME)));
-    dibujar_texto_centrado(cx, cy - 60.0f, buffer);
+    dibujar_texto_centrado(cx, cy - 12.0f, buffer);
 
     /* Separador */
     glColor3f(0.4f, 0.5f, 0.7f);
     glBegin(GL_LINES);
-    glVertex2f(cx - 240.0f, cy - 75.0f);
-    glVertex2f(cx + 240.0f, cy - 75.0f);
+    glVertex2f(cx - 270.0f, cy - 28.0f);
+    glVertex2f(cx + 270.0f, cy - 28.0f);
     glEnd();
 
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 52.0f, "Esto refleja lo que ocurre en la mayoria de las apuestas:");
+    dibujar_texto_centrado(cx, cy - 74.0f, "las perdidas suelen superar a las ganancias.");
+
     glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 105.0f, "Es un buen momento para reflexionar en que");
-    dibujar_texto_centrado(cx, cy - 130.0f, "mas podrias haber invertido este tiempo.");
-    dibujar_texto_centrado(cx, cy - 160.0f, "Parar a tiempo tambien es una forma de ganar.");
+    dibujar_texto_centrado(cx, cy - 104.0f, "Es un buen momento para reflexionar en que");
+    dibujar_texto_centrado(cx, cy - 126.0f, "mas podrias haber invertido este tiempo.");
+    dibujar_texto_centrado(cx, cy - 148.0f, "Parar a tiempo tambien es una forma de ganar.");
+
+    glColor3f(0.7f, 0.85f, 1.0f);
+    dibujar_texto_centrado(cx, cy - 180.0f, "Si te reconoces en algo de esta sesion, la tecla [I]");
+    dibujar_texto_centrado(cx, cy - 200.0f, "desde el menu tiene mas informacion sobre signos de alerta.");
 
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 195.0f, "[ESC] Salir     [ENTER] Jugar de nuevo");
+    dibujar_texto_centrado(cx, cy - 228.0f, "[ESC] Salir     [ENTER] Jugar de nuevo");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -1216,7 +1255,7 @@ void dibujar_pantalla_confirmacion_juego(void) {
     glPopMatrix();
 }
 
-static const char* MENSAJES_CHECKPOINT[4] = {
+static const char* MENSAJES_CHECKPOINT[8] = {
     "Recorda: cada giro de la ruleta es un evento\n"
     "independiente. Ninguna racha, buena o mala,\n"
     "predice el resultado del proximo giro.",
@@ -1231,7 +1270,23 @@ static const char* MENSAJES_CHECKPOINT[4] = {
 
     "Si sentis que no podes parar de jugar, ese es\n"
     "el indicio mas importante de todos. Buscar ayuda\n"
-    "profesional a tiempo hace la diferencia."
+    "profesional a tiempo hace la diferencia.",
+
+    "Ocultar o mentir sobre tus perdidas a familiares\n"
+    "o amigos es un signo clasico de descontrol\n"
+    "en el habito de juego (DSM-5).",
+
+    "Apostar para escapar de problemas emocionales\n"
+    "o financieros suele agravar la situacion\n"
+    "en lugar de resolverla.",
+
+    "Ninguna estrategia matematica puede vencer\n"
+    "la ventaja fija del 2.7 por ciento que\n"
+    "la casa mantiene en cada tiro.",
+
+    "Tomarte una pausa regular te permite evaluar\n"
+    "con claridad si estas jugando por diversion\n"
+    "o por impulso compulsivo."
 };
 
 void dibujar_pantalla_checkpoint_educativo(int indice_mensaje) {
@@ -1241,7 +1296,7 @@ void dibujar_pantalla_checkpoint_educativo(int indice_mensaje) {
     float cy = (float)alto / 2.0f;
     int idx;
 
-    idx = indice_mensaje % 4;
+    idx = indice_mensaje % 8;
     if (idx < 0) idx = 0;
 
     glMatrixMode(GL_PROJECTION);
