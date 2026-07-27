@@ -97,9 +97,11 @@ int deuda_es_impagable(const Jugador* j, float limite_deuda) {
 
 int calcular_nivel_riesgo(const Jugador* j, int tiempo_actual_ms) {
     int puntos = 0;
-    float mins = tiempo_jugado_minutos(j, tiempo_actual_ms);
+    float mins;
 
     if (j == NULL) return 0;
+
+    mins = tiempo_jugado_minutos(j, tiempo_actual_ms);
 
     if (j->racha_perdidas_consecutivas >= 3) puntos += 1;
     if (j->racha_perdidas_consecutivas >= 5) puntos += 1;
@@ -306,7 +308,9 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
 }
 
 float tiempo_jugado_minutos(const Jugador* j, int tiempo_actual_ms) {
-    int delta_ms = tiempo_actual_ms - j->tiempo_inicio_ms;
+    int delta_ms;
+    if (j == NULL) return 0.0f;
+    delta_ms = tiempo_actual_ms - j->tiempo_inicio_ms;
     if (delta_ms < 0) delta_ms = 0; /* proteccion, no deberia pasar nunca */
     return (float)delta_ms / 60000.0f;
 }
