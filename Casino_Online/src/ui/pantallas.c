@@ -74,18 +74,20 @@ static void dibujar_icono_info(float cx, float cy, float r) {
     glLineWidth(1.0f);
 }
 
-/* Ancho promedio aproximado de un caracter en HELVETICA_18 (bitmap font
-   de GLUT), usado solo para centrar texto -no hace falta mas precision
-   que esta para mensajes cortos, y evita acoplar esto a la metrica
-   exacta de la fuente (que GLUT no expone facil para fuentes bitmap). */
 #define ANCHO_CHAR_APROX 10.5f
 
-   /* Dibuja un bloque de texto separado por '\n', centrado horizontalmente
-      en cx, una linea debajo de la otra empezando en y_inicio. Preserva
-      lineas vacias ("\n\n") como espacio en blanco -no usa strtok(), que
-      colapsa delimitadores consecutivos y se comeria ese espacio.
-      Extraido de dibujar_pantalla_mensaje_reflexivo() para reusarlo en
-      dibujar_pantalla_educacion(). */
+/* Dibuja un texto en 2D centrado horizontalmente en cx usando la metrica exacta
+   de GLUT bitmap HELVETICA_18 (sin aproximaciones inexactas por caracter). */
+static void dibujar_texto_centrado(float cx, float y, const char* texto) {
+    int ancho_px;
+    if (texto == NULL || texto[0] == '\0') return;
+    ancho_px = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)texto);
+    dibujar_texto_2d(cx - (float)ancho_px / 2.0f, y, texto);
+}
+
+/* Dibuja un bloque de texto separado por '\n', centrado horizontalmente
+   en cx, una linea debajo de la otra empezando en y_inicio. Preserva
+   lineas vacias ("\n\n") como espacio en blanco. */
 static void dibujar_texto_multilinea_centrado(const char* texto, float cx, float y_inicio, float alto_linea) {
     char copia[900];
     char* inicio;
@@ -99,7 +101,7 @@ static void dibujar_texto_multilinea_centrado(const char* texto, float cx, float
         if (fin != NULL) *fin = '\0';
 
         if (inicio[0] != '\0') {
-            dibujar_texto_2d(cx - (float)strlen(inicio) * ANCHO_CHAR_APROX / 2.0f, y, inicio);
+            dibujar_texto_centrado(cx, y, inicio);
         }
         y -= alto_linea;
 
@@ -167,20 +169,20 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
 
     /* --- Titulo y aviso de proposito (concientizacion, saldo virtual) --- */
     glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_2d(cx - 200.0f, cy + 220.0f, "CASINO ONLINE - SELECCION DE JUEGO");
+    dibujar_texto_centrado(cx, cy + 220.0f, "CASINO ONLINE - SELECCION DE JUEGO");
 
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_2d(cx - 210.0f, cy + 180.0f, "Usa las flechas [ARRIBA/ABAJO] para elegir un juego.");
+    dibujar_texto_centrado(cx, cy + 180.0f, "Usa las flechas [ARRIBA/ABAJO] para elegir un juego.");
 
     /* --- Selector Card (Glassmorphism style panel) --- */
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0.1f, 0.15f, 0.3f, 0.4f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 250.0f, cy - 30.0f);
-    glVertex2f(cx + 250.0f, cy - 30.0f);
-    glVertex2f(cx + 250.0f, cy + 150.0f);
-    glVertex2f(cx - 250.0f, cy + 150.0f);
+    glVertex2f(cx - 260.0f, cy - 30.0f);
+    glVertex2f(cx + 260.0f, cy - 30.0f);
+    glVertex2f(cx + 260.0f, cy + 150.0f);
+    glVertex2f(cx - 260.0f, cy + 150.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -188,46 +190,49 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     glColor3f(0.55f, 0.75f, 1.0f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 250.0f, cy - 30.0f);
-    glVertex2f(cx + 250.0f, cy - 30.0f);
-    glVertex2f(cx + 250.0f, cy + 150.0f);
-    glVertex2f(cx - 250.0f, cy + 150.0f);
+    glVertex2f(cx - 260.0f, cy - 30.0f);
+    glVertex2f(cx + 260.0f, cy - 30.0f);
+    glVertex2f(cx + 260.0f, cy + 150.0f);
+    glVertex2f(cx - 260.0f, cy + 150.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Opcion 1: Ruleta */
     if (opcion_seleccionada == 0) {
-        glColor3f(1.0f, 0.85f, 0.0f); /* Amarillo brillante */
-        dibujar_texto_2d(cx - 200.0f, cy + 100.0f, "->  1. RULETA EUROPEA  (Disponible)");
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy + 100.0f, "->  1. RULETA EUROPEA  (Disponible)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_2d(cx - 160.0f, cy + 75.0f, "Simulador 3D completo con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 75.0f, "Simulador 3D completo con concientizacion.");
     } else {
-        glColor3f(0.5f, 0.5f, 0.5f); /* Gris oscuro */
-        dibujar_texto_2d(cx - 200.0f, cy + 100.0f, "    1. RULETA EUROPEA  (Disponible)");
-        dibujar_texto_2d(cx - 160.0f, cy + 75.0f, "Simulador 3D completo con concientizacion.");
+        glColor3f(0.5f, 0.5f, 0.5f);
+        dibujar_texto_centrado(cx, cy + 100.0f, "    1. RULETA EUROPEA  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 75.0f, "Simulador 3D completo con concientizacion.");
     }
 
     /* Opcion 2: Tragamonedas */
     if (opcion_seleccionada == 1) {
-        glColor3f(1.0f, 0.85f, 0.0f); /* Amarillo brillante */
-        dibujar_texto_2d(cx - 200.0f, cy + 20.0f, "->  2. TRAGAMONEDAS  (Proximamente)");
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy + 20.0f, "->  2. TRAGAMONEDAS  (Proximamente)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_2d(cx - 160.0f, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
+        dibujar_texto_centrado(cx, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
     } else {
-        glColor3f(0.5f, 0.5f, 0.5f); /* Gris oscuro */
-        dibujar_texto_2d(cx - 200.0f, cy + 20.0f, "    2. TRAGAMONEDAS  (Proximamente)");
-        dibujar_texto_2d(cx - 160.0f, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
+        glColor3f(0.5f, 0.5f, 0.5f);
+        dibujar_texto_centrado(cx, cy + 20.0f, "    2. TRAGAMONEDAS  (Proximamente)");
+        dibujar_texto_centrado(cx, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
     }
 
     /* --- Accion --- */
     glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_2d(cx - 180.0f, cy - 65.0f, "Presione [ENTER] para confirmar seleccion.");
-    dibujar_texto_2d(cx - 150.0f, cy - 90.0f, "Presione [I] para ver Informacion.");
+    dibujar_texto_centrado(cx, cy - 65.0f, "Presione [ENTER] para confirmar seleccion.");
+    dibujar_texto_centrado(cx, cy - 90.0f, "Presione [I] para ver Informacion.");
 
     /* --- Controles de ayuda en el Menu --- */
     glColor3f(0.6f, 0.6f, 0.6f);
-    dibujar_texto_2d(cx - 240.0f, cy - 140.0f, "Nota: Saldo inicial virtual de 1,000.00 creditos.");
-    dibujar_texto_2d(cx - 240.0f, cy - 165.0f, "Este software es para concientizacion sobre ludopatia.");
+    dibujar_texto_centrado(cx, cy - 140.0f, "Nota: Saldo inicial virtual de 1,000.00 creditos.");
+
+    /* Banner permanente de Serious Game */
+    glColor3f(1.0f, 0.75f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 175.0f, "Simulador educativo sobre ludopatia - No incentiva el juego con dinero real");
 
     /* --- Restaurar estado 3D --- */
     glEnable(GL_DEPTH_TEST);
@@ -295,18 +300,11 @@ void dibujar_pantalla_prestamo(const Jugador* jugador) {
 
     /* Mensajes */
     glColor3f(1.0f, 0.85f, 0.0f);
-    {
-        const char* title = "SOLICITUD DE PRESTAMO";
-        dibujar_texto_2d(cx - (float)strlen(title) * ANCHO_CHAR_APROX / 2.0f, cy + 100.0f, title);
-    }
+    dibujar_texto_centrado(cx, cy + 100.0f, "SOLICITUD DE PRESTAMO");
 
     glColor3f(1.0f, 1.0f, 1.0f);
-    {
-        const char* msg1 = "Ya perdiste tu saldo inicial.";
-        const char* msg2 = "En la vida real, este seria el momento de parar.";
-        dibujar_texto_2d(cx - (float)strlen(msg1) * ANCHO_CHAR_APROX / 2.0f, cy + 45.0f, msg1);
-        dibujar_texto_2d(cx - (float)strlen(msg2) * ANCHO_CHAR_APROX / 2.0f, cy + 20.0f, msg2);
-    }
+    dibujar_texto_centrado(cx, cy + 45.0f, "Ya perdiste tu saldo inicial.");
+    dibujar_texto_centrado(cx, cy + 20.0f, "En la vida real, este seria el momento de parar.");
 
     /* Linea separadora */
     glColor3f(0.5f, 0.5f, 0.5f);
@@ -317,19 +315,13 @@ void dibujar_pantalla_prestamo(const Jugador* jugador) {
 
     glColor3f(1.0f, 1.0f, 1.0f);
     sprintf_s(buffer, sizeof(buffer), "Deuda acumulada: %.2f", jugador->deuda);
-    dibujar_texto_2d(cx - (float)strlen(buffer) * ANCHO_CHAR_APROX / 2.0f, cy - 30.0f, buffer);
+    dibujar_texto_centrado(cx, cy - 30.0f, buffer);
 
     /* Opciones */
-    glColor3f(0.55f, 0.75f, 1.0f);
-    {
-        const char* op1 = "[P] Pedir prestamo y seguir jugando";
-        dibujar_texto_2d(cx - (float)strlen(op1) * ANCHO_CHAR_APROX / 2.0f, cy - 70.0f, op1);
-    }
-    glColor3f(1.0f, 0.3f, 0.3f);
-    {
-        const char* op2 = "[S] Terminar la sesion aqui, sin mas deuda";
-        dibujar_texto_2d(cx - (float)strlen(op2) * ANCHO_CHAR_APROX / 2.0f, cy - 95.0f, op2);
-    }
+    glColor3f(0.5f, 0.5f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 70.0f, "[P] Pedir prestamo y seguir jugando");
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 95.0f, "[S] Terminar la sesion aqui, sin mas deuda");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -370,12 +362,12 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
     glEnd();
 
     /* Panel de dialogo */
-    glColor4f(0.05f, 0.08f, 0.2f, 0.9f);
+    glColor4f(0.05f, 0.08f, 0.2f, 0.94f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy + 200.0f);
-    glVertex2f(cx - 320.0f, cy + 200.0f);
+    glVertex2f(cx - 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy + 220.0f);
+    glVertex2f(cx - 330.0f, cy + 220.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -383,55 +375,52 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
     glColor3f(0.55f, 0.75f, 1.0f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy - 210.0f);
-    glVertex2f(cx + 320.0f, cy + 200.0f);
-    glVertex2f(cx - 320.0f, cy + 200.0f);
+    glVertex2f(cx - 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy - 240.0f);
+    glVertex2f(cx + 330.0f, cy + 220.0f);
+    glVertex2f(cx - 330.0f, cy + 220.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Icono informativo o de advertencia */
     if (!es_repeticion) {
-        dibujar_icono_info(cx, cy + 150.0f, 22.0f);
+        dibujar_icono_info(cx, cy + 175.0f, 22.0f);
     } else {
-        dibujar_icono_advertencia(cx, cy + 150.0f, 22.0f);
+        dibujar_icono_advertencia(cx, cy + 175.0f, 22.0f);
     }
 
     glColor3f(0.55f, 0.75f, 1.0f);
-    {
-        const char* titulo = "REALITY CHECK";
-        dibujar_texto_2d(cx - (float)strlen(titulo) * ANCHO_CHAR_APROX / 2.0f, cy + 100.0f, titulo);
-    }
+    dibujar_texto_centrado(cx, cy + 135.0f, "REALITY CHECK");
 
     /* Mensaje multilinea */
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_multilinea_centrado(mensaje, cx, cy + 60.0f, 24.0f);
+    dibujar_texto_multilinea_centrado(mensaje, cx, cy + 90.0f, 21.0f);
 
     /* Linea separadora */
     glColor3f(0.4f, 0.5f, 0.7f);
     glBegin(GL_LINES);
-    glVertex2f(cx - 260.0f, cy - 100.0f);
-    glVertex2f(cx + 260.0f, cy - 100.0f);
+    glVertex2f(cx - 270.0f, cy - 120.0f);
+    glVertex2f(cx + 270.0f, cy - 120.0f);
     glEnd();
 
     /* Opciones */
     {
         const char* op_seguir = "[ENTER] Continuar jugando";
         const char* op_terminar = "[S] Terminar la sesion aqui";
-        float y_prominente = cy - 140.0f;
-        float y_secundaria = cy - 170.0f;
+        float y_prominente = cy - 155.0f;
+        float y_secundaria = cy - 190.0f;
 
         if (!es_repeticion) {
-            glColor3f(0.55f, 0.75f, 1.0f);
-            dibujar_texto_2d(cx - (float)strlen(op_seguir) * ANCHO_CHAR_APROX / 2.0f, y_prominente, op_seguir);
             glColor3f(0.5f, 0.5f, 0.5f);
-            dibujar_texto_2d(cx - (float)strlen(op_terminar) * ANCHO_CHAR_APROX / 2.0f, y_secundaria, op_terminar);
+            dibujar_texto_centrado(cx, y_prominente, op_seguir);
+            glColor3f(1.0f, 0.85f, 0.0f);
+            dibujar_texto_centrado(cx, y_secundaria, op_terminar);
         }
         else {
             glColor3f(1.0f, 0.85f, 0.0f);
-            dibujar_texto_2d(cx - (float)strlen(op_terminar) * ANCHO_CHAR_APROX / 2.0f, y_prominente, op_terminar);
+            dibujar_texto_centrado(cx, y_prominente, op_terminar);
             glColor3f(0.5f, 0.5f, 0.5f);
-            dibujar_texto_2d(cx - (float)strlen(op_seguir) * ANCHO_CHAR_APROX / 2.0f, y_secundaria, op_seguir);
+            dibujar_texto_centrado(cx, y_secundaria, op_seguir);
         }
     }
 
@@ -481,12 +470,12 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
     }
 
     /* Dialog Panel */
-    glColor4f(0.1f, 0.0f, 0.0f, 0.9f);
+    glColor4f(0.1f, 0.0f, 0.0f, 0.94f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -494,57 +483,79 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
     glColor3f(1.0f, 0.2f, 0.2f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Icono de advertencia */
-    dibujar_icono_advertencia(cx, cy + 160.0f, 22.0f);
+    dibujar_icono_advertencia(cx, cy + 195.0f, 22.0f);
 
     glColor3f(1.0f, 0.2f, 0.2f);
+    dibujar_texto_centrado(cx, cy + 155.0f, "=== JUEGO TERMINADO ===");
+
+    /* Resumen Financiero Desglosado */
+    glColor3f(1.0f, 1.0f, 1.0f);
+    sprintf_s(buffer, sizeof(buffer), "Total apostado: $%.2f", jugador->total_apostado);
+    dibujar_texto_centrado(cx, cy + 120.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Ganaste en total: $%.2f", jugador->total_ganado);
+    dibujar_texto_centrado(cx, cy + 98.0f, buffer);
+
+    sprintf_s(buffer, sizeof(buffer), "Perdiste en total: $%.2f", jugador->total_perdido);
+    dibujar_texto_centrado(cx, cy + 76.0f, buffer);
+
     {
-        const char* title = "=== JUEGO TERMINADO ===";
-        dibujar_texto_2d(cx - (float)strlen(title) * ANCHO_CHAR_APROX / 2.0f, cy + 110.0f, title);
+        float neto = jugador->total_ganado - jugador->total_perdido;
+        if (neto >= 0.0f) {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: +$%.2f", neto);
+            glColor3f(0.3f, 1.0f, 0.3f);
+        } else {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: -$%.2f", fabsf(neto));
+            glColor3f(1.0f, 0.35f, 0.35f);
+        }
+        dibujar_texto_centrado(cx, cy + 54.0f, buffer);
     }
 
-    /* Resumen */
     glColor3f(1.0f, 1.0f, 1.0f);
-    sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
-    dibujar_texto_2d(cx - 180.0f, cy + 75.0f, buffer);
-
-    sprintf_s(buffer, sizeof(buffer), "Prestamos solicitados: %d", jugador->prestamos_activos);
-    dibujar_texto_2d(cx - 180.0f, cy + 50.0f, buffer);
-
-    sprintf_s(buffer, sizeof(buffer), "Interes acumulado: %.2f", jugador->interes_acumulado);
-    dibujar_texto_2d(cx - 180.0f, cy + 25.0f, buffer);
-
-    sprintf_s(buffer, sizeof(buffer), "Deuda final impagable: %.2f", jugador->deuda);
-    dibujar_texto_2d(cx - 180.0f, cy, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Prestamos: %d  |  Interes: $%.2f  |  Deuda impagable: $%.2f",
+        jugador->prestamos_activos, jugador->interes_acumulado, jugador->deuda);
+    dibujar_texto_centrado(cx, cy + 30.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Tiempo jugado: %.0f minutos", tiempo_jugado_minutos(jugador, glutGet(GLUT_ELAPSED_TIME)));
-    dibujar_texto_2d(cx - 180.0f, cy - 25.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 8.0f, buffer);
 
     /* Separador */
     glColor3f(0.5f, 0.2f, 0.2f);
     glBegin(GL_LINES);
-    glVertex2f(cx - 240.0f, cy - 40.0f);
-    glVertex2f(cx + 240.0f, cy - 40.0f);
+    glVertex2f(cx - 270.0f, cy - 10.0f);
+    glVertex2f(cx + 270.0f, cy - 10.0f);
     glEnd();
 
-    glColor3f(1.0f, 0.6f, 0.5f);
-    dibujar_texto_2d(cx - 250.0f, cy - 65.0f, "Ese tiempo y esa deuda son el mismo costo que,");
-    dibujar_texto_2d(cx - 250.0f, cy - 90.0f, "en la vida real, se le resta a la familia o estudios.");
+    if (jugador->total_ganado - jugador->total_perdido > 0.0f) {
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy - 35.0f, "Esta vez ganaste, pero no es el resultado comun en las apuestas.");
+        dibujar_texto_centrado(cx, cy - 57.0f, "Tuviste suerte, pero la proxima vez podria no ser lo mismo.");
+    } else {
+        glColor3f(1.0f, 0.75f, 0.3f);
+        dibujar_texto_centrado(cx, cy - 35.0f, "Este es el resultado comun: a largo plazo las perdidas");
+        dibujar_texto_centrado(cx, cy - 57.0f, "siempre superan a las ganancias.");
+    }
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    sprintf_s(buffer, sizeof(buffer), "Pediste %d prestamo(s) para seguir jugando,", jugador->prestamos_activos);
-    dibujar_texto_2d(cx - 230.0f, cy - 130.0f, buffer);
-    dibujar_texto_2d(cx - 180.0f, cy - 155.0f, "y la deuda crecio de forma descontrolada.");
+    glColor3f(1.0f, 0.6f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 90.0f, "Al final, las personas siempre terminan perdiendo algo");
+    dibujar_texto_centrado(cx, cy - 112.0f, "(dinero, familia o amistades), aun cuando ganan dinero.");
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy - 150.0f, "Si te reconoces en algo de esta sesion, la tecla [I]");
+    dibujar_texto_centrado(cx, cy - 172.0f, "desde el menu tiene mas informacion sobre signos de alerta.");
 
     glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_2d(cx - 170.0f, cy - 195.0f, "[ESC] Salir     [ENTER] Reiniciar");
+    dibujar_texto_centrado(cx, cy - 215.0f, "[ESC] Salir");
+    glColor3f(0.5f, 0.5f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 235.0f, "    [ENTER] Reiniciar");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -585,12 +596,12 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador) {
     glEnd();
 
     /* Panel de dialogo */
-    glColor4f(0.05f, 0.08f, 0.2f, 0.9f);
+    glColor4f(0.05f, 0.08f, 0.2f, 0.94f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -598,55 +609,82 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador) {
     glColor3f(0.55f, 0.75f, 1.0f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy - 220.0f);
-    glVertex2f(cx + 300.0f, cy + 210.0f);
-    glVertex2f(cx - 300.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy - 275.0f);
+    glVertex2f(cx + 330.0f, cy + 240.0f);
+    glVertex2f(cx - 330.0f, cy + 240.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Icono informativo */
-    dibujar_icono_info(cx, cy + 160.0f, 22.0f);
+    dibujar_icono_info(cx, cy + 195.0f, 22.0f);
 
     glColor3f(0.55f, 0.75f, 1.0f);
-    {
-        const char* title = "SESION FINALIZADA";
-        dibujar_texto_2d(cx - (float)strlen(title) * ANCHO_CHAR_APROX / 2.0f, cy + 110.0f, title);
-    }
+    dibujar_texto_centrado(cx, cy + 155.0f, "SESION FINALIZADA");
 
     /* Resumen */
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_2d(cx - 200.0f, cy + 75.0f, "Se eligio parar antes de agravar deudas.");
-    
-    sprintf_s(buffer, sizeof(buffer), "Total apostado: %.2f", jugador->total_apostado);
-    dibujar_texto_2d(cx - 200.0f, cy + 40.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 125.0f, "Se eligio parar antes de agravar deudas.");
 
-    sprintf_s(buffer, sizeof(buffer), "Prestamos solicitados: %d", jugador->prestamos_activos);
-    dibujar_texto_2d(cx - 200.0f, cy + 15.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Total apostado: $%.2f", jugador->total_apostado);
+    dibujar_texto_centrado(cx, cy + 98.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Deuda final con la que termina: %.2f", jugador->deuda);
-    dibujar_texto_2d(cx - 200.0f, cy - 10.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Ganaste en total: $%.2f", jugador->total_ganado);
+    dibujar_texto_centrado(cx, cy + 76.0f, buffer);
 
-    sprintf_s(buffer, sizeof(buffer), "Saldo final obtenido: %.2f", jugador->saldo);
-    dibujar_texto_2d(cx - 200.0f, cy - 35.0f, buffer);
+    sprintf_s(buffer, sizeof(buffer), "Perdiste en total: $%.2f", jugador->total_perdido);
+    dibujar_texto_centrado(cx, cy + 54.0f, buffer);
+
+    {
+        float neto = jugador->total_ganado - jugador->total_perdido;
+        if (neto >= 0.0f) {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: +$%.2f", neto);
+            glColor3f(0.3f, 1.0f, 0.3f);
+        } else {
+            sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: -$%.2f", fabsf(neto));
+            glColor3f(1.0f, 0.35f, 0.35f);
+        }
+        dibujar_texto_centrado(cx, cy + 32.0f, buffer);
+    }
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    sprintf_s(buffer, sizeof(buffer), "Prestamos: %d  |  Deuda final: $%.2f  |  Saldo final: $%.2f",
+        jugador->prestamos_activos, jugador->deuda, jugador->saldo);
+    dibujar_texto_centrado(cx, cy + 10.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Tiempo jugado: %.0f minutos", tiempo_jugado_minutos(jugador, glutGet(GLUT_ELAPSED_TIME)));
-    dibujar_texto_2d(cx - 200.0f, cy - 60.0f, buffer);
+    dibujar_texto_centrado(cx, cy - 12.0f, buffer);
 
     /* Separador */
     glColor3f(0.4f, 0.5f, 0.7f);
     glBegin(GL_LINES);
-    glVertex2f(cx - 240.0f, cy - 75.0f);
-    glVertex2f(cx + 240.0f, cy - 75.0f);
+    glVertex2f(cx - 270.0f, cy - 28.0f);
+    glVertex2f(cx + 270.0f, cy - 28.0f);
     glEnd();
 
-    glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_2d(cx - 210.0f, cy - 105.0f, "Es un buen momento para reflexionar en que");
-    dibujar_texto_2d(cx - 210.0f, cy - 130.0f, "mas podrias haber invertido este tiempo.");
-    dibujar_texto_2d(cx - 225.0f, cy - 160.0f, "Parar a tiempo tambien es una forma de ganar.");
+    if (jugador->total_ganado - jugador->total_perdido > 0.0f) {
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy - 52.0f, "Esta vez ganaste, pero no es el resultado comun en las apuestas.");
+        dibujar_texto_centrado(cx, cy - 74.0f, "Tuviste suerte, pero la proxima vez podria no ser lo mismo.");
+    } else {
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy - 52.0f, "Este es el resultado comun: a largo plazo las perdidas");
+        dibujar_texto_centrado(cx, cy - 74.0f, "siempre superan a las ganancias.");
+    }
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_2d(cx - 180.0f, cy - 195.0f, "[ESC] Salir     [ENTER] Jugar de nuevo");
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy - 104.0f, "Al final, las personas siempre terminan perdiendo algo");
+    dibujar_texto_centrado(cx, cy - 126.0f, "(dinero, familia o amistades), aun cuando ganan dinero.");
+    dibujar_texto_centrado(cx, cy - 148.0f, "Parar a tiempo tambien es una forma de ganar.");
+
+    glColor3f(0.7f, 0.85f, 1.0f);
+    dibujar_texto_centrado(cx, cy - 180.0f, "Si te reconoces en algo de esta sesion, la tecla [I]");
+    dibujar_texto_centrado(cx, cy - 200.0f, "desde el menu tiene mas informacion sobre signos de alerta.");
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 228.0f, "[ESC] Salir");
+    glColor3f(0.5f, 0.5f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 248.0f, "    [ENTER] Jugar de nuevo");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -665,7 +703,7 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador) {
    una entrega final, pueden cambiar con el tiempo). */
 static const char* EDUCACION_TITULOS[EDUCACION_NUM_PAGINAS] = {
     "QUE ES LA LUDOPATIA",
-    "SENALES DE ALERTA",
+    "SIGNOS DE ALERTA",
     "MITOS SOBRE LAS APUESTAS",
     "CONSECUENCIAS",
     "RECURSOS DE AYUDA (REP. DOMINICANA)",
@@ -697,8 +735,8 @@ static const char* EDUCACION_CUERPOS[EDUCACION_NUM_PAGINAS] = {
     "- Mentir sobre cuanto se juega o se pierde\n"
     "- Pedir dinero prestado para seguir jugando\n"
     "\n"
-    "No hace falta tener todas estas senales a la\n"
-    "vez: unas pocas ya son motivo suficiente para\n"
+    "No hace falta presentar todos estos signos a la\n"
+    "vez: unos pocos ya son motivo suficiente para\n"
     "buscar una evaluacion profesional.",
 
     "Mito: \"perdi varias veces seguidas, ya me\n"
@@ -800,24 +838,21 @@ void dibujar_pantalla_educacion(int pagina) {
 
     glDisable(GL_BLEND);
 
-    /* --- Titulo de la pagina --- */
+    /* --- Titulo de la pagina activa --- */
     glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_2d(cx - (float)strlen(EDUCACION_TITULOS[pagina]) * ANCHO_CHAR_APROX / 2.0f, cy + 200.0f, EDUCACION_TITULOS[pagina]);
+    dibujar_texto_centrado(cx, cy + 200.0f, EDUCACION_TITULOS[pagina]);
 
-    /* --- Cuerpo, alineado a la izquierda (las vinetas se verian mal centradas) --- */
+    /* --- Cuerpo, alineado a la izquierda (bloques y vinetas ordenados) --- */
     glColor3f(1.0f, 1.0f, 1.0f);
     dibujar_texto_multilinea_izquierda(EDUCACION_CUERPOS[pagina], cx - 280.0f, cy + 150.0f, 22.0f);
 
     /* --- Indicador de pagina y navegacion --- */
     glColor3f(0.6f, 0.6f, 0.6f);
     sprintf_s(buffer, sizeof(buffer), "Pagina %d de %d", pagina + 1, EDUCACION_NUM_PAGINAS);
-    dibujar_texto_2d(cx - (float)strlen(buffer) * ANCHO_CHAR_APROX / 2.0f, (float)alto / 2.0f - 250.0f, buffer);
+    dibujar_texto_centrado(cx, (float)alto / 2.0f - 250.0f, buffer);
 
     glColor3f(0.55f, 0.75f, 1.0f);
-    {
-        const char* instruccion = "[ESPACIO] Siguiente pagina     [ENTER] Volver al menu";
-        dibujar_texto_2d(cx - (float)strlen(instruccion) * ANCHO_CHAR_APROX / 2.0f, (float)alto / 2.0f - 280.0f, instruccion);
-    }
+    dibujar_texto_centrado(cx, (float)alto / 2.0f - 280.0f, "[ESPACIO] Siguiente pagina     [ENTER] Volver al menu");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -874,26 +909,23 @@ void dibujar_pantalla_carga(float progreso) {
         glEnd();
     }
 
-    /* Titulo del juego */
+    /* Titulo del juego (centrado horizontalmente) */
     glColor3f(1.0f, 0.85f, 0.0f);
-    {
-        const char* titulo = "CASINO ONLINE";
-        dibujar_texto_2d(cx - (float)strlen(titulo) * ANCHO_CHAR_APROX / 2.0f, cy + 60.0f, titulo);
-    }
+    dibujar_texto_centrado(cx, cy + 60.0f, "CASINO ONLINE");
     glColor3f(0.7f, 0.7f, 0.7f);
-    {
-        const char* subtitulo = "Simulador de concientizacion sobre ludopatia";
-        dibujar_texto_2d(cx - (float)strlen(subtitulo) * ANCHO_CHAR_APROX / 2.0f, cy + 30.0f, subtitulo);
-    }
+    dibujar_texto_centrado(cx, cy + 30.0f, "Simulador de concientizacion sobre ludopatia");
 
-    /* Texto de carga */
+    /* Texto de carga y porcentaje (centrados horizontalmente) */
     glColor3f(1.0f, 1.0f, 1.0f);
     {
-        const char* cargando = "Cargando recursos...";
-        dibujar_texto_2d(cx - (float)strlen(cargando) * ANCHO_CHAR_APROX / 2.0f, barra_y + 30.0f, cargando);
+        char msg_carga[128];
+        int pct = (int)(progreso * 100.0f);
+        if (pct > 100) pct = 100;
+        sprintf_s(msg_carga, sizeof(msg_carga), "Cargando recursos... %d%%", pct);
+        dibujar_texto_centrado(cx, barra_y + 30.0f, msg_carga);
     }
 
-    /* Borde de la barra de progreso */
+    /* Borde de la barra de progreso (centrada horizontalmente) */
     glColor3f(0.4f, 0.4f, 0.4f);
     glBegin(GL_LINE_LOOP);
     glVertex2f(barra_x, barra_y);
@@ -919,12 +951,9 @@ void dibujar_pantalla_carga(float progreso) {
         glEnd();
     }
 
-    /* Texto pie de pagina */
+    /* Texto pie de pagina (centrado horizontalmente) */
     glColor3f(0.5f, 0.5f, 0.5f);
-    {
-        const char* footer = "Practica de Computacion Grafica - OpenGL";
-        dibujar_texto_2d(cx - (float)strlen(footer) * ANCHO_CHAR_APROX / 2.0f, 30.0f, footer);
-    }
+    dibujar_texto_centrado(cx, 30.0f, "Practica de Computacion Grafica - OpenGL");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -990,24 +1019,14 @@ void dibujar_pantalla_tragamonedas_placeholder(void) {
 
     /* Mensajes */
     glColor3f(1.0f, 0.85f, 0.0f);
-    {
-        const char* titulo = "TRAGAMONEDAS";
-        dibujar_texto_2d(cx - (float)strlen(titulo) * ANCHO_CHAR_APROX / 2.0f, cy + 15.0f, titulo);
-    }
+    dibujar_texto_centrado(cx, cy + 15.0f, "TRAGAMONEDAS");
 
     glColor3f(1.0f, 1.0f, 1.0f);
-    {
-        const char* msg1 = "Este modulo se encuentra en construccion";
-        const char* msg2 = "por otro desarrollador del equipo.";
-        dibujar_texto_2d(cx - (float)strlen(msg1) * ANCHO_CHAR_APROX / 2.0f, cy - 20.0f, msg1);
-        dibujar_texto_2d(cx - (float)strlen(msg2) * ANCHO_CHAR_APROX / 2.0f, cy - 45.0f, msg2);
-    }
+    dibujar_texto_centrado(cx, cy - 20.0f, "Este modulo se encuentra en construccion");
+    dibujar_texto_centrado(cx, cy - 45.0f, "por otro desarrollador del equipo.");
 
     glColor3f(0.55f, 0.75f, 1.0f);
-    {
-        const char* action = "[ENTER] Volver al menu principal";
-        dibujar_texto_2d(cx - (float)strlen(action) * ANCHO_CHAR_APROX / 2.0f, cy - 90.0f, action);
-    }
+    dibujar_texto_centrado(cx, cy - 90.0f, "[ENTER] Volver al menu principal");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -1018,13 +1037,582 @@ void dibujar_pantalla_tragamonedas_placeholder(void) {
     glPopMatrix();
 }
 
+void dibujar_pantalla_advertencia(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glColor3f(0.0f, 0.0f, 0.0f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.08f, 0.02f, 0.02f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(1.0f, 0.3f, 0.3f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_advertencia(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(1.0f, 0.3f, 0.3f);
+    dibujar_texto_centrado(cx, cy + 115.0f, "ADVERTENCIA");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "La ludopatia es una adiccion real que puede afectar\n"
+        "la salud mental, la economia, y las relaciones\n"
+        "personales de quien la padece.\n\n"
+        "Este programa tiene fines EXCLUSIVAMENTE educativos.\n"
+        "No busca promover ni incentivar el juego de apuestas\n"
+        "con dinero real.",
+        cx, cy + 65.0f, 22.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 170.0f, "[ENTER] Continuar");
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+void dibujar_pantalla_proposito(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glColor3f(0.03f, 0.05f, 0.1f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.05f, 0.09f, 0.2f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_info(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy + 115.0f, "QUE ES ESTE PROYECTO");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "Este es un simulador educativo (serious game) sobre\n"
+        "ludopatia, desarrollado para una practica de\n"
+        "Computacion Grafica.\n\n"
+        "No busca incentivar las apuestas. Su objetivo es\n"
+        "generar conciencia sobre los riesgos del juego\n"
+        "problematico, ayudar a identificar sus signos de\n"
+        "alerta, y promover la prevencion y la busqueda de\n"
+        "ayuda profesional.",
+        cx, cy + 65.0f, 22.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 170.0f, "[ENTER] Continuar");
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+void dibujar_pantalla_confirmacion_juego(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.0f, 0.0f, 0.0f, 0.85f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glColor4f(0.12f, 0.08f, 0.02f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy + 210.0f);
+    glVertex2f(cx - 340.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(1.0f, 0.75f, 0.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy - 210.0f);
+    glVertex2f(cx + 340.0f, cy + 210.0f);
+    glVertex2f(cx - 340.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_advertencia(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy + 115.0f, "REFLEXIONA ANTES DE JUGAR");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "Estas a punto de iniciar una simulacion de apuestas.\n\n"
+        "Recorda los riesgos asociados al juego: perdida de\n"
+        "dinero, dependencia emocional, y el riesgo real de\n"
+        "desarrollar un patron de juego problematico.\n\n"
+        "Luego de leer esta informacion, deseas continuar\n"
+        "bajo tu propia responsabilidad?",
+        cx, cy + 65.0f, 22.0f);
+
+    {
+        const char* op_si = "[ENTER] Si, continuar";
+        const char* op_no = "[N] No, volver al menu";
+        float w_si = (float)glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)op_si);
+        float w_no = (float)glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)op_no);
+        float gap = 40.0f;
+        float total_w = w_si + gap + w_no;
+        float x_si = cx - total_w / 2.0f;
+        float x_no = x_si + w_si + gap;
+
+        glColor3f(0.5f, 0.5f, 0.5f);
+        dibujar_texto_2d(x_si, cy - 170.0f, op_si);
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_2d(x_no, cy - 170.0f, op_no);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+static const char* MENSAJES_CHECKPOINT[8] = {
+    "Recorda: cada giro de la ruleta es un evento\n"
+    "independiente. Ninguna racha, buena o mala,\n"
+    "predice el resultado del proximo giro.",
+
+    "Necesitar apostar montos cada vez mayores para\n"
+    "sentir la misma emocion es un signo de alerta\n"
+    "reconocido del juego problematico.",
+
+    "El autocontrol -definir un limite de tiempo y\n"
+    "dinero antes de jugar, y respetarlo- es la\n"
+    "herramienta mas efectiva contra la ludopatia.",
+
+    "Si sentis que no podes parar de jugar, ese es\n"
+    "el indicio mas importante de todos. Buscar ayuda\n"
+    "profesional a tiempo hace la diferencia.",
+
+    "Ocultar o mentir sobre tus perdidas a familiares\n"
+    "o amigos es un signo clasico de descontrol\n"
+    "en el habito de juego (DSM-5).",
+
+    "Apostar para escapar de problemas emocionales\n"
+    "o financieros suele agravar la situacion\n"
+    "en lugar de resolverla.",
+
+    "Ninguna estrategia matematica puede vencer\n"
+    "la ventaja fija del 2.7 por ciento que\n"
+    "la casa mantiene en cada tiro.",
+
+    "Tomarte una pausa regular te permite evaluar\n"
+    "con claridad si estas jugando por diversion\n"
+    "o por impulso compulsivo."
+};
+
+void dibujar_pantalla_checkpoint_educativo(int indice_mensaje) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+    int idx;
+
+    idx = indice_mensaje % 8;
+    if (idx < 0) idx = 0;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.05f, 0.02f, 0.0f, 0.80f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glColor4f(0.18f, 0.08f, 0.01f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy + 190.0f);
+    glVertex2f(cx - 320.0f, cy + 190.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(1.0f, 0.55f, 0.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy - 190.0f);
+    glVertex2f(cx + 320.0f, cy + 190.0f);
+    glVertex2f(cx - 320.0f, cy + 190.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_info(cx, cy + 135.0f, 22.0f);
+
+    glColor3f(1.0f, 0.65f, 0.0f);
+    dibujar_texto_centrado(cx, cy + 95.0f, "RECORDATORIO");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(MENSAJES_CHECKPOINT[idx], cx, cy + 40.0f, 24.0f);
+
+    glColor3f(0.5f, 0.5f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 140.0f, "[ENTER] Continuar bajo tu responsabilidad");
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 170.0f, "[S] Terminar la sesion aqui");
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+typedef struct {
+    const char* pregunta;
+    const char* opcion_a;
+    const char* opcion_b;
+    const char* opcion_c;
+    int correcta;           /* 0=A, 1=B, 2=C */
+    const char* explicacion;
+} PreguntaQuiz;
+
+static const PreguntaQuiz QUIZ_PREGUNTAS[NUM_PREGUNTAS_QUIZ] = {
+    {
+        "Que es la ludopatia?",
+        "Una adiccion real, reconocida clinicamente",
+        "Un pasatiempo sin ningun riesgo",
+        "Un problema exclusivo de personas con poco dinero",
+        0,
+        "La ludopatia es una adiccion comportamental reconocida\n"
+        "clinicamente, no una falta de fuerza de voluntad ni un problema\n"
+        "exclusivo de nadie en particular."
+    },
+    {
+        "Cual de estos es un indicio reconocido del juego\nproblematico?",
+        "Dormir mas de lo normal",
+        "Comer mas frutas y verduras",
+        "Necesitar apostar cantidades cada vez mayores",
+        2,
+        "Necesitar apostar montos cada vez mayores para sentir\n"
+        "la misma emocion se llama tolerancia, y es un indicio real\n"
+        "reconocido del juego problematico."
+    },
+    {
+        "Si perdiste varias veces seguidas en la ruleta, que es\ncierto sobre el proximo giro?",
+        "Es mas probable que ganes, porque ya toca",
+        "La probabilidad es exactamente la misma que en cualquier otro giro",
+        "Es menos probable que ganes",
+        1,
+        "Cada giro es independiente del anterior. Pensar que ya\n"
+        "toca ganar se llama la falacia del jugador."
+    },
+    {
+        "Que es perseguir las perdidas?",
+        "Seguir apostando, muchas veces con montos mayores, para\nintentar recuperar lo perdido",
+        "Anotar cuanto perdiste para aprender de eso",
+        "Dejar de jugar despues de perder",
+        0,
+        "Perseguir perdidas es uno de los indicios mas comunes\n"
+        "del juego problematico, y suele generar perdidas aun mayores, no\n"
+        "recuperar nada."
+    },
+    {
+        "Cual de estas es una practica de juego responsable?",
+        "Aumentar la apuesta despues de cada perdida",
+        "Jugar para escapar del estres o el aburrimiento",
+        "Definir un limite de tiempo y dinero antes de jugar, y respetarlo",
+        2,
+        "El autocontrol -definir limites antes de jugar y\n"
+        "sostenerlos pase lo que pase- es la herramienta mas efectiva contra\n"
+        "el juego problematico."
+    },
+    {
+        "Un sistema o estrategia de apuestas...",
+        "Puede garantizar ganancias si se sigue bien",
+        "No cambia la probabilidad matematica del juego",
+        "Funciona mejor cuanto mas dinero se invierte",
+        1,
+        "Ningun sistema de apuestas cambia la probabilidad\n"
+        "matematica ni la ventaja de la casa a largo plazo."
+    },
+    {
+        "Que deberias hacer si sentis que no podes dejar de jugar?",
+        "Buscar ayuda profesional o hablarlo con alguien de confianza",
+        "Seguir jugando hasta que se te pase",
+        "Cambiar de juego",
+        0,
+        "Si sentis que no podes parar, ese es el indicio mas\n"
+        "importante de todos. Buscar ayuda a tiempo hace la diferencia."
+    },
+    {
+        "Ocultarle a otras personas cuanto tiempo o dinero se\napuesta es...",
+        "Algo normal que no dice nada en particular",
+        "Una forma de jugar responsablemente",
+        "Un indicio de alerta del juego problematico",
+        2,
+        "Mentir u ocultar cuanto se juega o se pierde es un\n"
+        "indicio de alerta reconocido -si hace falta esconderlo, vale la\n"
+        "pena preguntarse por que."
+    },
+    {
+        "Apostar para escapar del estres, el aburrimiento o un mal\nmomento emocional es...",
+        "Una forma valida de manejar esas emociones",
+        "Un patron de riesgo, no una forma sana de lidiar con ellas",
+        "Algo que solo le pasa a los jugadores profesionales",
+        1,
+        "Usar el juego para escapar de emociones dificiles es\n"
+        "un patron de riesgo reconocido, no una solucion real al problema de\n"
+        "fondo."
+    },
+    {
+        "Pedir dinero prestado para seguir jugando es...",
+        "Una forma de escalada real de la deuda, no una solucion",
+        "Una solucion temporal sin consecuencias",
+        "Algo recomendable si estas seguro de que vas a ganar",
+        0,
+        "Pedir prestamos para seguir apostando es exactamente\n"
+        "como una deuda de juego real empieza a escalar."
+    },
+    {
+        "Ademas del dinero, la ludopatia puede afectar...",
+        "Solo la economia de la persona, nada mas",
+        "Unicamente a personas que ya tienen otros problemas",
+        "Las relaciones personales, el tiempo, y el bienestar emocional",
+        2,
+        "La ludopatia puede afectar el tiempo, las relaciones\n"
+        "familiares y personales, y el bienestar emocional -no solo el\n"
+        "dinero."
+    },
+    {
+        "Llevar un control real del tiempo que se pasa jugando es\nutil porque...",
+        "No sirve para nada, el tiempo no importa en las apuestas",
+        "Ayuda a notar si se esta jugando mas de lo que se tenia pensado",
+        "Solo importa si se esta perdiendo dinero",
+        1,
+        "El tiempo jugado es un indicio tan importante como el\n"
+        "dinero -perder la nocion del tiempo es, en si, una advertencia real."
+    }
+};
+
+int quiz_evaluar_respuesta(int pregunta_idx, int respuesta) {
+    if (pregunta_idx < 0 || pregunta_idx >= NUM_PREGUNTAS_QUIZ) return 0;
+    return QUIZ_PREGUNTAS[pregunta_idx].correcta == respuesta;
+}
+
+void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, int fue_correcta) {
+    int w = glutGet(GLUT_WINDOW_WIDTH);
+    int h = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = w / 2.0f;
+    float cy = h / 2.0f;
+
+    if (pregunta_idx < 0 || pregunta_idx >= NUM_PREGUNTAS_QUIZ) return;
+
+    /* --- Entrar en modo 2D --- */
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, w, 0, h, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    glColor4f(0.0f, 0.0f, 0.0f, 0.85f);
+    glBegin(GL_QUADS);
+    glVertex2i(0, 0);
+    glVertex2i(w, 0);
+    glVertex2i(w, h);
+    glVertex2i(0, h);
+    glEnd();
+
+    glColor3f(1.0f, 0.6f, 0.0f);
+    dibujar_texto_centrado(cx, cy + 120.0f, "QUIZ EDUCATIVO");
+    
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].pregunta, cx, cy + 60.0f, 24.0f);
+
+    if (fase == 0) {
+        /* Fase de pregunta */
+        glColor3f(0.9f, 0.9f, 0.9f);
+        dibujar_texto_centrado(cx, cy - 20.0f, "[A]");
+        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].opcion_a, cx, cy - 45.0f, 20.0f);
+        
+        dibujar_texto_centrado(cx, cy - 85.0f, "[B]");
+        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].opcion_b, cx, cy - 110.0f, 20.0f);
+        
+        dibujar_texto_centrado(cx, cy - 150.0f, "[C]");
+        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].opcion_c, cx, cy - 175.0f, 20.0f);
+        
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy - 230.0f, "[S] Terminar la sesion aqui");
+    } else {
+        /* Fase de feedback */
+        if (fue_correcta) {
+            glColor3f(0.0f, 1.0f, 0.0f);
+            dibujar_texto_centrado(cx, cy - 10.0f, "CORRECTO");
+        } else {
+            const char* letras[3] = {"A", "B", "C"};
+            char msg[128];
+            glColor3f(1.0f, 0.3f, 0.0f);
+            dibujar_texto_centrado(cx, cy - 10.0f, "INCORRECTO");
+            glColor3f(1.0f, 1.0f, 1.0f);
+            sprintf_s(msg, sizeof(msg), "La respuesta correcta era: %s", letras[QUIZ_PREGUNTAS[pregunta_idx].correcta]);
+            dibujar_texto_centrado(cx, cy - 35.0f, msg);
+        }
+        
+        glColor3f(0.8f, 0.8f, 0.8f);
+        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].explicacion, cx, cy - 80.0f, 24.0f);
+        
+        glColor3f(0.5f, 0.5f, 0.5f);
+        dibujar_texto_centrado(cx, cy - 180.0f, "[ENTER] Continuar");
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy - 210.0f, "[S] Terminar la sesion aqui");
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+
 void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, const InfoPantalla* info) {
     switch (estado) {
     case ESTADO_CARGA:
         dibujar_pantalla_carga(info->progreso_carga);
         break;
+    case ESTADO_ADVERTENCIA:
+        dibujar_pantalla_advertencia();
+        break;
+    case ESTADO_PROPOSITO:
+        dibujar_pantalla_proposito();
+        break;
     case ESTADO_MENU:
         dibujar_pantalla_menu(info->opcion_menu);
+        break;
+    case ESTADO_CONFIRMACION_JUEGO:
+        dibujar_pantalla_confirmacion_juego();
+        break;
+    case ESTADO_CHECKPOINT_EDUCATIVO:
+        dibujar_pantalla_checkpoint_educativo(info->indice_checkpoint);
+        break;
+    case ESTADO_QUIZ_EDUCATIVO:
+        dibujar_pantalla_quiz(info->quiz_pregunta_idx, info->quiz_fase, info->quiz_respuesta_elegida, info->quiz_fue_correcta);
         break;
     case ESTADO_PRESTAMO:
         dibujar_pantalla_prestamo(jugador);

@@ -22,6 +22,7 @@
 #include "render/iluminacion.h"
 #include "render/materiales.h"
 #include "ui/hud.h"
+#include "ui/notificaciones.h"
 #include "ui/pantallas.h"
 #include "ui/tablero_apuestas.h"
 
@@ -75,6 +76,18 @@ typedef struct {
 
     /* Progreso acumulado de la pantalla de carga (0.0f a 1.0f) */
     float progreso_carga;
+
+    /* Seguimiento de Serious Game / Checkpoints Educativos */
+    int rondas_desde_ultimo_checkpoint;
+    int indice_checkpoint_educativo;
+    int ultimo_checkpoint_tiempo_ms;
+    int mensaje_probabilidad_actual;
+
+    /* Campos para el ESTADO_QUIZ_EDUCATIVO */
+    int quiz_pregunta_actual;
+    int quiz_fase;
+    int quiz_respuesta_elegida;
+    int quiz_fue_correcta;
 } EstadoPartida;
 
 static EstadoPartida partida;
@@ -191,6 +204,7 @@ static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
 /* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
    Devuelve 1 si se agrego, 0 si no (arreglo lleno). */
 static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
+    char notifbuf[128];
 
     if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
     partida.apuestas_activas[partida.num_apuestas_activas].tipo = tipo;
@@ -198,7 +212,35 @@ static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
     partida.apuestas_activas[partida.num_apuestas_activas].monto = monto;
     partida.num_apuestas_activas++;
 
-    registrar_apuesta(&partida.jugador, monto); /* suma al HUD ya */
+    registrar_apuesta(&partida.jugador, monto);
+
+    if (tipo == APUESTA_NUMERO) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f al Numero %d", monto, valor);
+    } else if (tipo == APUESTA_COLOR) {
+        if (valor == (int)COLOR_ROJO) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a ROJO", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a NEGRO", monto);
+        }
+    } else if (tipo == APUESTA_PAR_IMPAR) {
+        if (valor == 0) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a PAR", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a IMPAR", monto);
+        }
+    } else if (tipo == APUESTA_MITAD) {
+        if (valor == 1) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 1-18", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 19-36", monto);
+        }
+    } else if (tipo == APUESTA_DOCENA) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a Docena %d", monto, valor);
+    } else {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta colocada: $%.0f", monto);
+    }
+    agregar_notificacion(notifbuf, 1.0f, 0.84f, 0.0f);
+
     return 1;
 }
 
@@ -299,13 +341,19 @@ void display(void) {
     dibujar_vidrio_protector();
     glPopMatrix();
 
-    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
+    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas, partida.bolita.girando, partida.mensaje_probabilidad_actual);
+    dibujar_notificaciones();
     {
         InfoPantalla info;
         info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
         info.pagina_educacion = partida.pagina_educacion;
         info.opcion_menu = partida.opcion_menu;
         info.progreso_carga = partida.progreso_carga;
+        info.indice_checkpoint = partida.indice_checkpoint_educativo;
+        info.quiz_pregunta_idx = partida.quiz_pregunta_actual;
+        info.quiz_fase = partida.quiz_fase;
+        info.quiz_respuesta_elegida = partida.quiz_respuesta_elegida;
+        info.quiz_fue_correcta = partida.quiz_fue_correcta;
         dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
     }
 
@@ -349,28 +397,16 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'n':
     case 'N':
-        if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
+        if (estado_actual == ESTADO_CONFIRMACION_JUEGO) {
+            cambiar_estado(ESTADO_MENU);
+        }
+        else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_NEGRO, partida.monto_ficha_actual);
         }
         break;
 
     case ' ':
-        /* FIX DE ALEATORIEDAD (ronda 4 - correccion de fondo): las
-           rondas anteriores (2 y 3) intentaban involucrar el angulo de
-           la RUEDA en el calculo del objetivo de la bolita -primero
-           prediciendolo mal con un valor fijo (ronda 2), despues con
-           una ecuacion "combinada" rueda+bolita (ronda 3)-, pero
-           ambos enfoques partian de una premisa equivocada.
-
-           Se rehizo el algebra completa de la jerarquia de matrices
-           (mesa -> rueda -> bolita) y se confirmo que el angulo de la
-           rueda SE CANCELA de la ecuacion de correctitud: no importa
-           en que angulo este la rueda, el unico numero que le importa
-           a iniciar_giro_bolita_hacia_absoluto() es el angulo del
-           sector elegido -ni siquiera hace falta calcular la posicion
-           actual combinada. Ver el comentario largo en
-           ruleta_animacion.c para la derivacion completa. */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
 
@@ -379,14 +415,11 @@ void teclado(unsigned char tecla, int x, int y) {
             float angulo_sector_centro = ((float)sector_ganador + 0.5f) * (360.0f / 37.0f);
 
             partida.numero_ganador_pendiente = numero_ganador;
+            partida.mensaje_probabilidad_actual = rand() % 12;
 
-            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6 /* vueltas extra visuales: subido de 3 a 6 para llegar a los 10.7s pedidos, ver ruleta_animacion.c */);
+            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6);
         }
         else if (estado_actual == ESTADO_EDUCACION) {
-            /* Avanza de pagina con wrap-around (de la ultima vuelve a
-               la primera), para poder recorrer las 6 en loop sin tener
-               que ir "para atras" -no hay tanto contenido como para
-               necesitar retroceder. */
             partida.pagina_educacion = (partida.pagina_educacion + 1) % EDUCACION_NUM_PAGINAS;
         }
         break;
@@ -407,15 +440,6 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 's':
     case 'S':
-        /* MEJORA (interaccion de cierre real, no decorativa): terminar
-           la sesion aca es una eleccion tan valida como seguir jugando,
-           disponible desde los dos puntos donde antes la unica salida
-           real era continuar (el mensaje reflexivo se descartaba con
-           ENTER sin alternativa, y la pantalla de prestamo solo
-           ofrecia pedir mas plata prestada). No se pasa por
-           ESTADO_GAME_OVER -esa pantalla es para cuando el juego FUERZA
-           el cierre por deuda impagable, no para cuando el jugador elige
-           parar por su cuenta. */
         if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
             partida.mensaje_reflexivo_actual = NULL;
             cambiar_estado(ESTADO_SESION_TERMINADA);
@@ -423,14 +447,46 @@ void teclado(unsigned char tecla, int x, int y) {
         else if (estado_actual == ESTADO_PRESTAMO) {
             cambiar_estado(ESTADO_SESION_TERMINADA);
         }
+        else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_QUIZ_EDUCATIVO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        break;
+
+    case 'a':
+    case 'A':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 0;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 0);
+            partida.quiz_fase = 1;
+        }
+        break;
+
+    case 'b':
+    case 'B':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 1;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 1);
+            partida.quiz_fase = 1;
+        }
+        break;
+
+    case 'c':
+    case 'C':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 2;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 2);
+            partida.quiz_fase = 1;
+        }
         break;
 
     case 'i':
     case 'I':
-        /* Pilar 4 del "serious game" (ver docs/analisis-ludopatia.md):
-           pantalla de informacion, accesible desde el menu y desde las
-           2 pantallas de cierre de sesion -asi se puede consultar
-           tanto antes de jugar como despues de terminar. */
         if (estado_actual == ESTADO_MENU || estado_actual == ESTADO_GAME_OVER || estado_actual == ESTADO_SESION_TERMINADA) {
             partida.pagina_educacion = 0;
             cambiar_estado(ESTADO_EDUCACION);
@@ -445,37 +501,46 @@ void teclado(unsigned char tecla, int x, int y) {
         break;
 
     case 13: /* ENTER */
-        if (estado_actual == ESTADO_MENU) {
+        if (estado_actual == ESTADO_ADVERTENCIA) {
+            cambiar_estado(ESTADO_PROPOSITO);
+        }
+        else if (estado_actual == ESTADO_PROPOSITO) {
+            cambiar_estado(ESTADO_MENU);
+        }
+        else if (estado_actual == ESTADO_MENU) {
             if (partida.opcion_menu == 0) {
-                cambiar_estado(ESTADO_JUGANDO);
+                cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
             } else {
                 cambiar_estado(ESTADO_TRAGAMONEDAS_PLACEHOLDER);
             }
+        }
+        else if (estado_actual == ESTADO_CONFIRMACION_JUEGO) {
+            inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
+            partida.num_apuestas_activas = 0;
+            partida.mensaje_reflexivo_actual = NULL;
+            partida.rondas_desde_ultimo_checkpoint = 0;
+            partida.ultimo_checkpoint_tiempo_ms = glutGet(GLUT_ELAPSED_TIME);
+            cambiar_estado(ESTADO_JUGANDO);
+        }
+        else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
+            cambiar_estado(ESTADO_JUGANDO);
+        }
+        else if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 1) {
+            cambiar_estado(ESTADO_JUGANDO);
         }
         else if (estado_actual == ESTADO_TRAGAMONEDAS_PLACEHOLDER) {
             cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_GAME_OVER) {
-            inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
-            partida.num_apuestas_activas = 0;
-            partida.mensaje_reflexivo_actual = NULL;
-            cambiar_estado(ESTADO_JUGANDO);
+            cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
         }
         else if (estado_actual == ESTADO_SESION_TERMINADA) {
-            inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
-            partida.num_apuestas_activas = 0;
-            partida.mensaje_reflexivo_actual = NULL;
-            cambiar_estado(ESTADO_JUGANDO);
+            cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
         }
         else if (estado_actual == ESTADO_EDUCACION) {
             cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
-            /* Se descarta el mensaje y se vuelve a jugar. Si la MISMA
-               ronda que disparo el mensaje reflexivo tambien dejo al
-               jugador sin fondos para la ficha actual, recien ahora
-               (al continuar) se manda a la pantalla de prestamo -ver
-               comentario de verificar_fondos_y_pedir_prestamo_si_hace_falta(). */
             partida.mensaje_reflexivo_actual = NULL;
             cambiar_estado(ESTADO_JUGANDO);
             verificar_fondos_y_pedir_prestamo_si_hace_falta();
@@ -584,7 +649,7 @@ void idle(void) {
         partida.progreso_carga += delta_tiempo / 3.0f;
         if (partida.progreso_carga >= 1.0f) {
             partida.progreso_carga = 1.0f;
-            cambiar_estado(ESTADO_MENU);
+            cambiar_estado(ESTADO_ADVERTENCIA);
         }
     }
 
@@ -602,19 +667,24 @@ void idle(void) {
 
     /* --- Resolver resultado cuando la bolita se acaba de detener --- */
     if (estaba_girando && !partida.bolita.girando && partida.num_apuestas_activas > 0) {
-        /* FIX DE ALEATORIEDAD (ronda 2): el numero ganador YA se decidio
-           al presionar ESPACIO (ver partida.numero_ganador_pendiente),
-           asi que aqui simplemente se usa ese valor -ya no se vuelve a
-           derivar del angulo final de la bolita. Esto tambien elimina
-           cualquier posible desfase entre "donde cae visualmente la
-           bolita" y "que numero cuenta como ganador". */
         int   numero_ganador = partida.numero_ganador_pendiente;
         float ganancia_total = calcular_ganancia_total(partida.apuestas_activas, partida.num_apuestas_activas, numero_ganador);
+        float apostado = monto_apostado_en_ronda();
 
-        /* DIAGNOSTICO: solo en builds Debug (_DEBUG lo define el
-           .vcxproj automaticamente). En Release (NDEBUG) esto
-           desaparece del binario -ya no hace falta acordarse de
-           quitarlo a mano antes de entregar. */
+        {
+            char notifbuf[128];
+            const char* color_str = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "Rojo"
+                                  : (color_de_numero(numero_ganador) == COLOR_NEGRO) ? "Negro" : "Verde";
+
+            if (ganancia_total > 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Ganaste $%.0f", numero_ganador, color_str, ganancia_total);
+                agregar_notificacion(notifbuf, 0.35f, 0.65f, 0.35f);
+            } else {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Perdiste $%.0f", numero_ganador, color_str, apostado);
+                agregar_notificacion(notifbuf, 1.0f, 0.35f, 0.35f);
+            }
+        }
+
 #ifdef _DEBUG
         {
             const char* color_texto = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "ROJO"
@@ -625,19 +695,34 @@ void idle(void) {
 
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
+        partida.rondas_desde_ultimo_checkpoint++;
 
-        /* Concientizacion sobre ludopatia: se revisa DESPUES de aplicar
-           el resultado (necesita el saldo/racha/total_apostado ya
-           actualizados) pero ANTES del chequeo de fondos de abajo -si
-           dispara un mensaje, se prioriza mostrarlo primero; el chequeo
-           de fondos para prestamo se reintenta automaticamente al
-           descartar el mensaje con ENTER (ver teclado()). */
         partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
         if (partida.mensaje_reflexivo_actual != NULL) {
             cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
         }
         else {
-            verificar_fondos_y_pedir_prestamo_si_hace_falta();
+            int tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
+            int tiempo_transcurrido_ms = tiempo_actual_ms - partida.ultimo_checkpoint_tiempo_ms;
+
+            /* Evalua si se cumplieron 3 rondas O 5 minutos reales (300,000 ms) */
+            if (partida.rondas_desde_ultimo_checkpoint >= 3 || tiempo_transcurrido_ms >= 300000) {
+                partida.indice_checkpoint_educativo++;
+                partida.rondas_desde_ultimo_checkpoint = 0;
+                partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
+
+                if (partida.indice_checkpoint_educativo % 2 == 0) {
+                    cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
+                } else {
+                    partida.quiz_pregunta_actual = rand() % NUM_PREGUNTAS_QUIZ;
+                    partida.quiz_fase = 0;
+                    partida.quiz_respuesta_elegida = -1;
+                    cambiar_estado(ESTADO_QUIZ_EDUCATIVO);
+                }
+            }
+            else {
+                verificar_fondos_y_pedir_prestamo_si_hace_falta();
+            }
         }
     }
 
@@ -662,7 +747,8 @@ int main(int argc, char** argv) {
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
     glutInitWindowSize(1024, 768);
-    glutCreateWindow("Casino Online - Ruleta (MVP)");
+    glutCreateWindow("Casino Online - Ruleta");
+    glutFullScreen();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -670,6 +756,7 @@ int main(int argc, char** argv) {
     glEnable(GL_MULTISAMPLE);
 
     inicializar_iluminacion();
+    inicializar_notificaciones();
     inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
     inicializar_estado_juego();
     inicializar_bolita(&partida.bolita);
