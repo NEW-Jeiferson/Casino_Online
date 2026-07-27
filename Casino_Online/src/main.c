@@ -669,16 +669,6 @@ void idle(void) {
             }
         }
     }
-    else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando) {
-        /* Evaluador por tiempo real inactivo durante la partida */
-        int tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
-        if (tiempo_actual_ms - partida.ultimo_checkpoint_tiempo_ms >= 300000) {
-            partida.indice_checkpoint_educativo++;
-            partida.rondas_desde_ultimo_checkpoint = 0;
-            partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
-            cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
-        }
-    }
 
     glutPostRedisplay();
 }
