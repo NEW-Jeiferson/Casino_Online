@@ -71,6 +71,15 @@ void dibujar_pantalla_proposito(void);
 void dibujar_pantalla_confirmacion_juego(void);
 void dibujar_pantalla_checkpoint_educativo(int indice_mensaje);
 
+/* Pilar 5 del "serious game": Quiz Educativo Interactivo */
+#define NUM_PREGUNTAS_QUIZ 12
+
+/* Dibuja la pantalla del quiz educativo en base a la fase actual y la respuesta elegida */
+void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, int fue_correcta);
+
+/* Auxiliar para que main.c pueda verificar si la opcion elegida fue la correcta (0=A, 1=B, 2=C) */
+int quiz_evaluar_respuesta(int pregunta_idx, int respuesta);
+
 /* Parametros transitorios que algunas pantallas necesitan y otras no */
 typedef struct {
     const char* mensaje_reflexivo; /* solo se usa si estado == ESTADO_MENSAJE_REFLEXIVO */
@@ -78,6 +87,12 @@ typedef struct {
     int opcion_menu;               /* solo se usa si estado == ESTADO_MENU */
     float progreso_carga;          /* solo se usa si estado == ESTADO_CARGA */
     int indice_checkpoint;         /* solo se usa si estado == ESTADO_CHECKPOINT_EDUCATIVO */
+    
+    /* Parametros exclusivos del ESTADO_QUIZ_EDUCATIVO */
+    int quiz_pregunta_idx;
+    int quiz_fase;
+    int quiz_respuesta_elegida;
+    int quiz_fue_correcta;
 } InfoPantalla;
 
 /* Despacha a la funcion de dibujo correspondiente segun el estado
