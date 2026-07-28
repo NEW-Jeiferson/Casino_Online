@@ -1251,7 +1251,7 @@ static const char* MENSAJES_CHECKPOINT[8] = {
 
 static const char* MENSAJES_CHECKPOINT_TRAGAMONEDAS[8] = {
     "Un simbolo casi alineado no es un indicio de que estas\n"
-    "por ganar: es un efecto de diseno para que sigas jugando.\n"
+    "por ganar: es un efecto visual para que sigas jugando.\n"
     "Cada giro es independiente del anterior.",
 
     "Ganar menos de lo que apostaste sigue siendo una perdida,\n"
@@ -1270,7 +1270,7 @@ static const char* MENSAJES_CHECKPOINT_TRAGAMONEDAS[8] = {
     "contra el juego problematico, tambien aca.",
 
     "Los sonidos y las luces de un tragamonedas estan\n"
-    "disenados para reforzar la sensacion de estar ganando,\n"
+    "programados para reforzar la sensacion de estar ganando,\n"
     "no para informarte con precision.",
 
     "Jugar muchas rondas seguidas, muy rapido, es un patron\n"
@@ -1493,7 +1493,7 @@ static const PreguntaQuiz QUIZ_PREGUNTAS_TRAGAMONEDAS[8] = {
         "Significa que la maquina esta por pagar",
         "Indica que encontraste el patron",
         0,
-        "El efecto de 'casi ganar' es una ilusion visual disenada\npara que el cerebro lo procese como una victoria y sigas jugando."
+        "El efecto de 'casi ganar' es una ilusion visual creada\npara que el cerebro lo procese como una victoria y sigas jugando."
     },
     {
         "Ganar 10 monedas en un giro donde apostaste 20 es:",
@@ -1533,7 +1533,7 @@ static const PreguntaQuiz QUIZ_PREGUNTAS_TRAGAMONEDAS[8] = {
         "Para ayudar a llevar la cuenta del saldo",
         "Para reforzar la accion y mantenerte inmerso",
         2,
-        "El diseno audiovisual busca crear un estado de 'zona'\ndonde el jugador se olvida del tiempo y del dinero."
+        "El entorno audiovisual busca crear un estado de 'zona'\ndonde el jugador se olvida del tiempo y del dinero."
     },
     {
         "Un signo claro de alerta de juego problematico es:",

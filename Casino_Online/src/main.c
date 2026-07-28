@@ -27,6 +27,7 @@
 #include "tragamonedas/tragamonedas_logica.h"
 #include "tragamonedas/tragamonedas_animacion.h"
 #include "tragamonedas/tragamonedas_geometria.h"
+#include "ui/hud_tragamonedas.h"
 
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE 0x809D
