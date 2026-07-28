@@ -705,6 +705,7 @@ static const char* EDUCACION_TITULOS[EDUCACION_NUM_PAGINAS] = {
     "QUE ES LA LUDOPATIA",
     "SIGNOS DE ALERTA",
     "MITOS SOBRE LAS APUESTAS",
+    "MITOS SOBRE TRAGAMONEDAS",
     "CONSECUENCIAS",
     "RECURSOS DE AYUDA (REP. DOMINICANA)",
     "PREVENCION"
@@ -754,14 +755,21 @@ static const char* EDUCACION_CUERPOS[EDUCACION_NUM_PAGINAS] = {
     "\n"
     "Realidad: ningun sistema de apuestas cambia\n"
     "la probabilidad matematica del juego ni la\n"
-    "ventaja de la casa a largo plazo.\n"
-    "\n"
+    "ventaja de la casa a largo plazo.",
+
     "Mito: \"un casi-ganar (ej. 2 de 3 simbolos)\n"
     "significa que el premio mayor esta cerca\".\n"
     "\n"
     "Realidad: es un efecto visual intencional. El\n"
     "azar ya estaba decidido y la maquina solo\n"
-    "dibujo los rodillos asi para que sigas jugando.",
+    "dibujo los rodillos asi para que sigas jugando.\n"
+    "\n"
+    "Mito: \"ganar menos de lo que aposte sigue\n"
+    "siendo una victoria\".\n"
+    "\n"
+    "Realidad: es una Perdida Disfrazada de Victoria\n"
+    "(LDW). Las luces y sonidos festejan para que\n"
+    "ignores que en realidad estas perdiendo dinero.",
 
     "El costo mas visible es el dinero: deudas,\n"
     "prestamos, interes que se acumula. Ya viste\n"

@@ -51,7 +51,7 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador);
    (ver la implementacion en pantallas.c). */
 void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* jugador);
 
-#define EDUCACION_NUM_PAGINAS 6
+#define EDUCACION_NUM_PAGINAS 7
 
 /* Pilar 4 del "serious game" (ver docs/analisis-ludopatia.md): pantalla
    de informacion paginada sobre ludopatia. 'pagina' va de 0 a
