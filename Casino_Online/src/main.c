@@ -324,16 +324,25 @@ void display(void) {
     }
     glPopMatrix();
 
-    if (partida.juego_activo == 0) {
-        dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas, partida.bolita.girando, partida.mensaje_probabilidad_actual);
-    } else {
+    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas, partida.bolita.girando, partida.mensaje_probabilidad_actual);
+
+    if (partida.juego_activo != 0) {
+        int i, alguno_girando = 0;
         int ancho = glutGet(GLUT_WINDOW_WIDTH);
         int alto = glutGet(GLUT_WINDOW_HEIGHT);
+        
         dibujar_barra_control_2d(ancho, alto,
             partida.jugador.saldo,
             partida.monto_ficha_actual,
             partida.tragamonedas.ganancia_ultima,
             &partida.tragamonedas);
+            
+        for (i = 0; i < NUM_RODILLOS; i++) {
+            if (partida.tragamonedas.rodillos[i].girando) alguno_girando = 1;
+        }
+        if (alguno_girando) {
+            dibujar_mensaje_giro_tragamonedas(partida.mensaje_probabilidad_actual);
+        }
     }
     dibujar_notificaciones();
     {
@@ -347,6 +356,7 @@ void display(void) {
         info.quiz_fase = partida.quiz_fase;
         info.quiz_respuesta_elegida = partida.quiz_respuesta_elegida;
         info.quiz_fue_correcta = partida.quiz_fue_correcta;
+        info.juego_activo = partida.juego_activo;
         dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
     }
 
@@ -421,6 +431,7 @@ void teclado(unsigned char tecla, int x, int y) {
                 registrar_apuesta(&partida.jugador, partida.monto_ficha_actual);
                 partida.tragamonedas.monto_apuesta = partida.monto_ficha_actual;
                 decidir_resultado_tragamonedas(partida.tragamonedas.resultado_actual);
+                partida.mensaje_probabilidad_actual = rand() % 8; /* Sorteo del mensaje educativo al girar */
                 iniciar_giro_tragamonedas(&partida.tragamonedas);
             }
         }
@@ -474,7 +485,7 @@ void teclado(unsigned char tecla, int x, int y) {
     case 'A':
         if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
             partida.quiz_respuesta_elegida = 0;
-            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 0);
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 0, partida.juego_activo);
             partida.quiz_fase = 1;
         }
         break;
@@ -483,7 +494,7 @@ void teclado(unsigned char tecla, int x, int y) {
     case 'B':
         if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
             partida.quiz_respuesta_elegida = 1;
-            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 1);
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 1, partida.juego_activo);
             partida.quiz_fase = 1;
         }
         break;
@@ -492,7 +503,7 @@ void teclado(unsigned char tecla, int x, int y) {
     case 'C':
         if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
             partida.quiz_respuesta_elegida = 2;
-            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 2);
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 2, partida.juego_activo);
             partida.quiz_fase = 1;
         }
         break;
@@ -576,6 +587,28 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
     int valor_zona;
 
     if (estado_boton != GLUT_DOWN) return;
+    
+    if (estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO) {
+        int i, alguno_girando = 0;
+        ZonaControlTragamonedas zona;
+        
+        for (i = 0; i < NUM_RODILLOS; i++) {
+            if (partida.tragamonedas.rodillos[i].girando) alguno_girando = 1;
+        }
+        
+        zona = obtener_zona_control_2d(x, y, glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
+        
+        if (zona == ZONA_CONTROL_SPIN && !alguno_girando && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
+            registrar_apuesta(&partida.jugador, partida.monto_ficha_actual);
+            partida.tragamonedas.monto_apuesta = partida.monto_ficha_actual;
+            decidir_resultado_tragamonedas(partida.tragamonedas.resultado_actual);
+            partida.mensaje_probabilidad_actual = rand() % 8; /* Sorteo del mensaje educativo al girar */
+            iniciar_giro_tragamonedas(&partida.tragamonedas);
+            glutPostRedisplay();
+        }
+        return; /* En el tragamonedas el mouse solo interactua con la barra 2D por ahora */
+    }
+
     if (estado_actual != ESTADO_JUGANDO || partida.bolita.girando) return;
 
     if (boton == GLUT_LEFT_BUTTON) {

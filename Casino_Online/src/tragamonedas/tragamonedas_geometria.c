@@ -1746,3 +1746,116 @@ void dibujar_tragamonedas(const EstadoTragamonedas* estado) {
     dibujar_rodillos(estado);
     dibujar_display_creditos(estado);
 }
+
+static const char* MENSAJES_GIRO_TRAGAMONEDAS[8] = {
+    "Ver 2 simbolos iguales y el tercero cerca no es casi ganar,\n"
+    "es una perdida igual que cualquier otra.",
+
+    "Ganar menos de lo que apostaste sigue siendo una perdida,\n"
+    "aunque la maquina lo festeje como una victoria.",
+
+    "Ninguna maquina esta fria ni caliente: cada giro es\n"
+    "independiente del anterior.",
+
+    "El resultado de este giro ya esta decidido al azar, sin\n"
+    "importar cuantas veces jugaste antes.",
+
+    "Cuanto llevas apostado hoy en esta maquina? Es lo que\n"
+    "tenias pensado gastar?",
+
+    "Si esto fuera dinero real, seguirias jugando de la misma\n"
+    "forma?",
+
+    "Los sonidos y las luces de una maquina estan disenados\n"
+    "para que sigas jugando, no para informarte.",
+
+    "De verdad necesitas ver este giro, o podrias parar aca?"
+};
+
+void dibujar_mensaje_giro_tragamonedas(int indice_mensaje) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    int idx = indice_mensaje % 8;
+    const char* msg_prob;
+    char linea1[256] = {0};
+    char linea2[256] = {0};
+    char* salto;
+    int len1, len2, max_len;
+    float banner_cx, banner_y, half_w;
+
+    if (idx < 0) idx = 0;
+    msg_prob = MENSAJES_GIRO_TRAGAMONEDAS[idx];
+
+    /* Separar en dos lineas por el \n */
+    strncpy_s(linea1, sizeof(linea1), msg_prob, _TRUNCATE);
+    salto = strchr(linea1, '\n');
+    if (salto) {
+        *salto = '\0';
+        strncpy_s(linea2, sizeof(linea2), salto + 1, _TRUNCATE);
+    }
+
+    len1 = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)linea1);
+    len2 = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)linea2);
+    max_len = (len1 > len2) ? len1 : len2;
+
+    banner_cx = (float)ancho / 2.0f;
+    banner_y = (float)alto - 60.0f; /* Un poco mas bajo porque son 2 lineas */
+    half_w = (float)max_len / 2.0f + 16.0f;
+
+    /* Margen de seguridad: evitar pisar UI lateral si la hubiera */
+    if (banner_cx - half_w < 10.0f) {
+        banner_cx = 10.0f + half_w;
+    }
+    if (banner_cx + half_w > (float)ancho - 10.0f) {
+        banner_cx = (float)ancho - 10.0f - half_w;
+    }
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.02f, 0.08f, 0.18f, 0.88f);
+    glBegin(GL_QUADS);
+    glVertex2f(banner_cx - half_w, banner_y - 28.0f);
+    glVertex2f(banner_cx + half_w, banner_y - 28.0f);
+    glVertex2f(banner_cx + half_w, banner_y + 24.0f);
+    glVertex2f(banner_cx - half_w, banner_y + 24.0f);
+    glEnd();
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    glLineWidth(1.5f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(banner_cx - half_w, banner_y - 28.0f);
+    glVertex2f(banner_cx + half_w, banner_y - 28.0f);
+    glVertex2f(banner_cx + half_w, banner_y + 24.0f);
+    glVertex2f(banner_cx - half_w, banner_y + 24.0f);
+    glEnd();
+    glLineWidth(1.0f);
+    glDisable(GL_BLEND);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    if (salto) {
+        dibujar_texto_2d_centrado(banner_cx, banner_y + 4.0f, linea1, GLUT_BITMAP_HELVETICA_18);
+        dibujar_texto_2d_centrado(banner_cx, banner_y - 20.0f, linea2, GLUT_BITMAP_HELVETICA_18);
+    } else {
+        dibujar_texto_2d_centrado(banner_cx, banner_y, linea1, GLUT_BITMAP_HELVETICA_18);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}

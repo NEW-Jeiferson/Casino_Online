@@ -88,4 +88,6 @@ typedef enum {
 ZonaControlTragamonedas obtener_zona_control_2d(int x_mouse, int y_mouse,
                                                  int ancho_ventana, int alto_ventana);
 
+void dibujar_mensaje_giro_tragamonedas(int indice_mensaje);
+
 #endif /* TRAGAMONEDAS_GEOMETRIA_H */
