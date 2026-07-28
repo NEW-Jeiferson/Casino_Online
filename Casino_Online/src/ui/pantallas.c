@@ -212,13 +212,13 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     /* Opcion 2: Tragamonedas */
     if (opcion_seleccionada == 1) {
         glColor3f(1.0f, 0.85f, 0.0f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "->  2. TRAGAMONEDAS  (Proximamente)");
+        dibujar_texto_centrado(cx, cy + 20.0f, "->  2. TRAGAMONEDAS  (Disponible)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_centrado(cx, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
+        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
     } else {
         glColor3f(0.5f, 0.5f, 0.5f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "    2. TRAGAMONEDAS  (Proximamente)");
-        dibujar_texto_centrado(cx, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
+        dibujar_texto_centrado(cx, cy + 20.0f, "    2. TRAGAMONEDAS  (Disponible)");
+        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
     }
 
     /* --- Accion --- */

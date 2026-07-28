@@ -296,9 +296,9 @@ void display(void) {
             0.0, 0.0, 1.0,
             0.0, 1.0, 0.0);
     } else {
-        /* Camara frontal para el tragamonedas (GABINETE_ANCHO = 1.7, ALTURA total aprox 1.0-1.5) */
-        gluLookAt(0.0, 1.0, 7.5,   /* Ojo frontal y centrado, mas lejos para que no se corte */
-            0.0, 0.8, 0.0,         /* Mirando al centro del gabinete */
+        /* Camara frontal para el tragamonedas (GABINETE_ALTURA_TOTAL real = 4.45f) */
+        gluLookAt(0.0, 2.5, 9.5,   /* Ojo frontal, mas alto y lejos para que entre entero con margen */
+            0.0, 2.0, 0.0,         /* Mirando cerca del centro (desplazado un poco abajo para dejar lugar al HUD) */
             0.0, 1.0, 0.0);
     }
 

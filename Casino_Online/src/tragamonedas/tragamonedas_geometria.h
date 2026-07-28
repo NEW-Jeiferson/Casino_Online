@@ -63,7 +63,7 @@
 void dibujar_tragamonedas(const EstadoTragamonedas* estado);
 
 /* Barra de control 2D (overlay de pantalla completa, sin perspectiva):
-   SALDO / BET (con -/+) / WIN / boton SPIN / boton AUTO-MANUAL, todo en
+   SALDO / BET (con -/+) / WIN / boton SPIN, todo en
    una sola franja al pie de la ventana -en vez de un boton suelto- para
    que se lea como la interfaz del juego, no un control flotando aparte.
    Debe llamarse DESPUES de la escena 3D (como dibujar_hud/dibujar_
@@ -82,8 +82,7 @@ typedef enum {
     ZONA_CONTROL_NINGUNA = 0,
     ZONA_CONTROL_SPIN,
     ZONA_CONTROL_BET_MENOS,
-    ZONA_CONTROL_BET_MAS,
-    ZONA_CONTROL_AUTO
+    ZONA_CONTROL_BET_MAS
 } ZonaControlTragamonedas;
 
 ZonaControlTragamonedas obtener_zona_control_2d(int x_mouse, int y_mouse,
