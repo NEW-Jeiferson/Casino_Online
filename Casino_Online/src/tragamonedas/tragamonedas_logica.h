@@ -33,6 +33,8 @@
  */
 #ifndef TRAGAMONEDAS_LOGICA_H
 #define TRAGAMONEDAS_LOGICA_H
+#define NUM_RODILLOS 3
+#include "../core/jugador.h" /* para Jugador, usado por resolver_ronda_tragamonedas */
 
 typedef enum {
     SIMBOLO_CEREZA,
@@ -65,19 +67,45 @@ extern const SimboloTragamonedas ORDEN_TIRA_RODILLO[NUM_SIMBOLOS];
    posicion. */
 SimboloTragamonedas obtener_simbolo_en_posicion(int rodillo, float posicion);
 
-/* TODO (Dubenny): funcion que decida el resultado al azar (que simbolo
-   cae en cada rodillo al detenerse) - equivalente a como main.c decide
-   numero_ganador con rand() % 37 ANTES de que gire la bolita en la
-   ruleta. Sugerencia de firma:
-     void decidir_resultado_tragamonedas(SimboloTragamonedas resultado[NUM_RODILLOS]);
-*/
+/* Decide al azar, con rand(), que simbolo cae en cada uno de los
+   NUM_RODILLOS rodillos -mismo criterio que numero_ganador en main.c
+   (rand() % 37) para la ruleta: se llama UNA vez, antes de que arranque
+   cualquier animacion, y el resultado ya queda fijo desde ese momento.
+   No llama a srand() -eso ya lo hace main.c una sola vez al arrancar el
+   programa (ver srand(time(NULL)) en main()). */
+void decidir_resultado_tragamonedas(SimboloTragamonedas resultado[NUM_RODILLOS]);
 
-/* TODO (Dubenny): funcion equivalente a calcular_ganancia_total() de la
-   ruleta (core/estado_juego.c), que reciba el resultado (los simbolos
-   que cayeron, ver arriba) y el monto apostado, y devuelva la ganancia
-   neta (positiva si gana, negativa el monto perdido si no hay
-   combinacion que pague). Sugerencia de firma:
-     float calcular_ganancia_tragamonedas(const SimboloTragamonedas resultado[NUM_RODILLOS], float monto);
-*/
+/* Recibe el resultado ya decidido (ver arriba) y el monto apostado, y
+   devuelve la ganancia NETA: positiva es lo que se suma al saldo ademas
+   de recuperar el monto, negativa es -monto (se pierde toda la apuesta)
+   -mismo criterio que calcular_ganancia_apuesta() en
+   core/estado_juego.c para la ruleta (ej. numero pleno devuelve
+   monto*35, no monto*36). Paga fuerte por trio (3 simbolos iguales,
+   escalando de 2x en CEREZA a 50x en SIETE), poco por par (2 de 3
+   iguales, cualquier simbolo, 0.5x fijo), y nada si no hay combinacion.
+   Tabla de multiplicadores en tragamonedas_logica.c. */
+float calcular_ganancia_tragamonedas(const SimboloTragamonedas resultado[NUM_RODILLOS], float monto);
+
+/* Envuelve el punto de contacto con core/jugador.h para una ronda de
+   tragamonedas ya resuelta -mismo patron que usa main.c para la ruleta
+   en idle() (ver el bloque "Resolver resultado cuando la bolita se
+   acaba de detener"): calcula la ganancia, se la aplica al jugador, y
+   revisa si corresponde un mensaje reflexivo.
+
+   NO llama a registrar_apuesta(): eso pasa en el momento de apostar
+   (antes de tirar de la palanca), no aca -mismo motivo por el que
+   main.c lo hace en teclado()/mouse(), no en el idle() que resuelve el
+   resultado.
+
+   Se llama UNA vez, cuando los 3 rodillos ya terminaron de girar (no
+   en cada frame). Devuelve el mismo puntero que
+   verificar_mensaje_reflexivo(): un mensaje reflexivo con cifras del
+   jugador si corresponde mostrar uno recien ahora, o NULL si no hay
+   nada que avisar.
+
+   Todavia no se llama desde ningun lado (no hay integracion con main.c
+   aun -ver tragamonedas_TAREA.txt, seccion "Integracion final"); queda
+   lista para cuando se conecte el minijuego completo. */
+const char* resolver_ronda_tragamonedas(Jugador* jugador, const SimboloTragamonedas resultado[NUM_RODILLOS], float monto);
 
 #endif /* TRAGAMONEDAS_LOGICA_H */
