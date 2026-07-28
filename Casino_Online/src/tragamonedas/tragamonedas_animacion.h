@@ -22,15 +22,6 @@
 #define TRAGAMONEDAS_ANIMACION_H
 
 #include "tragamonedas_logica.h"
-#include "../core/jugador.h"
-
-/* NUM_RODILLOS viene de tragamonedas_logica.h (incluido arriba).
-   Se mantiene el #ifndef por robustez, en caso de que alguna unidad
-   de compilacion incluyera este header antes que logica.h. */
-#ifndef NUM_RODILLOS
-#define NUM_RODILLOS 3
-#endif
-
 typedef struct {
     /* Posicion del rodillo en "unidades de simbolo" -mismo significado
        que espera obtener_simbolo_en_posicion() en tragamonedas_logica.h
@@ -89,13 +80,8 @@ void inicializar_tragamonedas_animacion(EstadoTragamonedas* estado);
 
 /* Avanza la animacion segun el tiempo real transcurrido (delta_tiempo en
    segundos, mismo patron que actualizar_bolita() en ruleta_animacion.c).
-   Detecta automaticamente cuando todos los rodillos se detienen,
-   calcula la ganancia en ese momento, y la aplica al saldo REAL del
-   jugador via aplicar_resultado_apuesta() (core/jugador.h) -mismo
-   sistema de saldo/deuda que ya usa la ruleta, tal como exige el
-   contrato documentado en tragamonedas_logica.h. 'jugador' no puede ser
-   NULL. */
-void actualizar_tragamonedas(EstadoTragamonedas* estado, float delta_tiempo, Jugador* jugador);
+   Detecta automaticamente cuando todos los rodillos se detienen. */
+void actualizar_tragamonedas(EstadoTragamonedas* estado, float delta_tiempo);
 
 /* Inicia el giro de los 3 rodillos hacia el resultado decidido para
    esta ronda. El resultado se decide ANTES de animar con

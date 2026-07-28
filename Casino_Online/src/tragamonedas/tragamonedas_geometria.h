@@ -59,8 +59,8 @@
 /* Dibuja la escena 3D completa del tragamonedas (gabinete, rodillos,
    palanca, etc.) en el origen actual de la matriz de modelo -el
    llamador es responsable de la camara/proyeccion, igual que con
-   dibujar_mesa()/dibujar_rueda() en la ruleta. */
-void dibujar_tragamonedas(void);
+    dibujar_mesa()/dibujar_rueda() en la ruleta. */
+void dibujar_tragamonedas(const EstadoTragamonedas* estado);
 
 /* Barra de control 2D (overlay de pantalla completa, sin perspectiva):
    SALDO / BET (con -/+) / WIN / boton SPIN / boton AUTO-MANUAL, todo en
@@ -73,7 +73,7 @@ void dibujar_tragamonedas(void);
    proyecto) -esta es la aproximacion 2D mas integrada posible. */
 void dibujar_barra_control_2d(int ancho_ventana, int alto_ventana,
                                float saldo, float apuesta, float ganancia,
-                               int auto_activo);
+                               const EstadoTragamonedas* estado);
 
 /* Que zona de la barra de control cae en (x_mouse, y_mouse) -coordenadas
    de mouse de GLUT (origen arriba-izquierda, Y hacia abajo). Se llama
@@ -88,16 +88,5 @@ typedef enum {
 
 ZonaControlTragamonedas obtener_zona_control_2d(int x_mouse, int y_mouse,
                                                  int ancho_ventana, int alto_ventana);
-
-/* TEMPORAL, solo para pruebas locales mientras no exista la
-   integracion real (ver "INTEGRACION FINAL" en el documento del
-   proyecto). dibujar_tragamonedas() mantiene su propio
-   EstadoTragamonedas interno (ver tragamonedas_geometria.c) porque su
-   firma no recibe parametros. Este getter deja llegar a ese mismo
-   estado desde main.c para poder probar iniciar_giro_tragamonedas() +
-   actualizar_tragamonedas() de punta a punta, sin esperar a la
-   integracion. Cuando llegue ese paso, esto se reemplaza por el
-   EstadoTragamonedas que termine viviendo en partida (main.c). */
-EstadoTragamonedas* obtener_estado_tragamonedas_para_pruebas(void);
 
 #endif /* TRAGAMONEDAS_GEOMETRIA_H */

@@ -964,78 +964,7 @@ void dibujar_pantalla_carga(float progreso) {
     glPopMatrix();
 }
 
-void dibujar_pantalla_tragamonedas_placeholder(void) {
-    int ancho = glutGet(GLUT_WINDOW_WIDTH);
-    int alto = glutGet(GLUT_WINDOW_HEIGHT);
-    float cx = (float)ancho / 2.0f;
-    float cy = (float)alto / 2.0f;
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0, ancho, 0, alto, -1, 1);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-
-    /* Overlay oscuro */
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glColor4f(0.0f, 0.0f, 0.0f, 0.8f);
-    glBegin(GL_QUADS);
-    glVertex2f(0.0f, 0.0f);
-    glVertex2f((float)ancho, 0.0f);
-    glVertex2f((float)ancho, (float)alto);
-    glVertex2f(0.0f, (float)alto);
-    glEnd();
-
-    /* Panel central */
-    glColor4f(0.08f, 0.1f, 0.2f, 0.9f);
-    glBegin(GL_QUADS);
-    glVertex2f(cx - 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy + 120.0f);
-    glVertex2f(cx - 280.0f, cy + 120.0f);
-    glEnd();
-    glDisable(GL_BLEND);
-
-    /* Borde dorado */
-    glColor3f(1.0f, 0.85f, 0.0f);
-    glLineWidth(2.0f);
-    glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy + 120.0f);
-    glVertex2f(cx - 280.0f, cy + 120.0f);
-    glEnd();
-    glLineWidth(1.0f);
-
-    /* Icono de info */
-    dibujar_icono_info(cx, cy + 60.0f, 22.0f);
-
-    /* Mensajes */
-    glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_centrado(cx, cy + 15.0f, "TRAGAMONEDAS");
-
-    glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 20.0f, "Este modulo se encuentra en construccion");
-    dibujar_texto_centrado(cx, cy - 45.0f, "por otro desarrollador del equipo.");
-
-    glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 90.0f, "[ENTER] Volver al menu principal");
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-}
 
 void dibujar_pantalla_advertencia(void) {
     int ancho = glutGet(GLUT_WINDOW_WIDTH);
@@ -1629,9 +1558,7 @@ void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, c
     case ESTADO_EDUCACION:
         dibujar_pantalla_educacion(info->pagina_educacion);
         break;
-    case ESTADO_TRAGAMONEDAS_PLACEHOLDER:
-        dibujar_pantalla_tragamonedas_placeholder();
-        break;
+
     default:
         break; /* ESTADO_JUGANDO no requiere overlay */
     }

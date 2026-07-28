@@ -14,6 +14,12 @@
 #ifndef TEXTURA_H
 #define TEXTURA_H
 
+#include <GL/glut.h>
+
+/* Carga una textura generica desde archivo y la sube a OpenGL.
+   Devuelve el tex_id (0 si falla). */
+GLuint cargar_textura_gl(const char* ruta);
+
 /* Carga el archivo PNG del fondo del tragamonedas y lo sube como
    textura OpenGL. Devuelve 1 si tuvo exito, 0 si hubo un error (archivo
    no encontrado, formato no soportado, etc.). Se llama UNA sola vez

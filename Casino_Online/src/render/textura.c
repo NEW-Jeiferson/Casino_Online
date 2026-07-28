@@ -54,6 +54,41 @@ static const char* RUTAS_FONDO[] = {
     NULL
 };
 
+GLuint cargar_textura_gl(const char* ruta) {
+    int ancho, alto, canales;
+    unsigned char* data;
+    GLuint tex_id;
+    char ruta_alt[512];
+
+    tex_id = 0;
+    data = stbi_load(ruta, &ancho, &alto, &canales, 0);
+    if (!data) {
+        sprintf_s(ruta_alt, sizeof(ruta_alt), "../%s", ruta);
+        data = stbi_load(ruta_alt, &ancho, &alto, &canales, 0);
+    }
+    if (!data) {
+        fprintf(stderr, "Error al cargar textura: %s\n", ruta);
+        return 0;
+    }
+
+    glGenTextures(1, &tex_id);
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, 0x2900); /* GL_CLAMP */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, 0x2900); /* GL_CLAMP */
+
+    if (canales == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ancho, alto, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    } else if (canales == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ancho, alto, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+
+    stbi_image_free(data);
+    return tex_id;
+}
+
 int cargar_textura_fondo_tragamonedas(void) {
     int ancho, alto, canales;
     unsigned char* datos;

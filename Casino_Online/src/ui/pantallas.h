@@ -62,8 +62,7 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
    [ENTER] vuelve al menu -ver main.c/teclado(). */
 void dibujar_pantalla_educacion(int pagina);
 
-/* Dibuja la pantalla placeholder para el modulo de tragamonedas */
-void dibujar_pantalla_tragamonedas_placeholder(void);
+
 
 /* Nuevas pantallas de concientizacion y serious game */
 void dibujar_pantalla_advertencia(void);
