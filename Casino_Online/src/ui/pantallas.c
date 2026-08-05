@@ -212,13 +212,13 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     /* Opcion 2: Tragamonedas */
     if (opcion_seleccionada == 1) {
         glColor3f(1.0f, 0.85f, 0.0f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "->  2. TRAGAMONEDAS  (Proximamente)");
+        dibujar_texto_centrado(cx, cy + 20.0f, "->  2. TRAGAMONEDAS  (Disponible)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_centrado(cx, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
+        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
     } else {
         glColor3f(0.5f, 0.5f, 0.5f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "    2. TRAGAMONEDAS  (Proximamente)");
-        dibujar_texto_centrado(cx, cy - 5.0f, "Modulo en construccion por otro desarrollador.");
+        dibujar_texto_centrado(cx, cy + 20.0f, "    2. TRAGAMONEDAS  (Disponible)");
+        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
     }
 
     /* --- Accion --- */
@@ -705,6 +705,7 @@ static const char* EDUCACION_TITULOS[EDUCACION_NUM_PAGINAS] = {
     "QUE ES LA LUDOPATIA",
     "SIGNOS DE ALERTA",
     "MITOS SOBRE LAS APUESTAS",
+    "MITOS SOBRE TRAGAMONEDAS",
     "CONSECUENCIAS",
     "RECURSOS DE AYUDA (REP. DOMINICANA)",
     "PREVENCION"
@@ -755,6 +756,20 @@ static const char* EDUCACION_CUERPOS[EDUCACION_NUM_PAGINAS] = {
     "Realidad: ningun sistema de apuestas cambia\n"
     "la probabilidad matematica del juego ni la\n"
     "ventaja de la casa a largo plazo.",
+
+    "Mito: \"un casi-ganar (ej. 2 de 3 simbolos)\n"
+    "significa que el premio mayor esta cerca\".\n"
+    "\n"
+    "Realidad: es un efecto visual intencional. El\n"
+    "azar ya estaba decidido y la maquina solo\n"
+    "dibujo los rodillos asi para que sigas jugando.\n"
+    "\n"
+    "Mito: \"ganar menos de lo que aposte sigue\n"
+    "siendo una victoria\".\n"
+    "\n"
+    "Realidad: es una Perdida Disfrazada de Victoria\n"
+    "(LDW). Las luces y sonidos festejan para que\n"
+    "ignores que en realidad estas perdiendo dinero.",
 
     "El costo mas visible es el dinero: deudas,\n"
     "prestamos, interes que se acumula. Ya viste\n"
@@ -964,78 +979,7 @@ void dibujar_pantalla_carga(float progreso) {
     glPopMatrix();
 }
 
-void dibujar_pantalla_tragamonedas_placeholder(void) {
-    int ancho = glutGet(GLUT_WINDOW_WIDTH);
-    int alto = glutGet(GLUT_WINDOW_HEIGHT);
-    float cx = (float)ancho / 2.0f;
-    float cy = (float)alto / 2.0f;
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0, ancho, 0, alto, -1, 1);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-
-    /* Overlay oscuro */
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glColor4f(0.0f, 0.0f, 0.0f, 0.8f);
-    glBegin(GL_QUADS);
-    glVertex2f(0.0f, 0.0f);
-    glVertex2f((float)ancho, 0.0f);
-    glVertex2f((float)ancho, (float)alto);
-    glVertex2f(0.0f, (float)alto);
-    glEnd();
-
-    /* Panel central */
-    glColor4f(0.08f, 0.1f, 0.2f, 0.9f);
-    glBegin(GL_QUADS);
-    glVertex2f(cx - 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy + 120.0f);
-    glVertex2f(cx - 280.0f, cy + 120.0f);
-    glEnd();
-    glDisable(GL_BLEND);
-
-    /* Borde dorado */
-    glColor3f(1.0f, 0.85f, 0.0f);
-    glLineWidth(2.0f);
-    glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy - 120.0f);
-    glVertex2f(cx + 280.0f, cy + 120.0f);
-    glVertex2f(cx - 280.0f, cy + 120.0f);
-    glEnd();
-    glLineWidth(1.0f);
-
-    /* Icono de info */
-    dibujar_icono_info(cx, cy + 60.0f, 22.0f);
-
-    /* Mensajes */
-    glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_centrado(cx, cy + 15.0f, "TRAGAMONEDAS");
-
-    glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 20.0f, "Este modulo se encuentra en construccion");
-    dibujar_texto_centrado(cx, cy - 45.0f, "por otro desarrollador del equipo.");
-
-    glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 90.0f, "[ENTER] Volver al menu principal");
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-}
 
 void dibujar_pantalla_advertencia(void) {
     int ancho = glutGet(GLUT_WINDOW_WIDTH);
@@ -1305,15 +1249,53 @@ static const char* MENSAJES_CHECKPOINT[8] = {
     "o por impulso compulsivo."
 };
 
-void dibujar_pantalla_checkpoint_educativo(int indice_mensaje) {
+static const char* MENSAJES_CHECKPOINT_TRAGAMONEDAS[8] = {
+    "Un simbolo casi alineado no es un indicio de que estas\n"
+    "por ganar: es un efecto visual para que sigas jugando.\n"
+    "Cada giro es independiente del anterior.",
+
+    "Ganar menos de lo que apostaste sigue siendo una perdida,\n"
+    "aunque la maquina lo festeje con sonido y animacion como\n"
+    "si fuera una victoria.",
+
+    "La velocidad con la que se puede jugar ronda tras ronda\n"
+    "es una de las razones por las que el tragamonedas se\n"
+    "asocia tanto con el juego problematico.",
+
+    "Ninguna maquina esta fria ni caliente. El tiempo que\n"
+    "lleva sin pagar no cambia la probabilidad del proximo giro.",
+
+    "El autocontrol -definir un limite de tiempo y dinero antes\n"
+    "de jugar, y respetarlo- es la herramienta mas efectiva\n"
+    "contra el juego problematico, tambien aca.",
+
+    "Los sonidos y las luces de un tragamonedas estan\n"
+    "programados para reforzar la sensacion de estar ganando,\n"
+    "no para informarte con precision.",
+
+    "Jugar muchas rondas seguidas, muy rapido, es un patron\n"
+    "de riesgo especifico de este tipo de juego.",
+
+    "Si sentis que no podes parar, ese es el indicio mas\n"
+    "importante de todos. Buscar ayuda a tiempo hace la\n"
+    "diferencia."
+};
+
+void dibujar_pantalla_checkpoint_educativo(int indice_mensaje, int juego_activo) {
     int ancho = glutGet(GLUT_WINDOW_WIDTH);
     int alto = glutGet(GLUT_WINDOW_HEIGHT);
     float cx = (float)ancho / 2.0f;
     float cy = (float)alto / 2.0f;
-    int idx;
+    int idx = indice_mensaje % 8;
+    const char* mensaje;
 
-    idx = indice_mensaje % 8;
     if (idx < 0) idx = 0;
+    
+    if (juego_activo == 1) {
+        mensaje = MENSAJES_CHECKPOINT_TRAGAMONEDAS[idx];
+    } else {
+        mensaje = MENSAJES_CHECKPOINT[idx];
+    }
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -1362,7 +1344,7 @@ void dibujar_pantalla_checkpoint_educativo(int indice_mensaje) {
     dibujar_texto_centrado(cx, cy + 95.0f, "RECORDATORIO");
 
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_multilinea_centrado(MENSAJES_CHECKPOINT[idx], cx, cy + 40.0f, 24.0f);
+    dibujar_texto_multilinea_centrado(mensaje, cx, cy + 40.0f, 24.0f);
 
     glColor3f(0.5f, 0.5f, 0.5f);
     dibujar_texto_centrado(cx, cy - 140.0f, "[ENTER] Continuar bajo tu responsabilidad");
@@ -1504,77 +1486,163 @@ static const PreguntaQuiz QUIZ_PREGUNTAS[NUM_PREGUNTAS_QUIZ] = {
     }
 };
 
-int quiz_evaluar_respuesta(int pregunta_idx, int respuesta) {
-    if (pregunta_idx < 0 || pregunta_idx >= NUM_PREGUNTAS_QUIZ) return 0;
-    return QUIZ_PREGUNTAS[pregunta_idx].correcta == respuesta;
+static const PreguntaQuiz QUIZ_PREGUNTAS_TRAGAMONEDAS[8] = {
+    {
+        "Que significa que dos simbolos coincidan y el tercero quede muy cerca?",
+        "Es una perdida igual que cualquier otra",
+        "Significa que la maquina esta por pagar",
+        "Indica que encontraste el patron",
+        0,
+        "El efecto de 'casi ganar' es una ilusion visual creada\npara que el cerebro lo procese como una victoria y sigas jugando."
+    },
+    {
+        "Ganar 10 monedas en un giro donde apostaste 20 es:",
+        "Una victoria parcial que compensa",
+        "Una perdida disfrazada de victoria (LDW)",
+        "Un empate tecnico porque recuperaste algo",
+        1,
+        "Las perdidas disfrazadas de victorias usan sonidos de festejo\npara ocultar que, en el balance neto, perdiste dinero."
+    },
+    {
+        "Cual es un factor de riesgo mayor en el tragamonedas?",
+        "Las luces intermitentes en la pantalla",
+        "La tematica o los personajes del juego",
+        "La altisima velocidad entre cada giro",
+        2,
+        "El tragamonedas permite jugar muchisimas rondas por minuto,\nreduciendo el tiempo para pensar y aumentando el gasto."
+    },
+    {
+        "Si una maquina lleva horas sin entregar el jackpot:",
+        "La probabilidad del proximo giro sigue siendo exactamente la misma",
+        "Esta 'caliente' y es el mejor momento",
+        "Acumulo un pozo que tiene que liberar",
+        0,
+        "Las maquinas no tienen memoria ni ciclos: cada giro\nes completamente independiente de los anteriores."
+    },
+    {
+        "Cual es la forma mas efectiva de controlarse al jugar?",
+        "Jugar solo con un buen presentimiento",
+        "Definir un limite estricto antes de empezar",
+        "Apostar fuerte al principio y luego bajar",
+        1,
+        "El autocontrol solo funciona si los limites se establecen\nantes de entrar en el estado emocional del juego."
+    },
+    {
+        "Por que los tragamonedas tienen tanto sonido y animacion?",
+        "Para que la experiencia sea relajante",
+        "Para ayudar a llevar la cuenta del saldo",
+        "Para reforzar la accion y mantenerte inmerso",
+        2,
+        "El entorno audiovisual busca crear un estado de 'zona'\ndonde el jugador se olvida del tiempo y del dinero."
+    },
+    {
+        "Un signo claro de alerta de juego problematico es:",
+        "Sentir la necesidad de jugar para recuperar lo perdido",
+        "Jugar de vez en cuando con amigos",
+        "Conocer las matematicas del juego",
+        0,
+        "La persecucion de perdidas ('chasing losses') es uno de los\nsintomas mas graves y destructivos del juego compulsivo."
+    },
+    {
+        "Si jugar deja de ser divertido y se vuelve una necesidad:",
+        "Hay que probar suerte en otro juego",
+        "Es momento de parar y buscar ayuda",
+        "Se debe jugar solo los fines de semana",
+        1,
+        "Perder el control sobre el impulso de jugar no se soluciona\ncambiando de maquina, requiere ayuda especializada."
+    }
+};
+
+int quiz_evaluar_respuesta(int pregunta_idx, int respuesta, int juego_activo) {
+    if (juego_activo == 1) {
+        if (pregunta_idx < 0 || pregunta_idx >= 8) return 0;
+        return QUIZ_PREGUNTAS_TRAGAMONEDAS[pregunta_idx].correcta == respuesta;
+    } else {
+        if (pregunta_idx < 0 || pregunta_idx >= NUM_PREGUNTAS_QUIZ) return 0;
+        return QUIZ_PREGUNTAS[pregunta_idx].correcta == respuesta;
+    }
 }
 
-void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, int fue_correcta) {
-    int w = glutGet(GLUT_WINDOW_WIDTH);
-    int h = glutGet(GLUT_WINDOW_HEIGHT);
-    float cx = w / 2.0f;
-    float cy = h / 2.0f;
+void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, int fue_correcta, int juego_activo) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+    const PreguntaQuiz* banco_preguntas;
+    int max_preguntas;
+    char msg[128];
+    
+    if (juego_activo == 1) {
+        banco_preguntas = QUIZ_PREGUNTAS_TRAGAMONEDAS;
+        max_preguntas = 8;
+    } else {
+        banco_preguntas = QUIZ_PREGUNTAS;
+        max_preguntas = NUM_PREGUNTAS_QUIZ;
+    }
+    
+    if (pregunta_idx < 0) pregunta_idx = 0;
+    if (pregunta_idx >= max_preguntas) pregunta_idx = max_preguntas - 1;
 
-    if (pregunta_idx < 0 || pregunta_idx >= NUM_PREGUNTAS_QUIZ) return;
-
-    /* --- Entrar en modo 2D --- */
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    glOrtho(0, w, 0, h, -1, 1);
+    glOrtho(0, ancho, 0, alto, -1, 1);
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
 
-    glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
 
-    glColor4f(0.0f, 0.0f, 0.0f, 0.85f);
+    glColor4f(0.05f, 0.15f, 0.25f, 0.95f);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBegin(GL_QUADS);
-    glVertex2i(0, 0);
-    glVertex2i(w, 0);
-    glVertex2i(w, h);
-    glVertex2i(0, h);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
     glEnd();
+    glDisable(GL_BLEND);
 
-    glColor3f(1.0f, 0.6f, 0.0f);
+    glColor3f(1.0f, 0.85f, 0.0f);
     dibujar_texto_centrado(cx, cy + 120.0f, "QUIZ EDUCATIVO");
     
     glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].pregunta, cx, cy + 60.0f, 24.0f);
+    dibujar_texto_multilinea_centrado(banco_preguntas[pregunta_idx].pregunta, cx, cy + 60.0f, 24.0f);
 
     if (fase == 0) {
         /* Fase de pregunta */
         glColor3f(0.9f, 0.9f, 0.9f);
         dibujar_texto_centrado(cx, cy - 20.0f, "[A]");
-        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].opcion_a, cx, cy - 45.0f, 20.0f);
+        dibujar_texto_multilinea_centrado(banco_preguntas[pregunta_idx].opcion_a, cx, cy - 45.0f, 20.0f);
         
         dibujar_texto_centrado(cx, cy - 85.0f, "[B]");
-        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].opcion_b, cx, cy - 110.0f, 20.0f);
+        dibujar_texto_multilinea_centrado(banco_preguntas[pregunta_idx].opcion_b, cx, cy - 110.0f, 20.0f);
         
         dibujar_texto_centrado(cx, cy - 150.0f, "[C]");
-        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].opcion_c, cx, cy - 175.0f, 20.0f);
+        dibujar_texto_multilinea_centrado(banco_preguntas[pregunta_idx].opcion_c, cx, cy - 175.0f, 20.0f);
         
         glColor3f(1.0f, 0.85f, 0.0f);
         dibujar_texto_centrado(cx, cy - 230.0f, "[S] Terminar la sesion aqui");
     } else {
         /* Fase de feedback */
         if (fue_correcta) {
-            glColor3f(0.0f, 1.0f, 0.0f);
+            glColor3f(0.2f, 1.0f, 0.2f);
             dibujar_texto_centrado(cx, cy - 10.0f, "CORRECTO");
         } else {
             const char* letras[3] = {"A", "B", "C"};
-            char msg[128];
             glColor3f(1.0f, 0.3f, 0.0f);
             dibujar_texto_centrado(cx, cy - 10.0f, "INCORRECTO");
             glColor3f(1.0f, 1.0f, 1.0f);
-            sprintf_s(msg, sizeof(msg), "La respuesta correcta era: %s", letras[QUIZ_PREGUNTAS[pregunta_idx].correcta]);
+            sprintf_s(msg, sizeof(msg), "La respuesta correcta era: %s", 
+                letras[banco_preguntas[pregunta_idx].correcta]);
             dibujar_texto_centrado(cx, cy - 35.0f, msg);
         }
         
         glColor3f(0.8f, 0.8f, 0.8f);
-        dibujar_texto_multilinea_centrado(QUIZ_PREGUNTAS[pregunta_idx].explicacion, cx, cy - 80.0f, 24.0f);
+        dibujar_texto_multilinea_centrado(banco_preguntas[pregunta_idx].explicacion, cx, cy - 80.0f, 24.0f);
         
         glColor3f(0.5f, 0.5f, 0.5f);
         dibujar_texto_centrado(cx, cy - 180.0f, "[ENTER] Continuar");
@@ -1609,10 +1677,10 @@ void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, c
         dibujar_pantalla_confirmacion_juego();
         break;
     case ESTADO_CHECKPOINT_EDUCATIVO:
-        dibujar_pantalla_checkpoint_educativo(info->indice_checkpoint);
+        dibujar_pantalla_checkpoint_educativo(info->indice_checkpoint, info->juego_activo);
         break;
     case ESTADO_QUIZ_EDUCATIVO:
-        dibujar_pantalla_quiz(info->quiz_pregunta_idx, info->quiz_fase, info->quiz_respuesta_elegida, info->quiz_fue_correcta);
+        dibujar_pantalla_quiz(info->quiz_pregunta_idx, info->quiz_fase, info->quiz_respuesta_elegida, info->quiz_fue_correcta, info->juego_activo);
         break;
     case ESTADO_PRESTAMO:
         dibujar_pantalla_prestamo(jugador);
@@ -1629,9 +1697,7 @@ void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, c
     case ESTADO_EDUCACION:
         dibujar_pantalla_educacion(info->pagina_educacion);
         break;
-    case ESTADO_TRAGAMONEDAS_PLACEHOLDER:
-        dibujar_pantalla_tragamonedas_placeholder();
-        break;
+
     default:
         break; /* ESTADO_JUGANDO no requiere overlay */
     }

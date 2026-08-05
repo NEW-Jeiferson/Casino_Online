@@ -101,7 +101,7 @@ typedef enum {
                                  desde el menu y desde las 2 pantallas de
                                  cierre de sesion, ver main.c/teclado(). */
     ESTADO_CARGA,            /* Pantalla de carga inicial del juego */
-    ESTADO_TRAGAMONEDAS_PLACEHOLDER, /* Pantalla placeholder de tragamonedas */
+    ESTADO_TRAGAMONEDAS_JUGANDO, /* Pantalla real de tragamonedas */
     ESTADO_ADVERTENCIA,      /* Advertencia inicial de ludopatia */
     ESTADO_PROPOSITO,        /* Explicacion del proposito educativo del proyecto */
     ESTADO_CONFIRMACION_JUEGO, /* Reflexion y confirmacion de responsabilidad previa a la partida */

@@ -51,7 +51,7 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador);
    (ver la implementacion en pantallas.c). */
 void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* jugador);
 
-#define EDUCACION_NUM_PAGINAS 6
+#define EDUCACION_NUM_PAGINAS 7
 
 /* Pilar 4 del "serious game" (ver docs/analisis-ludopatia.md): pantalla
    de informacion paginada sobre ludopatia. 'pagina' va de 0 a
@@ -62,23 +62,22 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
    [ENTER] vuelve al menu -ver main.c/teclado(). */
 void dibujar_pantalla_educacion(int pagina);
 
-/* Dibuja la pantalla placeholder para el modulo de tragamonedas */
-void dibujar_pantalla_tragamonedas_placeholder(void);
+
 
 /* Nuevas pantallas de concientizacion y serious game */
 void dibujar_pantalla_advertencia(void);
 void dibujar_pantalla_proposito(void);
 void dibujar_pantalla_confirmacion_juego(void);
-void dibujar_pantalla_checkpoint_educativo(int indice_mensaje);
+void dibujar_pantalla_checkpoint_educativo(int indice_mensaje, int juego_activo);
 
 /* Pilar 5 del "serious game": Quiz Educativo Interactivo */
 #define NUM_PREGUNTAS_QUIZ 12
 
 /* Dibuja la pantalla del quiz educativo en base a la fase actual y la respuesta elegida */
-void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, int fue_correcta);
+void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, int fue_correcta, int juego_activo);
 
 /* Auxiliar para que main.c pueda verificar si la opcion elegida fue la correcta (0=A, 1=B, 2=C) */
-int quiz_evaluar_respuesta(int pregunta_idx, int respuesta);
+int quiz_evaluar_respuesta(int pregunta_idx, int respuesta, int juego_activo);
 
 /* Parametros transitorios que algunas pantallas necesitan y otras no */
 typedef struct {
@@ -93,6 +92,7 @@ typedef struct {
     int quiz_fase;
     int quiz_respuesta_elegida;
     int quiz_fue_correcta;
+    int juego_activo;              /* 0 = Ruleta, 1 = Tragamonedas (para bifurcar contenido) */
 } InfoPantalla;
 
 /* Despacha a la funcion de dibujo correspondiente segun el estado

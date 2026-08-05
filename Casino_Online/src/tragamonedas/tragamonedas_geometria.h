@@ -28,27 +28,39 @@
 #ifndef TRAGAMONEDAS_GEOMETRIA_H
 #define TRAGAMONEDAS_GEOMETRIA_H
 
- /* Dimensiones publicas del gabinete (en unidades de mundo, misma escala
-	que RADIO_MESA/RADIO_EXTERIOR_RUEDA en ruleta_geometria.h). Se dejan
-	publicas para que los proximos pasos (rodillos, palanca) puedan ubicar
-	sus piezas relativas al gabinete sin numeros magicos repetidos. */
-#define GABINETE_ANCHO             2.4f
-#define GABINETE_PROFUNDIDAD       2.0f
-#define GABINETE_ALTURA_BASE       0.5f
-#define GABINETE_ALTURA_CUERPO     3.0f
-#define GABINETE_ALTURA_MARQUESINA 1.0f
-#define GABINETE_ALTURA_TOTAL      (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO + GABINETE_ALTURA_MARQUESINA)
+#include "tragamonedas_animacion.h"
 
-	/* Altura (Y) a la que empieza el cuerpo principal y la marquesina,
-	   medidas desde el piso (Y = 0). Utiles para el paso 2 (rodillos), que
-	   va a tener que ubicar la ventana de los rodillos dentro del cuerpo. */
+/* Dimensiones publicas del gabinete (en unidades de mundo, misma escala
+   que RADIO_MESA/RADIO_EXTERIOR_RUEDA en ruleta_geometria.h). Se dejan
+   publicas para que los proximos pasos (rodillos, palanca) puedan ubicar
+   sus piezas relativas al gabinete sin numeros magicos repetidos.
+
+   REDISENO (referencia: boceto de tragamonedas antigua tipo Mills/
+   Jennings -mueble angosto y alto, tope curvo/domo, no la caja ancha y
+   plana de la version "casino moderno" anterior): el mueble se angosta
+   y se agrega una cupula redondeada arriba de la marquesina en vez de
+   un canto recto. */
+#define GABINETE_ANCHO             1.7f
+#define GABINETE_PROFUNDIDAD       1.5f
+#define GABINETE_ALTURA_BASE       0.30f
+#define GABINETE_ALTURA_CUERPO     2.55f
+#define GABINETE_ALTURA_MARQUESINA 0.75f
+#define GABINETE_RADIO_CUPULA      (GABINETE_ANCHO / 2.0f)
+#define GABINETE_ALTURA_TOTAL      (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO + GABINETE_ALTURA_MARQUESINA + GABINETE_RADIO_CUPULA)
+
+/* Altura (Y) a la que empieza el cuerpo principal, la marquesina y la
+   cupula, medidas desde el piso (Y = 0). Utiles para el paso 2
+   (rodillos), que va a tener que ubicar la ventana de los rodillos
+   dentro del cuerpo. */
 #define GABINETE_Y_INICIO_CUERPO      (GABINETE_ALTURA_BASE)
 #define GABINETE_Y_INICIO_MARQUESINA  (GABINETE_ALTURA_BASE + GABINETE_ALTURA_CUERPO)
+#define GABINETE_Y_INICIO_CUPULA      (GABINETE_Y_INICIO_MARQUESINA + GABINETE_ALTURA_MARQUESINA)
 
-	   /* Dibuja la escena 3D completa del tragamonedas (gabinete, rodillos,
-		  palanca, etc.) en el origen actual de la matriz de modelo -el
-		  llamador es responsable de la camara/proyeccion, igual que con
-		  dibujar_mesa()/dibujar_rueda() en la ruleta. */
-void dibujar_tragamonedas(void);
+/* Dibuja la escena 3D completa del tragamonedas (gabinete, rodillos,
+   palanca, etc.) en el origen actual de la matriz de modelo -el
+   llamador es responsable de la camara/proyeccion, igual que con
+    dibujar_mesa()/dibujar_rueda() en la ruleta. */
+void dibujar_tragamonedas(const EstadoTragamonedas* estado);
+
 
 #endif /* TRAGAMONEDAS_GEOMETRIA_H */
