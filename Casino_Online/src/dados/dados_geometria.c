@@ -50,6 +50,11 @@ static void dibujar_punto(float x, float y, float z, float normal_x, float norma
 
 /* Dibuja una cara cuadrada del dado con sus puntos respectivos (1 a 6) */
 static void dibujar_cara(int valor, float normal_x, float normal_y, float normal_z) {
+    float off = 0.25f;
+    float z_face = 0.5f * normal_z;
+    float x_face = 0.5f * normal_x;
+    float y_face = 0.5f * normal_y;
+
     glColor3f(0.8f, 0.1f, 0.1f); /* Rojo normal */
     glBegin(GL_QUADS);
     glNormal3f(normal_x, normal_y, normal_z);
@@ -89,10 +94,6 @@ static void dibujar_cara(int valor, float normal_x, float normal_y, float normal
     glEnd();
 
     /* Puntos */
-    float off = 0.25f;
-    float z_face = 0.5f * normal_z;
-    float x_face = 0.5f * normal_x;
-    float y_face = 0.5f * normal_y;
     
     if (valor == 1 || valor == 3 || valor == 5) {
         dibujar_punto(x_face, y_face, z_face, normal_x, normal_y, normal_z); /* Centro */

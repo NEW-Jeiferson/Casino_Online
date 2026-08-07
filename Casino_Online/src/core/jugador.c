@@ -117,6 +117,12 @@ int calcular_nivel_riesgo(const Jugador* j, int tiempo_actual_ms) {
     if (j->total_apostado >= j->saldo_inicial * 1.5f) puntos += 1;
     if (j->total_apostado >= j->saldo_inicial * 3.0f) puntos += 1;
     if (mins >= 15.0f) puntos += 1;
+    
+    if (j->saldo_inicial > 0.0f) {
+        float saldo_actual = j->saldo_inicial + j->total_ganado - j->total_perdido;
+        if (saldo_actual <= j->saldo_inicial * 0.4f) puntos += 2; /* Perdio el 60% */
+        if (saldo_actual <= j->saldo_inicial * 0.1f) puntos += 2; /* Perdio el 90% */
+    }
 
     if (puntos == 0) return 0;
     if (puntos <= 2) return 1;

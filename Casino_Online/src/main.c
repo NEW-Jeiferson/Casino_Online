@@ -257,11 +257,12 @@ static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
 
 static void hacer_apuesta_dados(TipoApuestaDados tipo) {
     if (!partida.dados.girando && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
+        int d1, d2;
+        
         registrar_apuesta(&partida.jugador, partida.monto_ficha_actual);
         partida.dados_ultima_apuesta = tipo;
         partida.dados_monto_apuesta = partida.monto_ficha_actual;
         partida.dados_ultimo_resultado = 0; /* Reset */
-        int d1, d2;
         decidir_resultado_dados(&d1, &d2);
         partida.mensaje_probabilidad_actual = rand() % 8;
         iniciar_tiro_dados(&partida.dados, d1, d2);
@@ -482,9 +483,9 @@ void teclado(unsigned char tecla, int x, int y) {
         if (estado_actual == ESTADO_DADOS_JUGANDO) {
             hacer_apuesta_dados(APUESTA_DADOS_PAR);
         } else if (estado_actual == ESTADO_PRESTAMO) {
-            pedir_prestamo(&partida.jugador, 200.0f, 0.20f);
+            pedir_prestamo(&partida.jugador, MONTO_PRESTAMO, TASA_INTERES_PRESTAMO);
 
-            if (deuda_es_impagable(&partida.jugador, 1000.0f)) {
+            if (deuda_es_impagable(&partida.jugador, LIMITE_DEUDA_IMPAGABLE)) {
                 cambiar_estado(ESTADO_GAME_OVER);
             }
             else {
@@ -518,7 +519,7 @@ void teclado(unsigned char tecla, int x, int y) {
             }
             if (!alguno_girando) cambiar_estado(ESTADO_SESION_TERMINADA);
         }
-        else if (estado_actual == ESTADO_DADOS_JUGANDO) {
+        else if (estado_actual == ESTADO_DADOS_JUGANDO && !partida.dados.girando) {
             cambiar_estado(ESTADO_SESION_TERMINADA);
         }
         break;
@@ -615,7 +616,7 @@ void teclado(unsigned char tecla, int x, int y) {
         }
 
         else if (estado_actual == ESTADO_GAME_OVER) {
-            cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
+            cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_SESION_TERMINADA) {
             cambiar_estado(ESTADO_CONFIRMACION_JUEGO);

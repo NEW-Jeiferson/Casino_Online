@@ -204,12 +204,18 @@ void dibujar_hud(const Jugador* jugador, float monto_ficha_actual, int num_apues
     /* --- PROBABILIDADES REALES DURANTE EL GIRO --- */
     if (bolita_girando) {
         int idx = indice_probabilidad % 12;
+        const char* msg_prob;
+        int msg_len;
+        float banner_cx;
+        float banner_y;
+        float half_w;
+
         if (idx < 0) idx = 0;
-        const char* msg_prob = MENSAJES_PROBABILIDAD[idx];
-        int msg_len = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)msg_prob);
-        float banner_cx = (float)ancho / 2.0f;
-        float banner_y = (float)alto - 45.0f;
-        float half_w = (float)msg_len / 2.0f + 12.0f;
+        msg_prob = MENSAJES_PROBABILIDAD[idx];
+        msg_len = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)msg_prob);
+        banner_cx = (float)ancho / 2.0f;
+        banner_y = (float)alto - 45.0f;
+        half_w = (float)msg_len / 2.0f + 12.0f;
 
         /* Margen de seguridad: evitar que el banner central pise el HUD (345px) o las notificaciones (ancho - 315px) */
         if (banner_cx - half_w < 360.0f) {
