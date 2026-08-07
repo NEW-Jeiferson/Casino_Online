@@ -31,6 +31,8 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>obj\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -38,6 +40,8 @@
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>obj\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -105,6 +109,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glut32.lib;opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -162,6 +167,8 @@
     <ClCompile Include="src\tragamonedas\tragamonedas_animacion.c" />
     <ClCompile Include="src\tragamonedas\tragamonedas_geometria.c" />
     <ClCompile Include="src\tragamonedas\tragamonedas_logica.c" />
+    <ClCompile Include="src\tragamonedas\simbolos_tex.c" />
+    <ClCompile Include="src\render\textura.c" />
     <ClCompile Include="src\ui\tablero_apuestas.c" />
     <ClCompile Include="src\ui\tablero_apuestas.h" />
     <ClCompile Include="src\core\estado_juego.c" />
@@ -173,6 +180,8 @@
     <ClCompile Include="src\ruleta\ruleta_animacion.c" />
     <ClCompile Include="src\ruleta\ruleta_geometria.c" />
     <ClCompile Include="src\ui\hud.c" />
+    <ClCompile Include="src\ui\hud_tragamonedas.c" />
+    <ClCompile Include="src\ui\notificaciones.c" />
     <ClCompile Include="src\ui\pantallas.c" />
     <ClCompile Include="src\utils\bezier.c" />
     <ClCompile Include="src\utils\bresenham.c" />
@@ -185,10 +194,15 @@
     <ClInclude Include="src\ruleta\mouse_picking.h" />
     <ClInclude Include="src\ruleta\ruleta_animacion.h" />
     <ClInclude Include="src\ruleta\ruleta_geometria.h" />
+    <ClInclude Include="src\stb_image.h" />
     <ClInclude Include="src\tragamonedas\tragamonedas_animacion.h" />
     <ClInclude Include="src\tragamonedas\tragamonedas_geometria.h" />
     <ClInclude Include="src\tragamonedas\tragamonedas_logica.h" />
+    <ClInclude Include="src\tragamonedas\simbolos_tex.h" />
+    <ClInclude Include="src\render\textura.h" />
     <ClInclude Include="src\ui\hud.h" />
+    <ClInclude Include="src\ui\hud_tragamonedas.h" />
+    <ClInclude Include="src\ui\notificaciones.h" />
     <ClInclude Include="src\ui\pantallas.h" />
     <ClInclude Include="src\utils\bezier.h" />
     <ClInclude Include="src\utils\bresenham.h" />

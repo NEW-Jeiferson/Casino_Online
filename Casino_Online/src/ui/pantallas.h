@@ -15,9 +15,14 @@
 #include "../core/jugador.h"
 #include "../core/estado_juego.h"
 
- /* Dibuja la pantalla de bienvenida (ESTADO_MENU): titulo, aviso de que
-    se juega con saldo virtual, y la lista de controles del juego. */
-void dibujar_pantalla_menu(void);
+/* Inicializa las IDs de texturas OpenGL cargadas */
+void inicializar_texturas_pantallas(unsigned int tex_carga, unsigned int tex_casino);
+
+/* Dibuja la pantalla de carga inicial con barra de progreso */
+void dibujar_pantalla_carga(float progreso);
+
+/* Dibuja la pantalla de bienvenida y selector de juego (ESTADO_MENU) */
+void dibujar_pantalla_menu(int opcion_seleccionada);
 
 /* Dibuja el overlay y mensaje reflexivo de la pantalla de prestamo.
    Ofrece [P] pedir prestamo y seguir, o [S] terminar la sesion aqui
@@ -46,7 +51,7 @@ void dibujar_pantalla_sesion_terminada(const Jugador* jugador);
    (ver la implementacion en pantallas.c). */
 void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* jugador);
 
-#define EDUCACION_NUM_PAGINAS 6
+#define EDUCACION_NUM_PAGINAS 7
 
 /* Pilar 4 del "serious game" (ver docs/analisis-ludopatia.md): pantalla
    de informacion paginada sobre ludopatia. 'pagina' va de 0 a
@@ -57,14 +62,37 @@ void dibujar_pantalla_mensaje_reflexivo(const char* mensaje, const Jugador* juga
    [ENTER] vuelve al menu -ver main.c/teclado(). */
 void dibujar_pantalla_educacion(int pagina);
 
-/* Parametros transitorios que algunas pantallas necesitan y otras no
-   -se agrupan aca en vez de seguir sumando parametros sueltos a
-   dibujar_pantalla_segun_estado() cada vez que se agrega una pantalla
-   nueva que necesita "un dato mas". Los campos que no aplican al
-   estado actual simplemente no se leen. */
+
+
+/* Nuevas pantallas de concientizacion y serious game */
+void dibujar_pantalla_advertencia(void);
+void dibujar_pantalla_proposito(void);
+void dibujar_pantalla_confirmacion_juego(void);
+void dibujar_pantalla_checkpoint_educativo(int indice_mensaje, int juego_activo);
+
+/* Pilar 5 del "serious game": Quiz Educativo Interactivo */
+#define NUM_PREGUNTAS_QUIZ 12
+
+/* Dibuja la pantalla del quiz educativo en base a la fase actual y la respuesta elegida */
+void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, int fue_correcta, int juego_activo);
+
+/* Auxiliar para que main.c pueda verificar si la opcion elegida fue la correcta (0=A, 1=B, 2=C) */
+int quiz_evaluar_respuesta(int pregunta_idx, int respuesta, int juego_activo);
+
+/* Parametros transitorios que algunas pantallas necesitan y otras no */
 typedef struct {
     const char* mensaje_reflexivo; /* solo se usa si estado == ESTADO_MENSAJE_REFLEXIVO */
     int pagina_educacion;          /* solo se usa si estado == ESTADO_EDUCACION */
+    int opcion_menu;               /* solo se usa si estado == ESTADO_MENU */
+    float progreso_carga;          /* solo se usa si estado == ESTADO_CARGA */
+    int indice_checkpoint;         /* solo se usa si estado == ESTADO_CHECKPOINT_EDUCATIVO */
+    
+    /* Parametros exclusivos del ESTADO_QUIZ_EDUCATIVO */
+    int quiz_pregunta_idx;
+    int quiz_fase;
+    int quiz_respuesta_elegida;
+    int quiz_fue_correcta;
+    int juego_activo;              /* 0 = Ruleta, 1 = Tragamonedas (para bifurcar contenido) */
 } InfoPantalla;
 
 /* Despacha a la funcion de dibujo correspondiente segun el estado

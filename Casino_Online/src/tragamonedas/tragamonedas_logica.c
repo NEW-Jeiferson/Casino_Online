@@ -97,7 +97,7 @@ float calcular_ganancia_tragamonedas(const SimboloTragamonedas resultado[NUM_ROD
         }
     }
     if (simbolo_trio != -1) {
-        return monto * MULTIPLICADOR_TRIO[simbolo_trio];
+        return monto * (MULTIPLICADOR_TRIO[simbolo_trio] - 1.0f);
     }
 
     /* Par: algun simbolo salio exactamente 2 veces */
@@ -109,7 +109,7 @@ float calcular_ganancia_tragamonedas(const SimboloTragamonedas resultado[NUM_ROD
         }
     }
     if (hay_par) {
-        return monto * MULTIPLICADOR_PAR;
+        return monto * (MULTIPLICADOR_PAR - 1.0f);
     }
 
     /* Sin combinacion: se pierde el monto entero */

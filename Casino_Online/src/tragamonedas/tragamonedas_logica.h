@@ -33,8 +33,7 @@
  */
 #ifndef TRAGAMONEDAS_LOGICA_H
 #define TRAGAMONEDAS_LOGICA_H
-
-#include "tragamonedas_animacion.h" /* para NUM_RODILLOS */
+#define NUM_RODILLOS 3
 #include "../core/jugador.h" /* para Jugador, usado por resolver_ronda_tragamonedas */
 
 typedef enum {
