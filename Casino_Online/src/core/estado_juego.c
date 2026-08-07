@@ -79,6 +79,15 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
         return nuevo == ESTADO_PROPOSITO;
 
     case ESTADO_PROPOSITO:
+        return nuevo == ESTADO_INTRO_LATINOAMERICA;
+
+    case ESTADO_INTRO_LATINOAMERICA:
+        return nuevo == ESTADO_INTRO_RD;
+
+    case ESTADO_INTRO_RD:
+        return nuevo == ESTADO_INTRO_COSTO_HUMANO;
+
+    case ESTADO_INTRO_COSTO_HUMANO:
         return nuevo == ESTADO_MENU;
 
     case ESTADO_MENU:

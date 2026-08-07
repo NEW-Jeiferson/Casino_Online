@@ -67,6 +67,9 @@ void dibujar_pantalla_educacion(int pagina);
 /* Nuevas pantallas de concientizacion y serious game */
 void dibujar_pantalla_advertencia(void);
 void dibujar_pantalla_proposito(void);
+void dibujar_pantalla_intro_latinoamerica(void);
+void dibujar_pantalla_intro_rd(void);
+void dibujar_pantalla_intro_costo_humano(void);
 void dibujar_pantalla_confirmacion_juego(void);
 void dibujar_pantalla_checkpoint_educativo(int indice_mensaje, int juego_activo);
 
