@@ -37,6 +37,7 @@ static void calcular_angulos_finales(int valor, float* rx, float* ry, float* rz)
 
 void iniciar_tiro_dados(EstadoDados* estado, int dado1, int dado2) {
     estado->girando = 1;
+    estado->fase_asentamiento = 0;
     estado->tiempo_transcurrido = 0.0f;
     estado->dado1_final = dado1;
     estado->dado2_final = dado2;
@@ -52,47 +53,77 @@ void iniciar_tiro_dados(EstadoDados* estado, int dado1, int dado2) {
 }
 
 void actualizar_dados(EstadoDados* estado, float delta_tiempo) {
-    float t, rx, ry, rz, factor;
-    int i;
-    Punto3D p0 = {0.0f, 1.0f, 0.0f};
-    Punto3D p1 = {0.0f, 0.85f, 0.0f};
-    Punto3D p2 = {0.0f, 0.25f, 0.0f};
-    Punto3D p3 = {0.0f, 0.0f, 0.0f};
-    Punto3D easing;
+    float t, rx, ry, rz;
+    int i, vueltas;
 
     if (!estado->girando) return;
 
     estado->tiempo_transcurrido += delta_tiempo;
     t = estado->tiempo_transcurrido / TIEMPO_TIRO;
+
     if (t >= 1.0f) {
         t = 1.0f;
         estado->girando = 0;
         
         calcular_angulos_finales(estado->dado1_final, &rx, &ry, &rz);
-        estado->rotacion_x[0] = rx;
-        estado->rotacion_y[0] = ry;
-        estado->rotacion_z[0] = rz;
+        estado->rotacion_x[0] = rx; estado->rotacion_y[0] = ry; estado->rotacion_z[0] = rz;
         estado->altura[0] = 0.5f;
 
         calcular_angulos_finales(estado->dado2_final, &rx, &ry, &rz);
-        estado->rotacion_x[1] = rx;
-        estado->rotacion_y[1] = ry;
-        estado->rotacion_z[1] = rz;
+        estado->rotacion_x[1] = rx; estado->rotacion_y[1] = ry; estado->rotacion_z[1] = rz;
         estado->altura[1] = 0.5f;
         return;
     }
 
-    easing = evaluar_bezier_cubica(p0, p1, p2, p3, t);
-    factor = easing.y;
-    if (factor < 0.0f) factor = 0.0f;
-
-    /* Aplicamos factor a la rotacion */
-    for (i = 0; i < 2; i++) {
-        estado->rotacion_x[i] += estado->velocidad_x[i] * factor * delta_tiempo;
-        estado->rotacion_y[i] += estado->velocidad_y[i] * factor * delta_tiempo;
-        estado->rotacion_z[i] += estado->velocidad_z[i] * factor * delta_tiempo;
+    if (t < 0.7f) {
+        /* --- FASE 1: GIRO LIBRE Y CAOTICO (Primer 70% del tiempo) --- */
+        float t_libre = t / 0.7f;
+        float factor = 1.0f - (t_libre * t_libre * 0.5f); /* Decaimiento suave sin detenerse del todo */
         
-        /* Simular rebote simple con sin() */
-        estado->altura[i] = 0.5f + (float)fabs(sin(estado->tiempo_transcurrido * (10.0f + i * 2.0f))) * 2.0f * factor;
+        for (i = 0; i < 2; i++) {
+            estado->rotacion_x[i] += estado->velocidad_x[i] * factor * delta_tiempo;
+            estado->rotacion_y[i] += estado->velocidad_y[i] * factor * delta_tiempo;
+            estado->rotacion_z[i] += estado->velocidad_z[i] * factor * delta_tiempo;
+            estado->altura[i] = 0.5f + (float)fabs(sin(estado->tiempo_transcurrido * (10.0f + i * 2.0f))) * 2.0f * factor;
+        }
+    } else {
+        /* --- FASE 2: ASENTAMIENTO AL OBJETIVO (Ultimo 30% del tiempo) --- */
+        float t_asentamiento = (t - 0.7f) / 0.3f;
+        float ease_out = 1.0f - (1.0f - t_asentamiento) * (1.0f - t_asentamiento); /* Ease-Out Cuadratico */
+        
+        if (!estado->fase_asentamiento) {
+            estado->fase_asentamiento = 1;
+            for (i = 0; i < 2; i++) {
+                estado->rot_snap_x[i] = estado->rotacion_x[i];
+                estado->rot_snap_y[i] = estado->rotacion_y[i];
+                estado->rot_snap_z[i] = estado->rotacion_z[i];
+            }
+        }
+        
+        for (i = 0; i < 2; i++) {
+            int dado_final = (i == 0) ? estado->dado1_final : estado->dado2_final;
+            calcular_angulos_finales(dado_final, &rx, &ry, &rz);
+            
+            /* Ajustar meta para tomar el camino mas corto basandonos en las vueltas acumuladas */
+            vueltas = (int)(estado->rot_snap_x[i] / 360.0f); rx += vueltas * 360.0f;
+            if (rx - estado->rot_snap_x[i] < -180.0f) rx += 360.0f;
+            else if (rx - estado->rot_snap_x[i] > 180.0f) rx -= 360.0f;
+            
+            vueltas = (int)(estado->rot_snap_y[i] / 360.0f); ry += vueltas * 360.0f;
+            if (ry - estado->rot_snap_y[i] < -180.0f) ry += 360.0f;
+            else if (ry - estado->rot_snap_y[i] > 180.0f) ry -= 360.0f;
+            
+            vueltas = (int)(estado->rot_snap_z[i] / 360.0f); rz += vueltas * 360.0f;
+            if (rz - estado->rot_snap_z[i] < -180.0f) rz += 360.0f;
+            else if (rz - estado->rot_snap_z[i] > 180.0f) rz -= 360.0f;
+            
+            /* Interpolacion hacia el objetivo calculado */
+            estado->rotacion_x[i] = estado->rot_snap_x[i] + (rx - estado->rot_snap_x[i]) * ease_out;
+            estado->rotacion_y[i] = estado->rot_snap_y[i] + (ry - estado->rot_snap_y[i]) * ease_out;
+            estado->rotacion_z[i] = estado->rot_snap_z[i] + (rz - estado->rot_snap_z[i]) * ease_out;
+            
+            /* Disminucion controlada de los ultimos botes */
+            estado->altura[i] = 0.5f + (estado->altura[i] - 0.5f) * (1.0f - ease_out);
+        }
     }
 }

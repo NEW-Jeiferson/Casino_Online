@@ -1,0 +1,34 @@
+Resumen de Modificaciones en el Proyecto "Casino Online"
+========================================================
+
+A continuacion se detallan todos los cambios y correcciones implementados en el codigo fuente:
+
+1. Modulo: ui/pantallas.h y ui/pantallas.c
+-------------------------------------------
+- Pantalla de Carga: Se implemento la rotacion de 4 mensajes de concientizacion durante el progreso de carga.
+- Pantalla de Carga: Se movio la barra de progreso y su texto asociado mas hacia abajo (de 'cy - 100' a 'cy - 160') para evitar que se superponga con los mensajes de texto de 3 lineas.
+- Pantallas Intro: Se crearon 3 nuevas funciones de dibujado (dibujar_pantalla_intro_latinoamerica, dibujar_pantalla_intro_rd, y dibujar_pantalla_intro_costo_humano) siguiendo los lineamientos de ASCII puro.
+- Se incorporaron las nuevas pantallas al manejador maestro 'dibujar_pantalla_segun_estado'.
+
+2. Modulo: core/estado_juego.h y core/estado_juego.c
+----------------------------------------------------
+- Se añadieron 3 nuevos estados (ESTADO_INTRO_LATINOAMERICA, ESTADO_INTRO_RD, ESTADO_INTRO_COSTO_HUMANO) a la enumeracion 'EstadoJuego'.
+- Se modifico la funcion 'es_transicion_valida' para forzar una secuencia de inicio obligatoria:
+  PROPOSITO -> INTRO_LATINOAMERICA -> INTRO_RD -> INTRO_COSTO_HUMANO -> MENU. 
+  (No es posible saltarse ninguna de las pantallas de advertencia previas al menu principal).
+
+3. Modulo: main.c
+------------------
+- Teclado: Se añadio la logica de transicion (tecla ENTER) para que el juego pase a traves de las 3 pantallas de intro recien creadas.
+- Carga: Se añadio y configuro la constante DURACION_CARGA_SEGUNDOS a 16.0f, asegurando que los mensajes tengan 4 segundos cada uno para leerse.
+- Audio: Se actualizo la funcion 'iniciar_musica_fondo' para cargar la nueva pista de audio "musica\JAZZ_Casino.wav" y se resolvio un problema potencial de variable no inicializada con 'ruta_usada'.
+
+4. Modulo: dados/dados_animacion.h y dados/dados_animacion.c
+------------------------------------------------------------
+- Bug Fix (Animacion Dados): Se arreglo el error visual donde el dado cortaba su giro de golpe (snap) sin asentarse de forma natural en su resultado final.
+- EstadoDados: Se añadieron los campos 'fase_asentamiento' y 'rot_snap_x/y/z' para almacenar de manera temporal los angulos en los que termina de dar giros libres.
+- Actualizacion: Se dividio la funcion 'actualizar_dados' en dos fases (respetando C89 estricto):
+  - Fase 1 (Giro libre, 0% al 70% del tiempo): Los dados giran y rebotan simulando fisicas de forma aleatoria.
+  - Fase 2 (Asentamiento, 70% al 100%): El juego calcula la distancia en grados mas corta a la cara ganadora y usa una interpolacion cuadratica suave (Ease-Out) para depositar el dado gentilmente boca arriba.
+
+-- Todos los cambios fueron compilados exitosamente (0 Errores, 0 Advertencias) a traves de MSBuild usando la configuracion estricta C89 exigida por el proyecto. --
