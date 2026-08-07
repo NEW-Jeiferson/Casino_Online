@@ -179,19 +179,19 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0.1f, 0.15f, 0.3f, 0.4f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 260.0f, cy - 30.0f);
-    glVertex2f(cx + 260.0f, cy - 30.0f);
+    glVertex2f(cx - 260.0f, cy - 90.0f);
+    glVertex2f(cx + 260.0f, cy - 90.0f);
     glVertex2f(cx + 260.0f, cy + 150.0f);
     glVertex2f(cx - 260.0f, cy + 150.0f);
     glEnd();
     glDisable(GL_BLEND);
 
-    // Border of the selector card
+    /* Border of the selector card */
     glColor3f(0.55f, 0.75f, 1.0f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 260.0f, cy - 30.0f);
-    glVertex2f(cx + 260.0f, cy - 30.0f);
+    glVertex2f(cx - 260.0f, cy - 90.0f);
+    glVertex2f(cx + 260.0f, cy - 90.0f);
     glVertex2f(cx + 260.0f, cy + 150.0f);
     glVertex2f(cx - 260.0f, cy + 150.0f);
     glEnd();
@@ -200,39 +200,51 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     /* Opcion 1: Ruleta */
     if (opcion_seleccionada == 0) {
         glColor3f(1.0f, 0.85f, 0.0f);
-        dibujar_texto_centrado(cx, cy + 100.0f, "->  1. RULETA EUROPEA  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 120.0f, "->  1. RULETA EUROPEA  (Disponible)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_centrado(cx, cy + 75.0f, "Simulador 3D completo con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 95.0f, "Simulador 3D completo con concientizacion.");
     } else {
         glColor3f(0.5f, 0.5f, 0.5f);
-        dibujar_texto_centrado(cx, cy + 100.0f, "    1. RULETA EUROPEA  (Disponible)");
-        dibujar_texto_centrado(cx, cy + 75.0f, "Simulador 3D completo con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 120.0f, "    1. RULETA EUROPEA  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 95.0f, "Simulador 3D completo con concientizacion.");
     }
 
     /* Opcion 2: Tragamonedas */
     if (opcion_seleccionada == 1) {
         glColor3f(1.0f, 0.85f, 0.0f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "->  2. TRAGAMONEDAS  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 40.0f, "->  2. TRAGAMONEDAS  (Disponible)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 15.0f, "Simulador de tragamonedas con concientizacion.");
     } else {
         glColor3f(0.5f, 0.5f, 0.5f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "    2. TRAGAMONEDAS  (Disponible)");
-        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 40.0f, "    2. TRAGAMONEDAS  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 15.0f, "Simulador de tragamonedas con concientizacion.");
+    }
+
+    /* Opcion 3: Dados */
+    if (opcion_seleccionada == 2) {
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy - 40.0f, "->  3. DADOS  (Disponible)");
+        glColor3f(1.0f, 1.0f, 1.0f);
+        dibujar_texto_centrado(cx, cy - 65.0f, "Juego de dados simplificado con lecciones de probabilidad.");
+    } else {
+        glColor3f(0.5f, 0.5f, 0.5f);
+        dibujar_texto_centrado(cx, cy - 40.0f, "    3. DADOS  (Disponible)");
+        dibujar_texto_centrado(cx, cy - 65.0f, "Juego de dados simplificado con lecciones de probabilidad.");
     }
 
     /* --- Accion --- */
     glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 65.0f, "Presione [ENTER] para confirmar seleccion.");
-    dibujar_texto_centrado(cx, cy - 90.0f, "Presione [I] para ver Informacion.");
+    dibujar_texto_centrado(cx, cy - 160.0f, "Presione [ENTER] para confirmar seleccion.");
+    dibujar_texto_centrado(cx, cy - 185.0f, "Presione [I] para ver Informacion.");
 
     /* --- Controles de ayuda en el Menu --- */
     glColor3f(0.6f, 0.6f, 0.6f);
-    dibujar_texto_centrado(cx, cy - 140.0f, "Nota: Saldo inicial virtual de 1,000.00 creditos.");
+    dibujar_texto_centrado(cx, cy - 210.0f, "Nota: Saldo inicial virtual de 1,000.00 creditos.");
 
     /* Banner permanente de Serious Game */
     glColor3f(1.0f, 0.75f, 0.0f);
-    dibujar_texto_centrado(cx, cy - 175.0f, "Simulador educativo sobre ludopatia - No incentiva el juego con dinero real");
+    dibujar_texto_centrado(cx, cy - 235.0f, "Simulador educativo sobre ludopatia - No incentiva el juego con dinero real");
 
     /* --- Restaurar estado 3D --- */
     glEnable(GL_DEPTH_TEST);
@@ -302,9 +314,52 @@ void dibujar_pantalla_prestamo(const Jugador* jugador) {
     glColor3f(1.0f, 0.85f, 0.0f);
     dibujar_texto_centrado(cx, cy + 100.0f, "SOLICITUD DE PRESTAMO");
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    dibujar_texto_centrado(cx, cy + 45.0f, "Ya perdiste tu saldo inicial.");
-    dibujar_texto_centrado(cx, cy + 20.0f, "En la vida real, este seria el momento de parar.");
+    {
+        float costo_este_prestamo = MONTO_PRESTAMO + MONTO_PRESTAMO * TASA_INTERES_PRESTAMO;
+        float deuda_potencial = jugador->deuda + costo_este_prestamo;
+        int prestamo_numero = jugador->prestamos_activos + 1;
+        const char* mensaje_nivel;
+        char buffer_nivel3[256];
+
+        static const char* NIVEL_PRESTAMO_1 =
+            "Estas pidiendo dinero prestado para poder seguir jugando.\n"
+            "Esto, en si mismo, es un indicio de alerta reconocido del\n"
+            "juego problematico, no solo la deuda que estas por asumir.";
+
+        static const char* NIVEL_PRESTAMO_2 =
+            "Este es tu segundo prestamo. La deuda no se detiene sola:\n"
+            "crece con cada prestamo, ganes o pierdas las proximas rondas.";
+
+        static const char* NIVEL_PRESTAMO_4 =
+            "Este prestamo te deja cerca del limite. Si la deuda sigue\n"
+            "creciendo, la sesion podria terminar por bancarrota. Todavia\n"
+            "podes elegir parar aca.";
+
+        static const char* NIVEL_PRESTAMO_5 =
+            "Este prestamo especifico haria que la deuda se vuelva\n"
+            "impagable, terminando la sesion por bancarrota. Todavia\n"
+            "podes elegir no pedirlo.";
+
+        if (deuda_potencial >= LIMITE_DEUDA_IMPAGABLE) {
+            mensaje_nivel = NIVEL_PRESTAMO_5;
+        } else if (deuda_potencial >= LIMITE_DEUDA_IMPAGABLE - costo_este_prestamo) {
+            mensaje_nivel = NIVEL_PRESTAMO_4;
+        } else if (prestamo_numero == 1) {
+            mensaje_nivel = NIVEL_PRESTAMO_1;
+        } else if (prestamo_numero == 2) {
+            mensaje_nivel = NIVEL_PRESTAMO_2;
+        } else {
+            sprintf_s(buffer_nivel3, sizeof(buffer_nivel3),
+                "Van %d prestamos seguidos. Seguir apostando para tratar de\n"
+                "recuperar lo perdido es exactamente el patron de riesgo que\n"
+                "mas se asocia al juego problematico.",
+                prestamo_numero);
+            mensaje_nivel = buffer_nivel3;
+        }
+
+        glColor3f(1.0f, 1.0f, 1.0f);
+        dibujar_texto_multilinea_centrado(mensaje_nivel, cx, cy + 55.0f, 21.0f);
+    }
 
     /* Linea separadora */
     glColor3f(0.5f, 0.5f, 0.5f);
@@ -472,10 +527,10 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
     /* Dialog Panel */
     glColor4f(0.1f, 0.0f, 0.0f, 0.94f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 330.0f, cy - 275.0f);
-    glVertex2f(cx + 330.0f, cy - 275.0f);
-    glVertex2f(cx + 330.0f, cy + 240.0f);
-    glVertex2f(cx - 330.0f, cy + 240.0f);
+    glVertex2f(cx - 360.0f, cy - 360.0f);
+    glVertex2f(cx + 360.0f, cy - 360.0f);
+    glVertex2f(cx + 360.0f, cy + 350.0f);
+    glVertex2f(cx - 360.0f, cy + 350.0f);
     glEnd();
     glDisable(GL_BLEND);
 
@@ -483,29 +538,29 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
     glColor3f(1.0f, 0.2f, 0.2f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 330.0f, cy - 275.0f);
-    glVertex2f(cx + 330.0f, cy - 275.0f);
-    glVertex2f(cx + 330.0f, cy + 240.0f);
-    glVertex2f(cx - 330.0f, cy + 240.0f);
+    glVertex2f(cx - 360.0f, cy - 360.0f);
+    glVertex2f(cx + 360.0f, cy - 360.0f);
+    glVertex2f(cx + 360.0f, cy + 350.0f);
+    glVertex2f(cx - 360.0f, cy + 350.0f);
     glEnd();
     glLineWidth(1.0f);
 
     /* Icono de advertencia */
-    dibujar_icono_advertencia(cx, cy + 195.0f, 22.0f);
+    dibujar_icono_advertencia(cx, cy + 310.0f, 22.0f);
 
     glColor3f(1.0f, 0.2f, 0.2f);
-    dibujar_texto_centrado(cx, cy + 155.0f, "=== JUEGO TERMINADO ===");
+    dibujar_texto_centrado(cx, cy + 270.0f, "=== JUEGO TERMINADO ===");
 
     /* Resumen Financiero Desglosado */
     glColor3f(1.0f, 1.0f, 1.0f);
     sprintf_s(buffer, sizeof(buffer), "Total apostado: $%.2f", jugador->total_apostado);
-    dibujar_texto_centrado(cx, cy + 120.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 235.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Ganaste en total: $%.2f", jugador->total_ganado);
-    dibujar_texto_centrado(cx, cy + 98.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 213.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Perdiste en total: $%.2f", jugador->total_perdido);
-    dibujar_texto_centrado(cx, cy + 76.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 191.0f, buffer);
 
     {
         float neto = jugador->total_ganado - jugador->total_perdido;
@@ -516,46 +571,65 @@ void dibujar_pantalla_game_over(const Jugador* jugador) {
             sprintf_s(buffer, sizeof(buffer), "Resultado neto de la sesion: -$%.2f", fabsf(neto));
             glColor3f(1.0f, 0.35f, 0.35f);
         }
-        dibujar_texto_centrado(cx, cy + 54.0f, buffer);
+        dibujar_texto_centrado(cx, cy + 169.0f, buffer);
     }
 
     glColor3f(1.0f, 1.0f, 1.0f);
     sprintf_s(buffer, sizeof(buffer), "Prestamos: %d  |  Interes: $%.2f  |  Deuda impagable: $%.2f",
         jugador->prestamos_activos, jugador->interes_acumulado, jugador->deuda);
-    dibujar_texto_centrado(cx, cy + 30.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 145.0f, buffer);
 
     sprintf_s(buffer, sizeof(buffer), "Tiempo jugado: %.0f minutos", tiempo_jugado_minutos(jugador, glutGet(GLUT_ELAPSED_TIME)));
-    dibujar_texto_centrado(cx, cy + 8.0f, buffer);
+    dibujar_texto_centrado(cx, cy + 123.0f, buffer);
 
     /* Separador */
     glColor3f(0.5f, 0.2f, 0.2f);
     glBegin(GL_LINES);
-    glVertex2f(cx - 270.0f, cy - 10.0f);
-    glVertex2f(cx + 270.0f, cy - 10.0f);
+    glVertex2f(cx - 300.0f, cy + 100.0f);
+    glVertex2f(cx + 300.0f, cy + 100.0f);
     glEnd();
 
     if (jugador->total_ganado - jugador->total_perdido > 0.0f) {
         glColor3f(1.0f, 0.85f, 0.0f);
-        dibujar_texto_centrado(cx, cy - 35.0f, "Esta vez ganaste, pero no es el resultado comun en las apuestas.");
-        dibujar_texto_centrado(cx, cy - 57.0f, "Tuviste suerte, pero la proxima vez podria no ser lo mismo.");
+        dibujar_texto_centrado(cx, cy + 75.0f, "Esta vez ganaste, pero no es el resultado comun en las apuestas.");
+        dibujar_texto_centrado(cx, cy + 55.0f, "Tuviste suerte, pero la proxima vez podria no ser lo mismo.");
     } else {
         glColor3f(1.0f, 0.75f, 0.3f);
-        dibujar_texto_centrado(cx, cy - 35.0f, "Este es el resultado comun: a largo plazo las perdidas");
-        dibujar_texto_centrado(cx, cy - 57.0f, "siempre superan a las ganancias.");
+        dibujar_texto_centrado(cx, cy + 75.0f, "Este es el resultado comun, a largo plazo las perdidas");
+        dibujar_texto_centrado(cx, cy + 55.0f, "siempre superan a las ganancias.");
     }
 
-    glColor3f(1.0f, 0.6f, 0.5f);
-    dibujar_texto_centrado(cx, cy - 90.0f, "Al final, las personas siempre terminan perdiendo algo");
-    dibujar_texto_centrado(cx, cy - 112.0f, "(dinero, familia o amistades), aun cuando ganan dinero.");
+    {
+        char buffer_bancarrota[600];
+        sprintf_s(buffer_bancarrota, sizeof(buffer_bancarrota),
+            "Acumulaste $%.2f de deuda impagable, de los cuales $%.2f\n"
+            "fueron puro interes, dinero que nunca viste, generado solo\n"
+            "por seguir pidiendo prestado.\n"
+            "\n"
+            "Fuera de este simulador, esto es exactamente como empieza\n"
+            "un sobreendeudamiento real, prestamos informales para tapar\n"
+            "perdidas, intereses que crecen mas rapido de lo que se puede\n"
+            "pagar, y consecuencias que no se quedan en la mesa de juego,\n"
+            "afectan el credito, el patrimonio y a las personas alrededor\n"
+            "tuyo.\n"
+            "\n"
+            "Esta sesion termino aca. No hay un boton para deshacer una\n"
+            "deuda real.",
+            jugador->deuda, jugador->interes_acumulado);
+        glColor3f(1.0f, 0.6f, 0.5f);
+        dibujar_texto_multilinea_centrado(buffer_bancarrota, cx, cy + 30.0f, 20.0f);
+    }
 
     glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 150.0f, "Si te reconoces en algo de esta sesion, la tecla [I]");
-    dibujar_texto_centrado(cx, cy - 172.0f, "desde el menu tiene mas informacion sobre signos de alerta.");
+    dibujar_texto_centrado(cx, cy - 240.0f, "Si te reconoces en algo de esta sesion, la tecla [I]");
+    dibujar_texto_centrado(cx, cy - 260.0f, "desde el menu tiene mas informacion sobre signos de alerta.");
 
     glColor3f(1.0f, 0.85f, 0.0f);
-    dibujar_texto_centrado(cx, cy - 215.0f, "[ESC] Salir");
+    dibujar_texto_centrado(cx, cy - 300.0f, "[ESC] Salir");
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy - 320.0f, "[I] Informacion");
     glColor3f(0.5f, 0.5f, 0.5f);
-    dibujar_texto_centrado(cx, cy - 235.0f, "    [ENTER] Reiniciar");
+    dibujar_texto_centrado(cx, cy - 340.0f, "[ENTER] Volver al menu");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -706,6 +780,7 @@ static const char* EDUCACION_TITULOS[EDUCACION_NUM_PAGINAS] = {
     "SIGNOS DE ALERTA",
     "MITOS SOBRE LAS APUESTAS",
     "MITOS SOBRE TRAGAMONEDAS",
+    "MITOS SOBRE LOS DADOS",
     "CONSECUENCIAS",
     "RECURSOS DE AYUDA (REP. DOMINICANA)",
     "PREVENCION"
@@ -771,6 +846,19 @@ static const char* EDUCACION_CUERPOS[EDUCACION_NUM_PAGINAS] = {
     "(LDW). Las luces y sonidos festejan para que\n"
     "ignores que en realidad estas perdiendo dinero.",
 
+    "Mito: \"puedo influir en el resultado segun\n"
+    "como lance o sople los dados\".\n"
+    "\n"
+    "Realidad: ilusion de control. Ningun ritual\n"
+    "fisico o mental cambia la matematica de un\n"
+    "evento independiente y aleatorio.\n"
+    "\n"
+    "Mito: \"apostar a Par e Impar a la vez me\n"
+    "protege de perder dinero\".\n"
+    "\n"
+    "Realidad: la ventaja de la casa garantiza que\n"
+    "pierdas lentamente, aunque aciertes uno.",
+
     "El costo mas visible es el dinero: deudas,\n"
     "prestamos, interes que se acumula. Ya viste\n"
     "eso reflejado en tus propias partidas.\n"
@@ -814,7 +902,7 @@ static const char* EDUCACION_CUERPOS[EDUCACION_NUM_PAGINAS] = {
     "- Nunca jugar para \"recuperar\" lo perdido\n"
     "- Tomarse pausas reales durante la sesion\n"
     "- Si sentis que no podes parar, esa es la\n"
-    "  senal mas importante de todas: pedi ayuda"
+    "  indicio mas importante de todas: pedi ayuda"
 };
 
 void dibujar_pantalla_educacion(int pagina) {
@@ -1224,8 +1312,8 @@ static const char* MENSAJES_CHECKPOINT[8] = {
     "sentir la misma emocion es un signo de alerta\n"
     "reconocido del juego problematico.",
 
-    "El autocontrol -definir un limite de tiempo y\n"
-    "dinero antes de jugar, y respetarlo- es la\n"
+    "El autocontrol, definir un limite de tiempo y\n"
+    "dinero antes de jugar, y respetarlo, es la\n"
     "herramienta mas efectiva contra la ludopatia.",
 
     "Si sentis que no podes parar de jugar, ese es\n"
@@ -1249,6 +1337,48 @@ static const char* MENSAJES_CHECKPOINT[8] = {
     "o por impulso compulsivo."
 };
 
+static const char* MENSAJES_CHECKPOINT_DADOS[8] = {
+    "La falacia del apostador dice que si ha salido par muchas veces,\n"
+    "el impar debe salir pronto. Falso: los dados no tienen memoria.\n"
+    "Si te descubris apostando bajo esta creencia, quiza sea\n"
+    "el momento de retirarte.",
+
+    "Si un juego paga 13 veces tu apuesta, no es un regalo:\n"
+    "es una indicacion directa de lo raro que es que eso ocurra.\n"
+    "Fijar un limite de perdidas y saber cuando levantarse de la mesa\n"
+    "es la unica defensa real que tenes.",
+
+    "El 7 es el numero con mas combinaciones posibles con dos dados,\n"
+    "y por eso el casino arma los pagos alrededor de el. Si ya sabias\n"
+    "esto y seguis apostando igual, es un buen momento para parar\n"
+    "un momento y pensar por que.",
+
+    "Aun en apuestas casi parejas (50/50), la ligera ventaja de la\n"
+    "casa esta matematicamente creada para vaciarte a largo plazo.\n"
+    "Pausar tu juego ahora te garantiza no perder mas dinero\n"
+    "en el proximo tiro.",
+
+    "Creer que hay 'ritmos' o 'tacticas' para lanzar los dados y que\n"
+    "salgan ciertos numeros es una ilusion de control.\n"
+    "Aceptar que el azar manda es el primer paso, el segundo\n"
+    "es cerrar el juego cuando deja de ser divertido.",
+
+    "No todas las apuestas son iguales. Mezclar apuestas seguras con\n"
+    "otras muy riesgosas suele anular tus probabilidades reales.\n"
+    "Si estas persiguiendo una perdida, la mejor apuesta\n"
+    "es simplemente dejar de jugar por hoy.",
+
+    "Jugar de manera compulsiva se trata de la accion, no del dinero.\n"
+    "El cerebro busca la descarga, incluso si eso te arruina.\n"
+    "Interrumpir esa accion apretando [S] rompe el ciclo y te\n"
+    "devuelve el control.",
+
+    "El verdadero costo de apostar no es solo financiero;\n"
+    "tambien consume tu tiempo, atencion y estabilidad emocional.\n"
+    "Si sentis que ya no jugas por diversion, presionar [S] y buscar\n"
+    "ayuda es la mejor decision que podes tomar."
+};
+
 static const char* MENSAJES_CHECKPOINT_TRAGAMONEDAS[8] = {
     "Un simbolo casi alineado no es un indicio de que estas\n"
     "por ganar: es un efecto visual para que sigas jugando.\n"
@@ -1265,8 +1395,8 @@ static const char* MENSAJES_CHECKPOINT_TRAGAMONEDAS[8] = {
     "Ninguna maquina esta fria ni caliente. El tiempo que\n"
     "lleva sin pagar no cambia la probabilidad del proximo giro.",
 
-    "El autocontrol -definir un limite de tiempo y dinero antes\n"
-    "de jugar, y respetarlo- es la herramienta mas efectiva\n"
+    "El autocontrol, definir un limite de tiempo y dinero antes\n"
+    "de jugar, y respetarlo, es la herramienta mas efectiva\n"
     "contra el juego problematico, tambien aca.",
 
     "Los sonidos y las luces de un tragamonedas estan\n"
@@ -1293,6 +1423,8 @@ void dibujar_pantalla_checkpoint_educativo(int indice_mensaje, int juego_activo)
     
     if (juego_activo == 1) {
         mensaje = MENSAJES_CHECKPOINT_TRAGAMONEDAS[idx];
+    } else if (juego_activo == 2) {
+        mensaje = MENSAJES_CHECKPOINT_DADOS[idx];
     } else {
         mensaje = MENSAJES_CHECKPOINT[idx];
     }
@@ -1414,8 +1546,8 @@ static const PreguntaQuiz QUIZ_PREGUNTAS[NUM_PREGUNTAS_QUIZ] = {
         "Jugar para escapar del estres o el aburrimiento",
         "Definir un limite de tiempo y dinero antes de jugar, y respetarlo",
         2,
-        "El autocontrol -definir limites antes de jugar y\n"
-        "sostenerlos pase lo que pase- es la herramienta mas efectiva contra\n"
+        "El autocontrol, definir limites antes de jugar y\n"
+        "sostenerlos pase lo que pase, es la herramienta mas efectiva contra\n"
         "el juego problematico."
     },
     {
@@ -1443,7 +1575,7 @@ static const PreguntaQuiz QUIZ_PREGUNTAS[NUM_PREGUNTAS_QUIZ] = {
         "Un indicio de alerta del juego problematico",
         2,
         "Mentir u ocultar cuanto se juega o se pierde es un\n"
-        "indicio de alerta reconocido -si hace falta esconderlo, vale la\n"
+        "indicio de alerta reconocido. Si hace falta esconderlo, vale la\n"
         "pena preguntarse por que."
     },
     {
@@ -1472,7 +1604,7 @@ static const PreguntaQuiz QUIZ_PREGUNTAS[NUM_PREGUNTAS_QUIZ] = {
         "Las relaciones personales, el tiempo, y el bienestar emocional",
         2,
         "La ludopatia puede afectar el tiempo, las relaciones\n"
-        "familiares y personales, y el bienestar emocional -no solo el\n"
+        "familiares y personales, y el bienestar emocional, no solo el\n"
         "dinero."
     },
     {
@@ -1482,7 +1614,74 @@ static const PreguntaQuiz QUIZ_PREGUNTAS[NUM_PREGUNTAS_QUIZ] = {
         "Solo importa si se esta perdiendo dinero",
         1,
         "El tiempo jugado es un indicio tan importante como el\n"
-        "dinero -perder la nocion del tiempo es, en si, una advertencia real."
+        "dinero. Perder la nocion del tiempo es, en si, una advertencia real."
+    }
+};
+
+static const PreguntaQuiz QUIZ_PREGUNTAS_DADOS[8] = {
+    {
+        "Si acaba de salir un 7 tres veces seguidas, el proximo tiro,",
+        "Tiene mas probabilidad de ser 7, los dados estan calientes",
+        "Tiene menos probabilidad de ser 7, ya le toca cambiar",
+        "Tiene exactamente la misma probabilidad de siempre",
+        2,
+        "Los dados no tienen memoria. Reconocer que los dados no 'te deben' nada\nes el primer paso para saber cuando retirarse."
+    },
+    {
+        "Los juegos que ofrecen pagos muy altos (como x13) suelen disenarse para,",
+        "Fomentar la falsa esperanza y acelerar las perdidas del jugador",
+        "Recompensar a los jugadores que tienen paciencia y habilidad",
+        "Darle a todos una oportunidad justa de volverse ricos",
+        0,
+        "Los pagos altos son un anzuelo psicologico. Alimentan la falsa esperanza\nmientras drenan tu dinero mucho mas rapido que las apuestas comunes."
+    },
+    {
+        "La ilusion de control en los dados ocurre cuando,",
+        "Decides cerrar el juego antes de gastar de mas",
+        "Crees que al lanzar los dados con 'tecnica' puedes influir en ellos",
+        "Juegas por diversion y sin estres",
+        1,
+        "Creer que puedes influir fisicamente en un evento aleatorio\nfomenta el juego problematico. Pausar te ayuda a salir de la ilusion."
+    },
+    {
+        "Sabiendo que el 7 es el numero matematicamente mas probable,",
+        "Es seguro apostarle constantemente para recuperar dinero perdido",
+        "El casino lo usa para darte ventaja y que ganes mas seguido",
+        "La ventaja de la casa siempre te hara perder a la larga de todas formas",
+        2,
+        "Ninguna probabilidad matematica te garantiza recuperar tu dinero.\nAnte la duda, cerrar la sesion siempre es una opcion segura."
+    },
+    {
+        "Si apuestas simultaneamente a Par y a Impar:",
+        "Obtienes un empate tecnico donde no ganas ni pierdes capital",
+        "Aseguras una pequena ganancia neta sin importar el resultado",
+        "Sufres una perdida neta progresiva por la proporcion de pago",
+        2,
+        "El pago menor a 1 (0.9x) genera una perdida lenta pero constante.\nFrente a esto, dejar de apostar es a veces la jugada mas sabia."
+    },
+    {
+        "El objetivo principal de un casino al ofrecer distintos tipos de apuestas es:",
+        "Darte variedad para que aprendas matematicas",
+        "Atraer a diferentes perfiles para maximizar sus ingresos",
+        "Asegurarse de que el jugador nunca pierda",
+        1,
+        "La mesa esta creada para generar ingresos a la larga.\nSi sentis que buscas mas riesgos, quiza sea tiempo de terminar el juego."
+    },
+    {
+        "Para mantener el control al jugar dados, lo mejor es:",
+        "Fijar un limite de dinero y cerrar el juego si lo alcanzas",
+        "Solo apostar a los extremos para ganar mas rapido",
+        "Aumentar tu apuesta cada vez que pierdas",
+        0,
+        "Respetar un limite previo y saber detenerse es la medida de\nautocontrol mas efectiva contra el juego problematico."
+    },
+    {
+        "Que demuestra este simulador de dados?",
+        "Aun dentro de un juego simple, el riesgo real puede estar muy oculto",
+        "Como predecir el proximo numero",
+        "Que apostar a extremos garantiza recuperar lo perdido",
+        0,
+        "El riesgo cambia drasticamente segun tu eleccion.\nY elegir no seguir apostando siempre debe estar sobre la mesa."
     }
 };
 
@@ -1557,6 +1756,9 @@ int quiz_evaluar_respuesta(int pregunta_idx, int respuesta, int juego_activo) {
     if (juego_activo == 1) {
         if (pregunta_idx < 0 || pregunta_idx >= 8) return 0;
         return QUIZ_PREGUNTAS_TRAGAMONEDAS[pregunta_idx].correcta == respuesta;
+    } else if (juego_activo == 2) {
+        if (pregunta_idx < 0 || pregunta_idx >= 8) return 0;
+        return QUIZ_PREGUNTAS_DADOS[pregunta_idx].correcta == respuesta;
     } else {
         if (pregunta_idx < 0 || pregunta_idx >= NUM_PREGUNTAS_QUIZ) return 0;
         return QUIZ_PREGUNTAS[pregunta_idx].correcta == respuesta;
@@ -1574,6 +1776,9 @@ void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, in
     
     if (juego_activo == 1) {
         banco_preguntas = QUIZ_PREGUNTAS_TRAGAMONEDAS;
+        max_preguntas = 8;
+    } else if (juego_activo == 2) {
+        banco_preguntas = QUIZ_PREGUNTAS_DADOS;
         max_preguntas = 8;
     } else {
         banco_preguntas = QUIZ_PREGUNTAS;

@@ -32,16 +32,42 @@ ColorRuleta color_de_numero(int numero) {
 
 /* Tabla de transiciones permitidas. Solo se listan los flujos que el
    juego realmente usa (ver main.c/idle.c):
-     MENU               -> JUGANDO             (ENTER en la pantalla de bienvenida)
-     JUGANDO            -> PRESTAMO             (el saldo no alcanza para la ficha minima)
-     JUGANDO            -> MENSAJE_REFLEXIVO    (se disparo una condicion de concientizacion, ver jugador.h)
-     MENSAJE_REFLEXIVO  -> JUGANDO              (ENTER descarta el mensaje; main.c revisa fondos de nuevo despues)
-     PRESTAMO           -> JUGANDO              (se acepta el prestamo y la deuda es pagable)
-     PRESTAMO           -> GAME_OVER            (se acepta el prestamo pero la deuda ya es
-                                                  impagable)
-     GAME_OVER          -> JUGANDO              (ENTER reinicia la partida)
-   Cualquier otra transicion (por ejemplo MENU -> GAME_OVER directo, o
-   JUGANDO -> MENU) se considera invalida y se ignora. */
+
+   Arranque (una sola vez, secuencial):
+     CARGA               -> ADVERTENCIA
+     ADVERTENCIA         -> PROPOSITO
+     PROPOSITO           -> MENU
+
+   Menu y confirmacion:
+     MENU                -> CONFIRMACION_JUEGO | EDUCACION
+     CONFIRMACION_JUEGO  -> JUGANDO | TRAGAMONEDAS_JUGANDO | DADOS_JUGANDO | MENU
+
+   Los 3 estados "JUGANDO" (Ruleta/Tragamonedas/Dados) pueden ser
+   interrumpidos de la misma forma:
+     JUGANDO / TRAGAMONEDAS_JUGANDO / DADOS_JUGANDO
+                         -> PRESTAMO | MENSAJE_REFLEXIVO |
+                            CHECKPOINT_EDUCATIVO | QUIZ_EDUCATIVO |
+                            SESION_TERMINADA
+
+   Retorno desde una interrupcion al juego correspondiente (o cierre):
+     PRESTAMO            -> JUGANDO | TRAGAMONEDAS_JUGANDO | DADOS_JUGANDO |
+                             GAME_OVER | SESION_TERMINADA
+     MENSAJE_REFLEXIVO    -> JUGANDO | TRAGAMONEDAS_JUGANDO | DADOS_JUGANDO |
+                             SESION_TERMINADA
+     CHECKPOINT_EDUCATIVO -> JUGANDO | TRAGAMONEDAS_JUGANDO | DADOS_JUGANDO |
+                             SESION_TERMINADA
+     QUIZ_EDUCATIVO       -> JUGANDO | TRAGAMONEDAS_JUGANDO | DADOS_JUGANDO |
+                             SESION_TERMINADA
+
+   Cierre de sesion:
+     GAME_OVER / SESION_TERMINADA -> MENU | CONFIRMACION_JUEGO | EDUCACION
+
+   Pantalla de informacion (accesible desde MENU o tras cerrar sesion):
+     EDUCACION            -> MENU
+
+   Quedarse en el mismo estado siempre es valido (ver es_transicion_valida).
+   Cualquier otra transicion no listada arriba se considera invalida y se
+   ignora (ver cambiar_estado). */
 static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
     if (actual == nuevo) return 1; /* quedarse en el mismo estado siempre es valido */
 
@@ -59,7 +85,7 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
         return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
 
     case ESTADO_CONFIRMACION_JUEGO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_MENU;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_MENU;
 
     case ESTADO_JUGANDO:
         return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO || nuevo == ESTADO_CHECKPOINT_EDUCATIVO || nuevo == ESTADO_QUIZ_EDUCATIVO || nuevo == ESTADO_SESION_TERMINADA;
@@ -67,23 +93,26 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
     case ESTADO_TRAGAMONEDAS_JUGANDO:
         return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO || nuevo == ESTADO_CHECKPOINT_EDUCATIVO || nuevo == ESTADO_QUIZ_EDUCATIVO || nuevo == ESTADO_SESION_TERMINADA;
 
+    case ESTADO_DADOS_JUGANDO:
+        return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO || nuevo == ESTADO_CHECKPOINT_EDUCATIVO || nuevo == ESTADO_QUIZ_EDUCATIVO || nuevo == ESTADO_SESION_TERMINADA;
+
     case ESTADO_CHECKPOINT_EDUCATIVO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_QUIZ_EDUCATIVO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_MENSAJE_REFLEXIVO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_PRESTAMO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_GAME_OVER || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_GAME_OVER || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_GAME_OVER:
-        return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
+        return nuevo == ESTADO_MENU || nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
 
     case ESTADO_SESION_TERMINADA:
-        return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
+        return nuevo == ESTADO_MENU || nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
 
     case ESTADO_EDUCACION:
         return nuevo == ESTADO_MENU;
