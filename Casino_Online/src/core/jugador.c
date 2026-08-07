@@ -12,6 +12,8 @@ void inicializar_jugador(Jugador* j, float saldo_inicial, int tiempo_actual_ms) 
     j->deuda = 0.0f;
     j->prestamos_activos = 0;
     j->total_apostado = 0.0f;
+    j->total_ganado = 0.0f;
+    j->total_perdido = 0.0f;
     j->veces_sin_fondos = 0;
     j->interes_acumulado = 0.0f;
 
@@ -36,21 +38,20 @@ void anular_apuesta(Jugador* j, float monto) {
 }
 
 void aplicar_resultado_apuesta(Jugador* j, float ganancia) {
-    /* Se guarda el signo ANTES de que el bloque de abajo (pago de
-       deuda) pueda achicar 'ganancia' -pagar deuda solo pasa cuando
-       ganancia > 0, asi que nunca le cambia el signo, pero se deja
-       explicito para que este calculo no dependa de ese detalle. */
+    /* Se guarda el signo y valor ORIGINAL antes de que el bloque de abajo
+       (pago de deuda) pueda modificar 'ganancia'. */
     int fue_perdida = (ganancia < 0.0f);
 
-    /* MEJORA OPCIONAL: si el jugador tiene deuda pendiente y esta
-       ronda dio ganancia neta positiva, esa ganancia abona la deuda
-       primero (hasta saldarla) antes de sumarse al saldo disponible.
-       Antes la deuda solo podia crecer (via pedir_prestamo) y nunca
-       bajaba con nada que pasara en la mesa -lo cual no reflejaba
-       "pagar la deuda apostando", una escalada real del jugador
-       problematico que el proyecto busca mostrar. Si se prefiere el
-       comportamiento original (deuda solo baja pidiendo mas
-       prestamos, nunca jugando), basta con borrar este bloque. */
+    /* Acumulacion de estadisticas de la sesion usando el resultado bruto original */
+    if (ganancia > 0.0f) {
+        j->total_ganado += ganancia;
+    }
+    else if (ganancia < 0.0f) {
+        j->total_perdido += -ganancia;
+    }
+
+    /* Si el jugador tiene deuda pendiente y esta ronda dio ganancia neta positiva,
+       esa ganancia abona la deuda primero (hasta saldarla) antes de sumarse al saldo disponible. */
     if (ganancia > 0.0f && j->deuda > 0.0f) {
         float abono = (ganancia < j->deuda) ? ganancia : j->deuda;
         j->deuda -= abono;
@@ -94,31 +95,47 @@ int deuda_es_impagable(const Jugador* j, float limite_deuda) {
     return j->deuda >= limite_deuda;
 }
 
-/* --- Concientizacion sobre ludopatia ---
-   Umbrales elegidos para un MVP de demo (una sesion de juego dura
-   minutos, no dias reales), pensados para que un jugador que juega
-   "normal" rara vez los vea, pero alguien que efectivamente esta
-   mostrando el patron de juego problematico que el proyecto busca
-   ilustrar los vea con claridad. Recalibrar si en la demo se disparan
-   demasiado seguido o casi nunca.
+int calcular_nivel_riesgo(const Jugador* j, int tiempo_actual_ms) {
+    int puntos = 0;
+    float mins;
 
-   Ver docs/analisis-ludopatia.md para la fundamentacion completa: cada
-   disparador de aca abajo mapea a un criterio clinico (DSM-5) y a
-   literatura real sobre mensajes de responsible gambling, no son
-   umbrales inventados sin respaldo. */
+    if (j == NULL) return 0;
+
+    mins = tiempo_jugado_minutos(j, tiempo_actual_ms);
+
+    if (j->racha_perdidas_consecutivas >= 3) puntos += 1;
+    if (j->racha_perdidas_consecutivas >= 5) puntos += 1;
+    
+    if (j->veces_sin_fondos >= 1) puntos += 2;
+    if (j->veces_sin_fondos >= 2) puntos += 2;
+
+    if (j->prestamos_activos >= 1) puntos += 2;
+    if (j->prestamos_activos >= 2) puntos += 2;
+
+    if (j->deuda > 0.0f) puntos += 1;
+
+    if (j->total_apostado >= j->saldo_inicial * 1.5f) puntos += 1;
+    if (j->total_apostado >= j->saldo_inicial * 3.0f) puntos += 1;
+    if (mins >= 15.0f) puntos += 1;
+    
+    if (j->saldo_inicial > 0.0f) {
+        float saldo_actual = j->saldo_inicial + j->total_ganado - j->total_perdido;
+        if (saldo_actual <= j->saldo_inicial * 0.4f) puntos += 2; /* Perdio el 60% */
+        if (saldo_actual <= j->saldo_inicial * 0.1f) puntos += 2; /* Perdio el 90% */
+    }
+
+    if (puntos == 0) return 0;
+    if (puntos <= 2) return 1;
+    if (puntos <= 4) return 2;
+    return 3;
+}
+
+/* --- Concientizacion sobre ludopatia --- */
 #define UMBRAL_RACHA_PERDIDAS 5
 #define MULTIPLICADOR_HITO_APOSTADO 2.0f /* cada 2x el saldo inicial apostado en total */
 #define RONDAS_ENTRE_REALITY_CHECK 5 /* aviso neutral cada N rondas, sin importar el resultado */
 
-   /* MEJORA (parte 3, contenido educativo general): el disparador de cada
-      N rondas (ver mas abajo) alterna entre el "reality check" personal
-      ("llevas X rondas...") y uno de estos datos generales, para que no
-      se sienta repetitivo si aparece varias veces en una sesion larga, y
-      para reforzar la concientizacion con contenido distinto al
-      personalizado. Mismo respaldo que el resto (ver
-      docs/analisis-ludopatia.md); complementan, no repiten, el contenido
-      de la pantalla de Informacion ([I] desde el menu). */
-static const char* DATOS_EDUCATIVOS_GENERALES[4] = {
+static const char* DATOS_EDUCATIVOS_GENERALES_RULETA[8] = {
     "Dato: en la ruleta, cada giro es totalmente\n"
     "independiente del anterior.\n"
     "\n"
@@ -135,8 +152,8 @@ static const char* DATOS_EDUCATIVOS_GENERALES[4] = {
 
     "Dato: necesitar apostar montos cada vez\n"
     "mayores para sentir la misma emocion se llama\n"
-    "tolerancia, y es una de las senales de alerta\n"
-    "reconocidas del juego problematico.\n"
+    "tolerancia, y es uno de los signos de alerta\n"
+    "reconocidos del juego problematico.\n"
     "\n"
     "Si notas que te esta pasando, vale la pena\n"
     "prestarle atencion.",
@@ -147,10 +164,145 @@ static const char* DATOS_EDUCATIVOS_GENERALES[4] = {
     "de jugar de manera responsable.\n"
     "\n"
     "Hay mas info en la pantalla de Informacion\n"
-    "([I] desde el menu)."
+    "([I] desde el menu).",
+
+    "Dato: mentir sobre cuanto dinero se juega\n"
+    "o se pierde es un signo de alerta clinico\n"
+    "reconocido internacionalmente (DSM-5).\n"
+    "\n"
+    "La transparencia personal es clave para detectar\n"
+    "el juego de riesgo.",
+
+    "Dato: jugar para intentar escapar del estres,\n"
+    "la ansiedad o el aburrimiento es un patron\n"
+    "de riesgo, no una forma sana de descanso.\n"
+    "\n"
+    "Buscar alternativas saludables protege tu salud.",
+
+    "Dato: ningun sistema de apuestas ni patron\n"
+    "visual altera la probabilidad matematica real\n"
+    "de la ruleta europea (2.7 por ciento casa).\n"
+    "\n"
+    "Los patrones percibidos son solo ilusiones.",
+
+    "Dato: solicitar dinero prestado para intentar\n"
+    "recuperar lo perdido es una escalada real de\n"
+    "deuda, no una solucion temporal.\n"
+    "\n"
+    "Detenerte a tiempo previene mayores danos."
 };
 
-const char* verificar_mensaje_reflexivo(Jugador* j) {
+static const char* DATOS_EDUCATIVOS_GENERALES_TRAGAMONEDAS[8] = {
+    "Dato: en las tragamonedas, cada giro es totalmente\n"
+    "independiente del anterior por el sistema RNG.\n"
+    "\n"
+    "Una racha sin premios no hace que un premio\n"
+    "este 'por salir'. Es la base del algoritmo.",
+
+    "Dato: la ludopatia esta reconocida como un\n"
+    "trastorno clinico real (DSM-5), no como una\n"
+    "falta de fuerza de voluntad.\n"
+    "\n"
+    "Se trata igual que otras adicciones, aunque no\n"
+    "involucre ninguna sustancia.",
+
+    "Dato: necesitar jugar mas rapido o apostar\n"
+    "mas para sentir la misma emocion se llama\n"
+    "tolerancia, y es un signo de alerta clinico.\n"
+    "\n"
+    "Si notas que te esta pasando, vale la pena\n"
+    "prestarle atencion.",
+
+    "Dato: definir un presupuesto y un limite de\n"
+    "tiempo ANTES de jugar, y respetarlo pase lo\n"
+    "que pase, es vital en tragamonedas rapidas.\n"
+    "\n"
+    "Hay mas info en la pantalla de Informacion\n"
+    "([I] desde el menu).",
+
+    "Dato: mentir sobre cuanto dinero se juega\n"
+    "o se pierde es un signo de alerta clinico\n"
+    "reconocido internacionalmente (DSM-5).\n"
+    "\n"
+    "La transparencia personal es clave para detectar\n"
+    "el juego de riesgo.",
+
+    "Dato: jugar para intentar escapar del estres,\n"
+    "la ansiedad o el aburrimiento es un patron\n"
+    "de riesgo, no una forma sana de descanso.\n"
+    "\n"
+    "Buscar alternativas saludables protege tu salud.",
+
+    "Dato: los 'casi aciertos' (near misses) son\n"
+    "ilusiones opticas programadas para enganarte\n"
+    "y que sientas que 'casi ganas'.\n"
+    "\n"
+    "Matematicamente, perdiste igual que siempre.",
+
+    "Dato: las 'falsas victorias' (ganar menos\n"
+    "dinero del que apostaste en un giro) enganan\n"
+    "al cerebro con luces y sonidos de victoria.\n"
+    "\n"
+    "Detenerte a tiempo previene mayores danos."
+};
+
+static const char* DATOS_EDUCATIVOS_GENERALES_DADOS[8] = {
+    "Dato: en los dados, soplar o lanzar los\n"
+    "dados de cierta forma no altera las matematicas.\n"
+    "\n"
+    "Creer que tienes el control sobre el resultado\n"
+    "fomenta la conducta de juego problematico.",
+
+    "Dato: la ludopatia esta reconocida como un\n"
+    "trastorno clinico real (DSM-5), no como una\n"
+    "falta de fuerza de voluntad.\n"
+    "\n"
+    "Se trata igual que otras adicciones, aunque no\n"
+    "involucre ninguna sustancia.",
+
+    "Dato: necesitar apostar montos cada vez\n"
+    "mayores para sentir la misma emocion se llama\n"
+    "tolerancia, y es uno de los signos de alerta\n"
+    "reconocidos del juego problematico.\n"
+    "\n"
+    "Si notas que te esta pasando, vale la pena\n"
+    "prestarle atencion.",
+
+    "Dato: definir un presupuesto y un limite de\n"
+    "tiempo ANTES de jugar, y respetarlo pase lo\n"
+    "que pase, es una de las formas mas efectivas\n"
+    "de jugar de manera responsable.\n"
+    "\n"
+    "Hay mas info en la pantalla de Informacion\n"
+    "([I] desde el menu).",
+
+    "Dato: mentir sobre cuanto dinero se juega\n"
+    "o se pierde es un signo de alerta clinico\n"
+    "reconocido internacionalmente (DSM-5).\n"
+    "\n"
+    "La transparencia personal es clave para detectar\n"
+    "el juego de riesgo.",
+
+    "Dato: jugar para intentar escapar del estres,\n"
+    "la ansiedad o el aburrimiento es un patron\n"
+    "de riesgo, no una forma sana de descanso.\n"
+    "\n"
+    "Buscar alternativas saludables protege tu salud.",
+
+    "Dato: apostar al Par/Impar paga 0.9x en vez\n"
+    "de 1.0x para dar ventaja matematica a la casa.\n"
+    "\n"
+    "Todas las apuestas estan calculadas en tu contra\n"
+    "a largo plazo.",
+
+    "Dato: solicitar dinero prestado para intentar\n"
+    "recuperar lo perdido es una escalada real de\n"
+    "deuda, no una solucion temporal.\n"
+    "\n"
+    "Detenerte a tiempo previene mayores danos."
+};
+
+const char* verificar_mensaje_reflexivo(Jugador* j, int juego_activo) {
     /* Buffer estatico: ver la advertencia en jugador.h sobre su
        tiempo de vida (valido solo hasta la proxima llamada). */
     static char buffer[700];
@@ -261,8 +413,16 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
                 j->rondas_jugadas);
         }
         else {
-            int indice_dato = (ocurrencia / 2 - 1) % 4;
-            sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES[indice_dato]);
+            int indice_dato = (ocurrencia / 2 - 1) % 8;
+            if (indice_dato < 0) indice_dato = 0;
+            
+            if (juego_activo == 1) {
+                sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES_TRAGAMONEDAS[indice_dato]);
+            } else if (juego_activo == 2) {
+                sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES_DADOS[indice_dato]);
+            } else {
+                sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES_RULETA[indice_dato]);
+            }
         }
         return buffer;
     }
@@ -271,7 +431,9 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
 }
 
 float tiempo_jugado_minutos(const Jugador* j, int tiempo_actual_ms) {
-    int delta_ms = tiempo_actual_ms - j->tiempo_inicio_ms;
+    int delta_ms;
+    if (j == NULL) return 0.0f;
+    delta_ms = tiempo_actual_ms - j->tiempo_inicio_ms;
     if (delta_ms < 0) delta_ms = 0; /* proteccion, no deberia pasar nunca */
     return (float)delta_ms / 60000.0f;
 }
