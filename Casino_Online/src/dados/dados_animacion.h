@@ -15,6 +15,11 @@ typedef struct {
     int dado1_final;
     int dado2_final;
     
+    int fase_asentamiento;
+    float rot_snap_x[2];
+    float rot_snap_y[2];
+    float rot_snap_z[2];
+    
     float tiempo_transcurrido;
 } EstadoDados;
 
