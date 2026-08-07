@@ -97,7 +97,7 @@ int deuda_es_impagable(const Jugador* j, float limite_deuda);
    usarlo mas adelante (ej. en otra ronda): pedir uno nuevo cuando haga
    falta. Se debe llamar una vez por ronda resuelta (despues de
    aplicar_resultado_apuesta), no en cada frame. */
-const char* verificar_mensaje_reflexivo(Jugador* j);
+const char* verificar_mensaje_reflexivo(Jugador* j, int juego_activo);
 
 /* --- Medidor de riesgo ambiental en el HUD ---
    Calcula el nivel de riesgo (0: BAJO, 1: MODERADO, 2: ALTO, 3: RIESGO DE CONDUCTA COMPULSIVA)

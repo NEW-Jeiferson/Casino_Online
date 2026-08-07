@@ -179,8 +179,8 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0.1f, 0.15f, 0.3f, 0.4f);
     glBegin(GL_QUADS);
-    glVertex2f(cx - 260.0f, cy - 30.0f);
-    glVertex2f(cx + 260.0f, cy - 30.0f);
+    glVertex2f(cx - 260.0f, cy - 90.0f);
+    glVertex2f(cx + 260.0f, cy - 90.0f);
     glVertex2f(cx + 260.0f, cy + 150.0f);
     glVertex2f(cx - 260.0f, cy + 150.0f);
     glEnd();
@@ -190,8 +190,8 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     glColor3f(0.55f, 0.75f, 1.0f);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
-    glVertex2f(cx - 260.0f, cy - 30.0f);
-    glVertex2f(cx + 260.0f, cy - 30.0f);
+    glVertex2f(cx - 260.0f, cy - 90.0f);
+    glVertex2f(cx + 260.0f, cy - 90.0f);
     glVertex2f(cx + 260.0f, cy + 150.0f);
     glVertex2f(cx - 260.0f, cy + 150.0f);
     glEnd();
@@ -200,39 +200,51 @@ void dibujar_pantalla_menu(int opcion_seleccionada) {
     /* Opcion 1: Ruleta */
     if (opcion_seleccionada == 0) {
         glColor3f(1.0f, 0.85f, 0.0f);
-        dibujar_texto_centrado(cx, cy + 100.0f, "->  1. RULETA EUROPEA  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 120.0f, "->  1. RULETA EUROPEA  (Disponible)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_centrado(cx, cy + 75.0f, "Simulador 3D completo con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 95.0f, "Simulador 3D completo con concientizacion.");
     } else {
         glColor3f(0.5f, 0.5f, 0.5f);
-        dibujar_texto_centrado(cx, cy + 100.0f, "    1. RULETA EUROPEA  (Disponible)");
-        dibujar_texto_centrado(cx, cy + 75.0f, "Simulador 3D completo con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 120.0f, "    1. RULETA EUROPEA  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 95.0f, "Simulador 3D completo con concientizacion.");
     }
 
     /* Opcion 2: Tragamonedas */
     if (opcion_seleccionada == 1) {
         glColor3f(1.0f, 0.85f, 0.0f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "->  2. TRAGAMONEDAS  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 40.0f, "->  2. TRAGAMONEDAS  (Disponible)");
         glColor3f(1.0f, 1.0f, 1.0f);
-        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 15.0f, "Simulador de tragamonedas con concientizacion.");
     } else {
         glColor3f(0.5f, 0.5f, 0.5f);
-        dibujar_texto_centrado(cx, cy + 20.0f, "    2. TRAGAMONEDAS  (Disponible)");
-        dibujar_texto_centrado(cx, cy - 5.0f, "Simulador de tragamonedas con concientizacion.");
+        dibujar_texto_centrado(cx, cy + 40.0f, "    2. TRAGAMONEDAS  (Disponible)");
+        dibujar_texto_centrado(cx, cy + 15.0f, "Simulador de tragamonedas con concientizacion.");
+    }
+
+    /* Opcion 3: Dados */
+    if (opcion_seleccionada == 2) {
+        glColor3f(1.0f, 0.85f, 0.0f);
+        dibujar_texto_centrado(cx, cy - 40.0f, "->  3. DADOS  (Disponible)");
+        glColor3f(1.0f, 1.0f, 1.0f);
+        dibujar_texto_centrado(cx, cy - 65.0f, "Juego de dados simplificado con lecciones de probabilidad.");
+    } else {
+        glColor3f(0.5f, 0.5f, 0.5f);
+        dibujar_texto_centrado(cx, cy - 40.0f, "    3. DADOS  (Disponible)");
+        dibujar_texto_centrado(cx, cy - 65.0f, "Juego de dados simplificado con lecciones de probabilidad.");
     }
 
     /* --- Accion --- */
     glColor3f(0.55f, 0.75f, 1.0f);
-    dibujar_texto_centrado(cx, cy - 65.0f, "Presione [ENTER] para confirmar seleccion.");
-    dibujar_texto_centrado(cx, cy - 90.0f, "Presione [I] para ver Informacion.");
+    dibujar_texto_centrado(cx, cy - 160.0f, "Presione [ENTER] para confirmar seleccion.");
+    dibujar_texto_centrado(cx, cy - 185.0f, "Presione [I] para ver Informacion.");
 
     /* --- Controles de ayuda en el Menu --- */
     glColor3f(0.6f, 0.6f, 0.6f);
-    dibujar_texto_centrado(cx, cy - 140.0f, "Nota: Saldo inicial virtual de 1,000.00 creditos.");
+    dibujar_texto_centrado(cx, cy - 210.0f, "Nota: Saldo inicial virtual de 1,000.00 creditos.");
 
     /* Banner permanente de Serious Game */
     glColor3f(1.0f, 0.75f, 0.0f);
-    dibujar_texto_centrado(cx, cy - 175.0f, "Simulador educativo sobre ludopatia - No incentiva el juego con dinero real");
+    dibujar_texto_centrado(cx, cy - 235.0f, "Simulador educativo sobre ludopatia - No incentiva el juego con dinero real");
 
     /* --- Restaurar estado 3D --- */
     glEnable(GL_DEPTH_TEST);
@@ -706,6 +718,7 @@ static const char* EDUCACION_TITULOS[EDUCACION_NUM_PAGINAS] = {
     "SIGNOS DE ALERTA",
     "MITOS SOBRE LAS APUESTAS",
     "MITOS SOBRE TRAGAMONEDAS",
+    "MITOS SOBRE LOS DADOS",
     "CONSECUENCIAS",
     "RECURSOS DE AYUDA (REP. DOMINICANA)",
     "PREVENCION"
@@ -771,6 +784,19 @@ static const char* EDUCACION_CUERPOS[EDUCACION_NUM_PAGINAS] = {
     "(LDW). Las luces y sonidos festejan para que\n"
     "ignores que en realidad estas perdiendo dinero.",
 
+    "Mito: \"puedo influir en el resultado segun\n"
+    "como lance o sople los dados\".\n"
+    "\n"
+    "Realidad: ilusion de control. Ningun ritual\n"
+    "fisico o mental cambia la matematica de un\n"
+    "evento independiente y aleatorio.\n"
+    "\n"
+    "Mito: \"apostar a Par e Impar a la vez me\n"
+    "protege de perder dinero\".\n"
+    "\n"
+    "Realidad: la ventaja de la casa garantiza que\n"
+    "pierdas lentamente, aunque aciertes uno.",
+
     "El costo mas visible es el dinero: deudas,\n"
     "prestamos, interes que se acumula. Ya viste\n"
     "eso reflejado en tus propias partidas.\n"
@@ -814,7 +840,7 @@ static const char* EDUCACION_CUERPOS[EDUCACION_NUM_PAGINAS] = {
     "- Nunca jugar para \"recuperar\" lo perdido\n"
     "- Tomarse pausas reales durante la sesion\n"
     "- Si sentis que no podes parar, esa es la\n"
-    "  senal mas importante de todas: pedi ayuda"
+    "  indicio mas importante de todas: pedi ayuda"
 };
 
 void dibujar_pantalla_educacion(int pagina) {
@@ -1249,6 +1275,48 @@ static const char* MENSAJES_CHECKPOINT[8] = {
     "o por impulso compulsivo."
 };
 
+static const char* MENSAJES_CHECKPOINT_DADOS[8] = {
+    "La falacia del apostador dice que si ha salido par muchas veces,\n"
+    "el impar debe salir pronto. Falso: los dados no tienen memoria.\n"
+    "Si te descubris apostando bajo esta creencia, quiza sea\n"
+    "el momento de retirarte.",
+
+    "Si un juego paga 13 veces tu apuesta, no es un regalo:\n"
+    "es una indicacion directa de lo raro que es que eso ocurra.\n"
+    "Fijar un limite de perdidas y saber cuando levantarse de la mesa\n"
+    "es la unica defensa real que tenes.",
+
+    "El 7 es el numero con mas combinaciones posibles con dos dados,\n"
+    "y por eso el casino arma los pagos alrededor de el. Si ya sabias\n"
+    "esto y seguis apostando igual, es un buen momento para parar\n"
+    "un momento y pensar por que.",
+
+    "Aun en apuestas casi parejas (50/50), la ligera ventaja de la\n"
+    "casa esta matematicamente creada para vaciarte a largo plazo.\n"
+    "Pausar tu juego ahora te garantiza no perder mas dinero\n"
+    "en el proximo tiro.",
+
+    "Creer que hay 'ritmos' o 'tacticas' para lanzar los dados y que\n"
+    "salgan ciertos numeros es una ilusion de control.\n"
+    "Aceptar que el azar manda es el primer paso; el segundo\n"
+    "es cerrar el juego cuando deja de ser divertido.",
+
+    "No todas las apuestas son iguales. Mezclar apuestas seguras con\n"
+    "otras muy riesgosas suele anular tus probabilidades reales.\n"
+    "Si estas persiguiendo una perdida, la mejor apuesta\n"
+    "es simplemente dejar de jugar por hoy.",
+
+    "Jugar de manera compulsiva se trata de la accion, no del dinero.\n"
+    "El cerebro busca la descarga, incluso si eso te arruina.\n"
+    "Interrumpir esa accion apretando [S] rompe el ciclo y te\n"
+    "devuelve el control.",
+
+    "El verdadero costo de apostar no es solo financiero;\n"
+    "tambien consume tu tiempo, atencion y estabilidad emocional.\n"
+    "Si sentis que ya no jugas por diversion, presionar [S] y buscar\n"
+    "ayuda es la mejor decision que podes tomar."
+};
+
 static const char* MENSAJES_CHECKPOINT_TRAGAMONEDAS[8] = {
     "Un simbolo casi alineado no es un indicio de que estas\n"
     "por ganar: es un efecto visual para que sigas jugando.\n"
@@ -1293,6 +1361,8 @@ void dibujar_pantalla_checkpoint_educativo(int indice_mensaje, int juego_activo)
     
     if (juego_activo == 1) {
         mensaje = MENSAJES_CHECKPOINT_TRAGAMONEDAS[idx];
+    } else if (juego_activo == 2) {
+        mensaje = MENSAJES_CHECKPOINT_DADOS[idx];
     } else {
         mensaje = MENSAJES_CHECKPOINT[idx];
     }
@@ -1486,6 +1556,73 @@ static const PreguntaQuiz QUIZ_PREGUNTAS[NUM_PREGUNTAS_QUIZ] = {
     }
 };
 
+static const PreguntaQuiz QUIZ_PREGUNTAS_DADOS[8] = {
+    {
+        "Si acaba de salir un 7 tres veces seguidas, el proximo tiro:",
+        "Tiene mas probabilidad de ser 7, los dados estan calientes",
+        "Tiene menos probabilidad de ser 7, ya le toca cambiar",
+        "Tiene exactamente la misma probabilidad de siempre",
+        2,
+        "Los dados no tienen memoria. Reconocer que los dados no 'te deben' nada\nes el primer paso para saber cuando retirarse."
+    },
+    {
+        "Una apuesta que paga x13 (extremos) en comparacion a una que paga x0.9 (par):",
+        "Es un buen negocio porque multiplicas mas dinero",
+        "Es matematicamente mas riesgosa y perjudicial a largo plazo",
+        "Es la unica forma de ganar dinero de verdad",
+        1,
+        "Los pagos altos ocultan una trampa matematica.\nEntender esto te permite decidir conscientemente si continuar o pausar."
+    },
+    {
+        "La ilusion de control en los dados ocurre cuando:",
+        "Decides cerrar el juego antes de gastar de mas",
+        "Crees que al lanzar los dados con 'tecnica' puedes influir en ellos",
+        "Juegas por diversion y sin estres",
+        1,
+        "Creer que puedes influir fisicamente en un evento aleatorio\nfomenta el juego problematico. Pausar te ayuda a salir de la ilusion."
+    },
+    {
+        "Sabiendo que el 7 es el numero matematicamente mas probable:",
+        "Es seguro apostarle constantemente para recuperar dinero perdido",
+        "El casino lo usa para darte ventaja y que ganes mas seguido",
+        "La ventaja de la casa siempre te hara perder a la larga de todas formas",
+        2,
+        "Ninguna probabilidad matematica te garantiza recuperar tu dinero.\nAnte la duda, cerrar la sesion siempre es una opcion segura."
+    },
+    {
+        "Si apuestas simultaneamente a Par y a Impar:",
+        "Obtienes un empate tecnico donde no ganas ni pierdes capital",
+        "Aseguras una pequena ganancia neta sin importar el resultado",
+        "Sufres una perdida neta progresiva por la proporcion de pago",
+        2,
+        "El pago menor a 1 (0.9x) genera una perdida lenta pero constante.\nFrente a esto, dejar de apostar es a veces la jugada mas sabia."
+    },
+    {
+        "El objetivo principal de un casino al ofrecer distintos tipos de apuestas es:",
+        "Darte variedad para que aprendas matematicas",
+        "Atraer a diferentes perfiles para maximizar sus ingresos",
+        "Asegurarse de que el jugador nunca pierda",
+        1,
+        "La mesa esta creada para generar ingresos a la larga.\nSi sentis que buscas mas riesgos, quiza sea tiempo de terminar el juego."
+    },
+    {
+        "Para mantener el control al jugar dados, lo mejor es:",
+        "Fijar un limite de dinero y cerrar el juego si lo alcanzas",
+        "Solo apostar a los extremos para ganar mas rapido",
+        "Aumentar tu apuesta cada vez que pierdas",
+        0,
+        "Respetar un limite previo y saber detenerse es la medida de\nautocontrol mas efectiva contra el juego problematico."
+    },
+    {
+        "Que demuestra este simulador de dados?",
+        "Aun dentro de un juego simple, el riesgo real puede estar muy oculto",
+        "Como predecir el proximo numero",
+        "Que apostar a extremos garantiza recuperar lo perdido",
+        0,
+        "El riesgo cambia drasticamente segun tu eleccion.\nY elegir no seguir apostando siempre debe estar sobre la mesa."
+    }
+};
+
 static const PreguntaQuiz QUIZ_PREGUNTAS_TRAGAMONEDAS[8] = {
     {
         "Que significa que dos simbolos coincidan y el tercero quede muy cerca?",
@@ -1557,6 +1694,9 @@ int quiz_evaluar_respuesta(int pregunta_idx, int respuesta, int juego_activo) {
     if (juego_activo == 1) {
         if (pregunta_idx < 0 || pregunta_idx >= 8) return 0;
         return QUIZ_PREGUNTAS_TRAGAMONEDAS[pregunta_idx].correcta == respuesta;
+    } else if (juego_activo == 2) {
+        if (pregunta_idx < 0 || pregunta_idx >= 8) return 0;
+        return QUIZ_PREGUNTAS_DADOS[pregunta_idx].correcta == respuesta;
     } else {
         if (pregunta_idx < 0 || pregunta_idx >= NUM_PREGUNTAS_QUIZ) return 0;
         return QUIZ_PREGUNTAS[pregunta_idx].correcta == respuesta;
@@ -1574,6 +1714,9 @@ void dibujar_pantalla_quiz(int pregunta_idx, int fase, int respuesta_elegida, in
     
     if (juego_activo == 1) {
         banco_preguntas = QUIZ_PREGUNTAS_TRAGAMONEDAS;
+        max_preguntas = 8;
+    } else if (juego_activo == 2) {
+        banco_preguntas = QUIZ_PREGUNTAS_DADOS;
         max_preguntas = 8;
     } else {
         banco_preguntas = QUIZ_PREGUNTAS;

@@ -260,28 +260,14 @@ ZonaControlTragamonedas obtener_zona_control_2d(int x_mouse, int y_mouse,
 }
 
 static const char* MENSAJES_GIRO_TRAGAMONEDAS[8] = {
-    "Ver 2 simbolos iguales y el tercero cerca no es casi ganar,\n"
-    "es una perdida igual que cualquier otra.",
-
-    "Ganar menos de lo que apostaste sigue siendo una perdida,\n"
-    "aunque la maquina lo festeje como una victoria.",
-
-    "Ninguna maquina esta fria ni caliente: cada giro es\n"
-    "independiente del anterior.",
-
-    "El resultado de este giro ya esta decidido al azar, sin\n"
-    "importar cuantas veces jugaste antes.",
-
-    "Cuanto llevas apostado hoy en esta maquina? Es lo que\n"
-    "tenias pensado gastar?",
-
-    "Si esto fuera dinero real, seguirias jugando de la misma\n"
-    "forma?",
-
-    "Los sonidos y las luces de una maquina estan programados\n"
-    "para que sigas jugando, no para informarte.",
-
-    "De verdad necesitas ver este giro, o podrias parar aca?"
+    "Un 'casi acierto' no es casi ganar.\nEs una perdida igual que cualquier otra.",
+    "Ganar menos de lo apostado es perder,\naunque la maquina festeje.",
+    "La maquina no esta fria ni caliente.\nCada giro es totalmente independiente.",
+    "El resultado es totalmente al azar,\nsin importar cuanto jugaste antes.",
+    "Cuanto apostaste en esta maquina hoy?\nEs lo que tenias pensado?",
+    "Si esto fuera dinero real,\nseguirias jugando de la misma forma?",
+    "Luces y sonidos buscan retenerte,\nno solo informarte del resultado.",
+    "De verdad necesitas ver este giro,\no podrias parar aca?"
 };
 
 void dibujar_mensaje_giro_tragamonedas(int indice_mensaje) {
@@ -315,8 +301,11 @@ void dibujar_mensaje_giro_tragamonedas(int indice_mensaje) {
     half_w = (float)max_len / 2.0f + 16.0f;
 
     /* Margen de seguridad: evitar pisar UI lateral si la hubiera */
-    if (banner_cx - half_w < 10.0f) {
-        banner_cx = 10.0f + half_w;
+    {
+        float margen_hud = 15.0f + (float)glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)"[S] Terminar la sesion en cualquier momento") + 20.0f;
+        if (banner_cx - half_w < margen_hud) {
+            banner_cx = margen_hud + half_w;
+        }
     }
     if (banner_cx + half_w > (float)ancho - 10.0f) {
         banner_cx = (float)ancho - 10.0f - half_w;

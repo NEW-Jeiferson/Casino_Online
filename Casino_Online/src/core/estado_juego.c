@@ -59,7 +59,7 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
         return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;
 
     case ESTADO_CONFIRMACION_JUEGO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_MENU;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_MENU;
 
     case ESTADO_JUGANDO:
         return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO || nuevo == ESTADO_CHECKPOINT_EDUCATIVO || nuevo == ESTADO_QUIZ_EDUCATIVO || nuevo == ESTADO_SESION_TERMINADA;
@@ -67,17 +67,20 @@ static int es_transicion_valida(EstadoJuego actual, EstadoJuego nuevo) {
     case ESTADO_TRAGAMONEDAS_JUGANDO:
         return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO || nuevo == ESTADO_CHECKPOINT_EDUCATIVO || nuevo == ESTADO_QUIZ_EDUCATIVO || nuevo == ESTADO_SESION_TERMINADA;
 
+    case ESTADO_DADOS_JUGANDO:
+        return nuevo == ESTADO_PRESTAMO || nuevo == ESTADO_MENSAJE_REFLEXIVO || nuevo == ESTADO_CHECKPOINT_EDUCATIVO || nuevo == ESTADO_QUIZ_EDUCATIVO || nuevo == ESTADO_SESION_TERMINADA;
+
     case ESTADO_CHECKPOINT_EDUCATIVO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_QUIZ_EDUCATIVO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_MENSAJE_REFLEXIVO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_PRESTAMO:
-        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_GAME_OVER || nuevo == ESTADO_SESION_TERMINADA;
+        return nuevo == ESTADO_JUGANDO || nuevo == ESTADO_TRAGAMONEDAS_JUGANDO || nuevo == ESTADO_DADOS_JUGANDO || nuevo == ESTADO_GAME_OVER || nuevo == ESTADO_SESION_TERMINADA;
 
     case ESTADO_GAME_OVER:
         return nuevo == ESTADO_CONFIRMACION_JUEGO || nuevo == ESTADO_EDUCACION;

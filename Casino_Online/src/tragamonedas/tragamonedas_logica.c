@@ -119,5 +119,5 @@ float calcular_ganancia_tragamonedas(const SimboloTragamonedas resultado[NUM_ROD
 const char* resolver_ronda_tragamonedas(Jugador* jugador, const SimboloTragamonedas resultado[NUM_RODILLOS], float monto) {
     float ganancia = calcular_ganancia_tragamonedas(resultado, monto);
     aplicar_resultado_apuesta(jugador, ganancia);
-    return verificar_mensaje_reflexivo(jugador);
+    return verificar_mensaje_reflexivo(jugador, 1);
 }
