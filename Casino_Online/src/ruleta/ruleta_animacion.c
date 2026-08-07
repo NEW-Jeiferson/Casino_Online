@@ -143,11 +143,11 @@ void dibujar_bolita(const EstadoBolita* bolita) {
     glPushMatrix();
 
 
-    // Se posiciona la bolita en su orbita, considerando su altura y el angulo actual. */
+    /* Se posiciona la bolita en su orbita, considerando su altura y el angulo actual. */
     glTranslatef(0.0f, altura_bolita, 0.0f);
 
 
-    // Se posiciona la bolita en su orbita, considerando su altura y el angulo actual. */
+    /* Se posiciona la bolita en su orbita, considerando su altura y el angulo actual. */
     glRotatef(-bolita->angulo_actual, 0.0f, 1.0f, 0.0f);
     glTranslatef(RADIO_ORBITA_BOLITA, 0.0f, 0.0f);
 
