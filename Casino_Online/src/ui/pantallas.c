@@ -974,7 +974,7 @@ void dibujar_pantalla_carga(float progreso) {
     float barra_ancho = 400.0f;
     float barra_alto = 18.0f;
     float barra_x = cx - barra_ancho / 2.0f;
-    float barra_y = cy - 100.0f;
+    float barra_y = cy - 160.0f;
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -1017,6 +1017,28 @@ void dibujar_pantalla_carga(float progreso) {
     dibujar_texto_centrado(cx, cy + 60.0f, "CASINO ONLINE");
     glColor3f(0.7f, 0.7f, 0.7f);
     dibujar_texto_centrado(cx, cy + 30.0f, "Simulador de concientizacion sobre ludopatia");
+
+    {
+        static const char* MENSAJES_CARGA[4] = {
+            "Sabias que la ludopatia esta reconocida como un trastorno\n"
+            "real en el DSM-5, el manual de diagnostico psiquiatrico\n"
+            "mas usado?",
+
+            "Los juegos de azar activan el mismo circuito cerebral de\n"
+            "recompensa que otras adicciones reconocidas.",
+
+            "En Republica Dominicana existen lineas de ayuda gratuitas\n"
+            "para quienes buscan apoyo. Las vas a encontrar en la\n"
+            "seccion de Informacion del menu.",
+
+            "Cada juego de este simulador esta pensado para ensenar algo\n"
+            "distinto sobre como funcionan realmente las apuestas."
+        };
+        int indice_mensaje_carga = (int)(progreso * 4.0f);
+        if (indice_mensaje_carga > 3) indice_mensaje_carga = 3; /* progreso puede llegar a 1.0 exacto -> 4.0 -> clamp */
+        glColor3f(1.0f, 1.0f, 1.0f);
+        dibujar_texto_multilinea_centrado(MENSAJES_CARGA[indice_mensaje_carga], cx, cy - 10.0f, 22.0f);
+    }
 
     /* Texto de carga y porcentaje (centrados horizontalmente) */
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -1205,6 +1227,241 @@ void dibujar_pantalla_proposito(void) {
         "alerta, y promover la prevencion y la busqueda de\n"
         "ayuda profesional.",
         cx, cy + 65.0f, 22.0f);
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 170.0f, "[ENTER] Continuar");
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+void dibujar_pantalla_intro_latinoamerica(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glColor3f(0.03f, 0.05f, 0.1f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.05f, 0.09f, 0.2f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_info(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy + 115.0f, "EL JUEGO EN LATINOAMERICA");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "En America Latina, la industria de las apuestas mueve\n"
+        "mas de US$100,000 millones anuales, con un gasto\n"
+        "promedio de US$250 anuales por persona, entre loterias,\n"
+        "casinos, tragamonedas y apuestas deportivas.\n"
+        "\n"
+        "El crecimiento se acelero fuerte en la ultima decada,\n"
+        "impulsado por las plataformas digitales.",
+        cx, cy + 65.0f, 22.0f);
+
+    glColor3f(0.5f, 0.5f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 130.0f, "Fuente: El Democrata, 2025");
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 170.0f, "[ENTER] Continuar");
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+void dibujar_pantalla_intro_rd(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glColor3f(0.03f, 0.05f, 0.1f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.05f, 0.09f, 0.2f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_info(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy + 115.0f, "EL CASO DE REPUBLICA DOMINICANA");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "En Republica Dominicana operan 30,750 bancas de\n"
+        "apuestas y loterias con permiso, pero estimaciones del\n"
+        "propio sector ubican el total, incluyendo las que\n"
+        "funcionan sin autorizacion, en mas de 100,000: unas 154\n"
+        "por cada escuela publica del pais.\n"
+        "\n"
+        "En ese contexto, casi el 2% de la poblacion dominicana\n"
+        "enfrenta problemas relacionados con el juego, segun\n"
+        "especialistas en adicciones.",
+        cx, cy + 65.0f, 22.0f);
+
+    glColor3f(0.5f, 0.5f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 140.0f, "Fuentes: El Democrata, 2025 / Diario Libre, dic. 2025");
+
+    glColor3f(1.0f, 0.85f, 0.0f);
+    dibujar_texto_centrado(cx, cy - 170.0f, "[ENTER] Continuar");
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
+void dibujar_pantalla_intro_costo_humano(void) {
+    int ancho = glutGet(GLUT_WINDOW_WIDTH);
+    int alto = glutGet(GLUT_WINDOW_HEIGHT);
+    float cx = (float)ancho / 2.0f;
+    float cy = (float)alto / 2.0f;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, ancho, 0, alto, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glColor3f(0.03f, 0.05f, 0.1f);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f((float)ancho, 0.0f);
+    glVertex2f((float)ancho, (float)alto);
+    glVertex2f(0.0f, (float)alto);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.05f, 0.09f, 0.2f, 0.94f);
+    glBegin(GL_QUADS);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(cx - 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy - 210.0f);
+    glVertex2f(cx + 330.0f, cy + 210.0f);
+    glVertex2f(cx - 330.0f, cy + 210.0f);
+    glEnd();
+    glLineWidth(1.0f);
+
+    dibujar_icono_info(cx, cy + 155.0f, 22.0f);
+
+    glColor3f(0.55f, 0.75f, 1.0f);
+    dibujar_texto_centrado(cx, cy + 115.0f, "EL COSTO HUMANO");
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+    dibujar_texto_multilinea_centrado(
+        "En el pais, el 19% de los suicidios registrados se\n"
+        "han vinculado a trastornos de ludopatia.\n"
+        "\n"
+        "Entre quienes tienen problemas de juego, el 85%\n"
+        "piensa en la muerte al verse envuelto en deudas que\n"
+        "no puede pagar, y un 49% lo piensa seriamente.\n"
+        "\n"
+        "Si te reconoces en algo de esto, la tecla [I] desde\n"
+        "el menu tiene recursos de ayuda reales en el pais.",
+        cx, cy + 65.0f, 22.0f);
+
+    glColor3f(0.5f, 0.5f, 0.5f);
+    dibujar_texto_centrado(cx, cy - 140.0f, "Fuente: El Democrata, 2025");
 
     glColor3f(1.0f, 0.85f, 0.0f);
     dibujar_texto_centrado(cx, cy - 170.0f, "[ENTER] Continuar");
@@ -1874,6 +2131,15 @@ void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, c
         break;
     case ESTADO_PROPOSITO:
         dibujar_pantalla_proposito();
+        break;
+    case ESTADO_INTRO_LATINOAMERICA:
+        dibujar_pantalla_intro_latinoamerica();
+        break;
+    case ESTADO_INTRO_RD:
+        dibujar_pantalla_intro_rd();
+        break;
+    case ESTADO_INTRO_COSTO_HUMANO:
+        dibujar_pantalla_intro_costo_humano();
         break;
     case ESTADO_MENU:
         dibujar_pantalla_menu(info->opcion_menu);

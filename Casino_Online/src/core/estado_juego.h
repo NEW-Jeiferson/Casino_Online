@@ -105,6 +105,9 @@ typedef enum {
     ESTADO_DADOS_JUGANDO,    /* Pantalla real de dados */
     ESTADO_ADVERTENCIA,      /* Advertencia inicial de ludopatia */
     ESTADO_PROPOSITO,        /* Explicacion del proposito educativo del proyecto */
+    ESTADO_INTRO_LATINOAMERICA,
+    ESTADO_INTRO_RD,
+    ESTADO_INTRO_COSTO_HUMANO,
     ESTADO_CONFIRMACION_JUEGO, /* Reflexion y confirmacion de responsabilidad previa a la partida */
     ESTADO_CHECKPOINT_EDUCATIVO, /* Recordatorio educativo periodico (cada 3 rondas y 5 min) */
     ESTADO_QUIZ_EDUCATIVO    /* Quiz interactivo que alterna con el checkpoint pasivo */

@@ -41,6 +41,8 @@
  /* Funcion para obtener el monto de una ficha por su indice */
 static const float FICHAS[4] = { 10.0f, 25.0f, 50.0f, 100.0f };
 
+#define DURACION_CARGA_SEGUNDOS 16.0f
+
 /* --- Estado global de la partida (TODO propio resuelto) ---
    Antes estas variables estaban sueltas (jugador, bolita, angulo_rueda,
    el arreglo de apuestas activas, la ficha seleccionada...) directamente
@@ -122,13 +124,14 @@ static void iniciar_musica_fondo(void) {
     char cmd_open[512];
 
     ruta_usada = NULL;
-    attr = GetFileAttributesA("musica\\fondo.wav");
-    if (attr != INVALID_FILE_ATTRIBUTES) {
-        ruta_usada = "musica\\fondo.wav";
+    /* Intentar ruta relativa desde el ejecutable final */
+    attr = GetFileAttributesA("musica\\JAZZ_Casino.wav");
+    if (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        ruta_usada = "musica\\JAZZ_Casino.wav";
     } else {
-        attr = GetFileAttributesA("..\\musica\\fondo.wav");
-        if (attr != INVALID_FILE_ATTRIBUTES) {
-            ruta_usada = "..\\musica\\fondo.wav";
+        attr = GetFileAttributesA("..\\musica\\JAZZ_Casino.wav");
+        if (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+            ruta_usada = "..\\musica\\JAZZ_Casino.wav";
         }
     }
 
@@ -586,6 +589,15 @@ void teclado(unsigned char tecla, int x, int y) {
             cambiar_estado(ESTADO_PROPOSITO);
         }
         else if (estado_actual == ESTADO_PROPOSITO) {
+            cambiar_estado(ESTADO_INTRO_LATINOAMERICA);
+        }
+        else if (estado_actual == ESTADO_INTRO_LATINOAMERICA) {
+            cambiar_estado(ESTADO_INTRO_RD);
+        }
+        else if (estado_actual == ESTADO_INTRO_RD) {
+            cambiar_estado(ESTADO_INTRO_COSTO_HUMANO);
+        }
+        else if (estado_actual == ESTADO_INTRO_COSTO_HUMANO) {
             cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_MENU) {
@@ -752,7 +764,7 @@ void idle(void) {
     }
 
     if (estado_actual == ESTADO_CARGA) {
-        partida.progreso_carga += delta_tiempo / 3.0f;
+        partida.progreso_carga += delta_tiempo / DURACION_CARGA_SEGUNDOS;
         if (partida.progreso_carga >= 1.0f) {
             partida.progreso_carga = 1.0f;
             cambiar_estado(ESTADO_ADVERTENCIA);
