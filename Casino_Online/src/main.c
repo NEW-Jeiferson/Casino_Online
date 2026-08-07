@@ -23,6 +23,10 @@
 #include "ui/hud.h"
 #include "ui/notificaciones.h"
 #include "ui/pantallas.h"
+#include "dados/dados_logica.h"
+#include "dados/dados_animacion.h"
+#include "dados/dados_geometria.h"
+#include "ui/hud_dados.h"
 #include "ui/tablero_apuestas.h"
 #include "tragamonedas/tragamonedas_logica.h"
 #include "tragamonedas/tragamonedas_animacion.h"
@@ -94,6 +98,10 @@ typedef struct {
 
     int juego_activo; /* 0 = Ruleta, 1 = Tragamonedas */
     EstadoTragamonedas tragamonedas;
+    EstadoDados dados;
+    TipoApuestaDados dados_ultima_apuesta;
+    int dados_ultimo_resultado;
+    float dados_monto_apuesta;
 } EstadoPartida;
 
 static EstadoPartida partida;
@@ -170,7 +178,7 @@ static int saldo_alcanza_para_ficha(float monto_ficha) {
       pedir prestamo). Antes esta logica estaba duplicada a mano en los
       dos lugares; ahora hay una sola version. */
 static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
-    if ((estado_actual == ESTADO_JUGANDO || estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO) && partida.jugador.saldo < partida.monto_ficha_actual) {
+    if ((estado_actual == ESTADO_JUGANDO || estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO || estado_actual == ESTADO_DADOS_JUGANDO) && partida.jugador.saldo < partida.monto_ficha_actual) {
         cambiar_estado(ESTADO_PRESTAMO);
     }
 }
@@ -247,6 +255,20 @@ static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
     }
 }
 
+static void hacer_apuesta_dados(TipoApuestaDados tipo) {
+    if (!partida.dados.girando && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
+        int d1, d2;
+        
+        registrar_apuesta(&partida.jugador, partida.monto_ficha_actual);
+        partida.dados_ultima_apuesta = tipo;
+        partida.dados_monto_apuesta = partida.monto_ficha_actual;
+        partida.dados_ultimo_resultado = 0; /* Reset */
+        decidir_resultado_dados(&d1, &d2);
+        partida.mensaje_probabilidad_actual = rand() % 8;
+        iniciar_tiro_dados(&partida.dados, d1, d2);
+    }
+}
+
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -296,10 +318,15 @@ void display(void) {
         gluLookAt(0.0, 15.0, 7.0,
             0.0, 0.0, 1.0,
             0.0, 1.0, 0.0);
-    } else {
+    } else if (partida.juego_activo == 1) {
         /* Camara frontal para el tragamonedas (GABINETE_ALTURA_TOTAL real = 4.45f) */
         gluLookAt(0.0, 2.5, 9.5,   /* Ojo frontal, mas alto y lejos para que entre entero con margen */
             0.0, 2.0, 0.0,         /* Mirando cerca del centro (desplazado un poco abajo para dejar lugar al HUD) */
+            0.0, 1.0, 0.0);
+    } else {
+        /* Camara para dados */
+        gluLookAt(0.0, 16.5, 8.0,
+            0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
     }
 
@@ -320,14 +347,16 @@ void display(void) {
         glPopMatrix();
 
         dibujar_vidrio_protector();
-    } else {
+    } else if (partida.juego_activo == 1) {
         dibujar_tragamonedas(&partida.tragamonedas);
+    } else {
+        dibujar_dados(&partida.dados);
     }
     glPopMatrix();
 
     dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas, partida.bolita.girando, partida.mensaje_probabilidad_actual);
 
-    if (partida.juego_activo != 0) {
+    if (partida.juego_activo == 1) {
         int i, alguno_girando = 0;
         int ancho = glutGet(GLUT_WINDOW_WIDTH);
         int alto = glutGet(GLUT_WINDOW_HEIGHT);
@@ -343,6 +372,14 @@ void display(void) {
         }
         if (alguno_girando) {
             dibujar_mensaje_giro_tragamonedas(partida.mensaje_probabilidad_actual);
+        }
+    } else if (partida.juego_activo == 2) {
+        int ancho = glutGet(GLUT_WINDOW_WIDTH);
+        int alto = glutGet(GLUT_WINDOW_HEIGHT);
+        dibujar_hud_dados(ancho, alto, partida.dados_ultima_apuesta, partida.dados_ultimo_resultado, partida.dados.girando, partida.dados.dado1_final, partida.dados.dado2_final);
+        
+        if (partida.dados.girando) {
+            dibujar_mensaje_giro_dados(partida.mensaje_probabilidad_actual);
         }
     }
     dibujar_notificaciones();
@@ -443,14 +480,16 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'p':
     case 'P':
-        if (estado_actual == ESTADO_PRESTAMO) {
-            pedir_prestamo(&partida.jugador, 200.0f, 0.20f);
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_PAR);
+        } else if (estado_actual == ESTADO_PRESTAMO) {
+            pedir_prestamo(&partida.jugador, MONTO_PRESTAMO, TASA_INTERES_PRESTAMO);
 
-            if (deuda_es_impagable(&partida.jugador, 1000.0f)) {
+            if (deuda_es_impagable(&partida.jugador, LIMITE_DEUDA_IMPAGABLE)) {
                 cambiar_estado(ESTADO_GAME_OVER);
             }
             else {
-                cambiar_estado(partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO);
+                cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
             }
         }
         break;
@@ -479,6 +518,9 @@ void teclado(unsigned char tecla, int x, int y) {
                 if (partida.tragamonedas.rodillos[i].girando) alguno_girando = 1;
             }
             if (!alguno_girando) cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_DADOS_JUGANDO && !partida.dados.girando) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
         }
         break;
 
@@ -511,9 +553,24 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'i':
     case 'I':
-        if (estado_actual == ESTADO_MENU || estado_actual == ESTADO_GAME_OVER || estado_actual == ESTADO_SESION_TERMINADA) {
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_IMPAR);
+        } else if (estado_actual == ESTADO_MENU || estado_actual == ESTADO_GAME_OVER || estado_actual == ESTADO_SESION_TERMINADA) {
             partida.pagina_educacion = 0;
             cambiar_estado(ESTADO_EDUCACION);
+        }
+        break;
+
+    case '7':
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_SIETE);
+        }
+        break;
+
+    case 'e':
+    case 'E':
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_EXTREMOS);
         }
         break;
 
@@ -544,19 +601,22 @@ void teclado(unsigned char tecla, int x, int y) {
             if (partida.juego_activo == 1) {
                 inicializar_tragamonedas_animacion(&partida.tragamonedas);
                 cambiar_estado(ESTADO_TRAGAMONEDAS_JUGANDO);
+            } else if (partida.juego_activo == 2) {
+                inicializar_dados_animacion(&partida.dados);
+                cambiar_estado(ESTADO_DADOS_JUGANDO);
             } else {
                 cambiar_estado(ESTADO_JUGANDO);
             }
         }
         else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
-            cambiar_estado(partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO);
+            cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
         }
         else if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 1) {
-            cambiar_estado(partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO);
+            cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
         }
 
         else if (estado_actual == ESTADO_GAME_OVER) {
-            cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
+            cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_SESION_TERMINADA) {
             cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
@@ -566,7 +626,7 @@ void teclado(unsigned char tecla, int x, int y) {
         }
         else if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
             partida.mensaje_reflexivo_actual = NULL;
-            cambiar_estado(partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO);
+            cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
             verificar_fondos_y_pedir_prestamo_si_hace_falta();
         }
         break;
@@ -743,7 +803,7 @@ void idle(void) {
         partida.num_apuestas_activas = 0;
         partida.rondas_desde_ultimo_checkpoint++;
 
-        partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
+        partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador, partida.juego_activo);
         if (partida.mensaje_reflexivo_actual != NULL) {
             cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
         }
@@ -796,7 +856,66 @@ void idle(void) {
             aplicar_resultado_apuesta(&partida.jugador, g);
             partida.rondas_desde_ultimo_checkpoint++;
             
-            partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
+            partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador, partida.juego_activo);
+            if (partida.mensaje_reflexivo_actual != NULL) {
+                cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
+            }
+            else {
+                int tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
+                int tiempo_transcurrido_ms = tiempo_actual_ms - partida.ultimo_checkpoint_tiempo_ms;
+    
+                if (partida.rondas_desde_ultimo_checkpoint >= 3 || tiempo_transcurrido_ms >= 300000) {
+                    partida.indice_checkpoint_educativo++;
+                    partida.rondas_desde_ultimo_checkpoint = 0;
+                    partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
+    
+                    if (partida.indice_checkpoint_educativo % 2 == 0) {
+                        cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
+                    } else {
+                        partida.quiz_pregunta_actual = rand() % NUM_PREGUNTAS_QUIZ;
+                        partida.quiz_fase = 0;
+                        partida.quiz_respuesta_elegida = -1;
+                        cambiar_estado(ESTADO_QUIZ_EDUCATIVO);
+                    }
+                }
+                else {
+                    verificar_fondos_y_pedir_prestamo_si_hace_falta();
+                }
+            }
+        }
+    } else if (estado_actual == ESTADO_DADOS_JUGANDO) {
+        int estaba_girando = partida.dados.girando;
+        actualizar_dados(&partida.dados, delta_tiempo);
+
+        if (estaba_girando && !partida.dados.girando) {
+            float ganancia_dados;
+            char notifbuf[128];
+
+            partida.dados_ultimo_resultado = partida.dados.dado1_final + partida.dados.dado2_final;
+            
+            ganancia_dados = calcular_ganancia_dados(partida.dados_ultima_apuesta, partida.dados.dado1_final, partida.dados.dado2_final, partida.dados_monto_apuesta);
+            
+            sprintf_s(notifbuf, sizeof(notifbuf), "Salio %d y %d (suma %d)", partida.dados.dado1_final, partida.dados.dado2_final, partida.dados_ultimo_resultado);
+            agregar_notificacion(notifbuf, 1.0f, 1.0f, 1.0f);
+            
+            if (ganancia_dados > 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Ganaste $%.2f", ganancia_dados);
+                agregar_notificacion(notifbuf, 0.2f, 1.0f, 0.3f);
+            } else if (ganancia_dados < 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Perdiste $%.2f", -ganancia_dados);
+                agregar_notificacion(notifbuf, 1.0f, 0.35f, 0.35f);
+            }
+            
+            partida.mensaje_reflexivo_actual = resolver_ronda_dados(
+                &partida.jugador, 
+                partida.dados_ultima_apuesta, 
+                partida.dados.dado1_final, 
+                partida.dados.dado2_final, 
+                partida.dados_monto_apuesta
+            );
+            
+            partida.rondas_desde_ultimo_checkpoint++;
+            
             if (partida.mensaje_reflexivo_actual != NULL) {
                 cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
             }
@@ -831,8 +950,12 @@ void idle(void) {
 static void teclas_especiales(int tecla, int x, int y) {
     (void)x; (void)y;
     if (estado_actual == ESTADO_MENU) {
-        if (tecla == GLUT_KEY_UP || tecla == GLUT_KEY_DOWN) {
-            partida.opcion_menu = (partida.opcion_menu == 0) ? 1 : 0;
+        if (tecla == GLUT_KEY_DOWN) {
+            partida.opcion_menu = (partida.opcion_menu + 1) % 3;
+            glutPostRedisplay();
+        }
+        else if (tecla == GLUT_KEY_UP) {
+            partida.opcion_menu = (partida.opcion_menu + 2) % 3;
             glutPostRedisplay();
         }
     }
@@ -890,3 +1013,6 @@ int main(int argc, char** argv) {
     glutMainLoop();
     return 0;
 }
+
+
+

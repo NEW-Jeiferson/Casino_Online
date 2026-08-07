@@ -117,6 +117,12 @@ int calcular_nivel_riesgo(const Jugador* j, int tiempo_actual_ms) {
     if (j->total_apostado >= j->saldo_inicial * 1.5f) puntos += 1;
     if (j->total_apostado >= j->saldo_inicial * 3.0f) puntos += 1;
     if (mins >= 15.0f) puntos += 1;
+    
+    if (j->saldo_inicial > 0.0f) {
+        float saldo_actual = j->saldo_inicial + j->total_ganado - j->total_perdido;
+        if (saldo_actual <= j->saldo_inicial * 0.4f) puntos += 2; /* Perdio el 60% */
+        if (saldo_actual <= j->saldo_inicial * 0.1f) puntos += 2; /* Perdio el 90% */
+    }
 
     if (puntos == 0) return 0;
     if (puntos <= 2) return 1;
@@ -129,7 +135,7 @@ int calcular_nivel_riesgo(const Jugador* j, int tiempo_actual_ms) {
 #define MULTIPLICADOR_HITO_APOSTADO 2.0f /* cada 2x el saldo inicial apostado en total */
 #define RONDAS_ENTRE_REALITY_CHECK 5 /* aviso neutral cada N rondas, sin importar el resultado */
 
-static const char* DATOS_EDUCATIVOS_GENERALES[8] = {
+static const char* DATOS_EDUCATIVOS_GENERALES_RULETA[8] = {
     "Dato: en la ruleta, cada giro es totalmente\n"
     "independiente del anterior.\n"
     "\n"
@@ -186,7 +192,117 @@ static const char* DATOS_EDUCATIVOS_GENERALES[8] = {
     "Detenerte a tiempo previene mayores danos."
 };
 
-const char* verificar_mensaje_reflexivo(Jugador* j) {
+static const char* DATOS_EDUCATIVOS_GENERALES_TRAGAMONEDAS[8] = {
+    "Dato: en las tragamonedas, cada giro es totalmente\n"
+    "independiente del anterior por el sistema RNG.\n"
+    "\n"
+    "Una racha sin premios no hace que un premio\n"
+    "este 'por salir'. Es la base del algoritmo.",
+
+    "Dato: la ludopatia esta reconocida como un\n"
+    "trastorno clinico real (DSM-5), no como una\n"
+    "falta de fuerza de voluntad.\n"
+    "\n"
+    "Se trata igual que otras adicciones, aunque no\n"
+    "involucre ninguna sustancia.",
+
+    "Dato: necesitar jugar mas rapido o apostar\n"
+    "mas para sentir la misma emocion se llama\n"
+    "tolerancia, y es un signo de alerta clinico.\n"
+    "\n"
+    "Si notas que te esta pasando, vale la pena\n"
+    "prestarle atencion.",
+
+    "Dato: definir un presupuesto y un limite de\n"
+    "tiempo ANTES de jugar, y respetarlo pase lo\n"
+    "que pase, es vital en tragamonedas rapidas.\n"
+    "\n"
+    "Hay mas info en la pantalla de Informacion\n"
+    "([I] desde el menu).",
+
+    "Dato: mentir sobre cuanto dinero se juega\n"
+    "o se pierde es un signo de alerta clinico\n"
+    "reconocido internacionalmente (DSM-5).\n"
+    "\n"
+    "La transparencia personal es clave para detectar\n"
+    "el juego de riesgo.",
+
+    "Dato: jugar para intentar escapar del estres,\n"
+    "la ansiedad o el aburrimiento es un patron\n"
+    "de riesgo, no una forma sana de descanso.\n"
+    "\n"
+    "Buscar alternativas saludables protege tu salud.",
+
+    "Dato: los 'casi aciertos' (near misses) son\n"
+    "ilusiones opticas programadas para enganarte\n"
+    "y que sientas que 'casi ganas'.\n"
+    "\n"
+    "Matematicamente, perdiste igual que siempre.",
+
+    "Dato: las 'falsas victorias' (ganar menos\n"
+    "dinero del que apostaste en un giro) enganan\n"
+    "al cerebro con luces y sonidos de victoria.\n"
+    "\n"
+    "Detenerte a tiempo previene mayores danos."
+};
+
+static const char* DATOS_EDUCATIVOS_GENERALES_DADOS[8] = {
+    "Dato: en los dados, soplar o lanzar los\n"
+    "dados de cierta forma no altera las matematicas.\n"
+    "\n"
+    "Creer que tienes el control sobre el resultado\n"
+    "fomenta la conducta de juego problematico.",
+
+    "Dato: la ludopatia esta reconocida como un\n"
+    "trastorno clinico real (DSM-5), no como una\n"
+    "falta de fuerza de voluntad.\n"
+    "\n"
+    "Se trata igual que otras adicciones, aunque no\n"
+    "involucre ninguna sustancia.",
+
+    "Dato: necesitar apostar montos cada vez\n"
+    "mayores para sentir la misma emocion se llama\n"
+    "tolerancia, y es uno de los signos de alerta\n"
+    "reconocidos del juego problematico.\n"
+    "\n"
+    "Si notas que te esta pasando, vale la pena\n"
+    "prestarle atencion.",
+
+    "Dato: definir un presupuesto y un limite de\n"
+    "tiempo ANTES de jugar, y respetarlo pase lo\n"
+    "que pase, es una de las formas mas efectivas\n"
+    "de jugar de manera responsable.\n"
+    "\n"
+    "Hay mas info en la pantalla de Informacion\n"
+    "([I] desde el menu).",
+
+    "Dato: mentir sobre cuanto dinero se juega\n"
+    "o se pierde es un signo de alerta clinico\n"
+    "reconocido internacionalmente (DSM-5).\n"
+    "\n"
+    "La transparencia personal es clave para detectar\n"
+    "el juego de riesgo.",
+
+    "Dato: jugar para intentar escapar del estres,\n"
+    "la ansiedad o el aburrimiento es un patron\n"
+    "de riesgo, no una forma sana de descanso.\n"
+    "\n"
+    "Buscar alternativas saludables protege tu salud.",
+
+    "Dato: apostar al Par/Impar paga 0.9x en vez\n"
+    "de 1.0x para dar ventaja matematica a la casa.\n"
+    "\n"
+    "Todas las apuestas estan calculadas en tu contra\n"
+    "a largo plazo.",
+
+    "Dato: solicitar dinero prestado para intentar\n"
+    "recuperar lo perdido es una escalada real de\n"
+    "deuda, no una solucion temporal.\n"
+    "\n"
+    "Detenerte a tiempo previene mayores danos."
+};
+
+const char* verificar_mensaje_reflexivo(Jugador* j, int juego_activo) {
     /* Buffer estatico: ver la advertencia en jugador.h sobre su
        tiempo de vida (valido solo hasta la proxima llamada). */
     static char buffer[700];
@@ -299,7 +415,14 @@ const char* verificar_mensaje_reflexivo(Jugador* j) {
         else {
             int indice_dato = (ocurrencia / 2 - 1) % 8;
             if (indice_dato < 0) indice_dato = 0;
-            sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES[indice_dato]);
+            
+            if (juego_activo == 1) {
+                sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES_TRAGAMONEDAS[indice_dato]);
+            } else if (juego_activo == 2) {
+                sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES_DADOS[indice_dato]);
+            } else {
+                sprintf_s(buffer, sizeof(buffer), "%s", DATOS_EDUCATIVOS_GENERALES_RULETA[indice_dato]);
+            }
         }
         return buffer;
     }
