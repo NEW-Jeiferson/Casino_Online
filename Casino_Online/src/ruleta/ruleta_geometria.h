@@ -39,6 +39,8 @@ void dibujar_pista_numerada(void);
 float altura_superficie_en_radio(float radio);
 
 
+void dibujar_emblema_central(void);
+
 /* Define el radio interior y exterior de la pista numerada de la ruleta */
 #define RADIO_INTERNO_PISTA 1.6f
 #define RADIO_EXTERNO_PISTA 2.6f

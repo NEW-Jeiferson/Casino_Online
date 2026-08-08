@@ -1,12 +1,17 @@
-/** Punto de entrada principal del Simulador de Ruleta 3D.
- * Coordina el bucle principal de OpenGL (GLUT), el estado global de la partida,
- * la interaccion del usuario (teclado/raton) y la integracion de los distintos modulos.
+/*
+ * main.c
  */
 #include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+
+#include <windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
+#include "render/textura.h"
 
 #include "core/estado_juego.h"
 #include "core/jugador.h"
@@ -16,23 +21,35 @@
 #include "render/iluminacion.h"
 #include "render/materiales.h"
 #include "ui/hud.h"
+#include "ui/notificaciones.h"
 #include "ui/pantallas.h"
+#include "dados/dados_logica.h"
+#include "dados/dados_animacion.h"
+#include "dados/dados_geometria.h"
+#include "ui/hud_dados.h"
 #include "ui/tablero_apuestas.h"
+#include "tragamonedas/tragamonedas_logica.h"
+#include "tragamonedas/tragamonedas_animacion.h"
+#include "tragamonedas/tragamonedas_geometria.h"
+#include "ui/hud_tragamonedas.h"
 
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE 0x809D
 #endif
 
- /* Valores fijos de las fichas seleccionables con las teclas 1-4.
-    Como es una tabla estatica que no cambia durante la partida,
-    se mantiene fuera de la estructura dinamica EstadoPartida. */
+
+ /* Funcion para obtener el monto de una ficha por su indice */
 static const float FICHAS[4] = { 10.0f, 25.0f, 50.0f, 100.0f };
 
-/** Estructura central que agrupa todo el estado de una partida en curso.
- * Anteriormente estas variables estaban dispersas como variables globales estaticas.
- * Agruparlas facilita la inspeccion de datos, la coordinacion entre sistemas y
- * permite en un futuro reiniciar o guardar la partida de forma centralizada.
- */
+#define DURACION_CARGA_SEGUNDOS 16.0f
+
+/* --- Estado global de la partida (TODO propio resuelto) ---
+   Antes estas variables estaban sueltas (jugador, bolita, angulo_rueda,
+   el arreglo de apuestas activas, la ficha seleccionada...) directamente
+   como statics del archivo. Se agrupan aca en una sola estructura para
+   que quede claro que es "el estado de una partida en curso" y se
+   pueda pasar/inspeccionar como una unidad si mas adelante hace falta
+   (guardar partida, reiniciar todo de una vez, etc.). */
 typedef struct {
     Jugador      jugador;
     EstadoBolita bolita;
@@ -44,22 +61,103 @@ typedef struct {
     int   ficha_actual_index;
     float monto_ficha_actual;
 
-    /* FIX DE ALEATORIEDAD: El numero ganador ahora se decide ANTES de iniciar
-       la animacion del giro (usando rand() % 37) y se guarda aqui. La funcion idle()
-       resuelve la apuesta contra ESTE numero exacto, desvinculando la logica de
-       ganancias de la animacion visual y evitando imprecisiones numericas. */
+    /* FIX DE ALEATORIEDAD (ronda 2): el numero ganador ahora se decide
+       ANTES de iniciar la animacion del giro (ver tecla ESPACIO), con
+       rand() % 37 -uniforme de verdad-. Se guarda aqui para que idle()
+       resuelva la apuesta contra ESTE numero exacto cuando la bolita
+       se detenga, sin volver a derivarlo del angulo final (evita
+       cualquier imprecision numerica de la animacion). */
     int numero_ganador_pendiente;
 
-    /* Puntero al mensaje de concientizacion sobre ludopatia.
-       Apunta a una cadena de solo lectura devuelta por el modulo del jugador,
-       por lo que no requiere liberacion de memoria. */
+    /* Mensaje de concientizacion pendiente de mostrar (ver
+       core/jugador.h, verificar_mensaje_reflexivo). Apunta a un string
+       constante devuelto por esa funcion -nunca a memoria propia de
+       EstadoPartida-, asi que no hace falta liberarlo ni copiarlo. */
     const char* mensaje_reflexivo_actual;
+
+    /* Pagina actual dentro de ESTADO_EDUCACION (0-based). Es estado de
+       NAVEGACION de UI, no del jugador -por eso vive aca y no en
+       Jugador-, se resetea a 0 cada vez que se entra a esa pantalla. */
+    int pagina_educacion;
+
+    /* Opcion actualmente seleccionada en ESTADO_MENU (0 = Ruleta, 1 = Tragamonedas) */
+    int opcion_menu;
+
+    /* Progreso acumulado de la pantalla de carga (0.0f a 1.0f) */
+    float progreso_carga;
+
+    /* Seguimiento de Serious Game / Checkpoints Educativos */
+    int rondas_desde_ultimo_checkpoint;
+    int indice_checkpoint_educativo;
+    int ultimo_checkpoint_tiempo_ms;
+    int mensaje_probabilidad_actual;
+
+    /* Campos para el ESTADO_QUIZ_EDUCATIVO */
+    int quiz_pregunta_actual;
+    int quiz_fase;
+    int quiz_respuesta_elegida;
+    int quiz_fue_correcta;
+
+    int juego_activo; /* 0 = Ruleta, 1 = Tragamonedas */
+    EstadoTragamonedas tragamonedas;
+    EstadoDados dados;
+    TipoApuestaDados dados_ultima_apuesta;
+    int dados_ultimo_resultado;
+    float dados_monto_apuesta;
 } EstadoPartida;
 
 static EstadoPartida partida;
 
-/* Calcula el total de dinero que el jugador ha comprometido en la mesa
-   durante la ronda actual, sumando todas las apuestas activas. */
+static GLuint g_tex_carga = 0;
+static GLuint g_tex_casino = 0;
+
+/* La textura de fondo del tragamonedas se carga desde textura.c,
+   aqui se usan las texturas de carga y casino (ruleta). */
+
+static void limpiar_audio(void) {
+    mciSendStringA("close musica", NULL, 0, NULL);
+}
+
+static void iniciar_musica_fondo(void) {
+    DWORD attr;
+    const char* ruta_usada;
+    char cmd_open[512];
+
+    ruta_usada = NULL;
+    /* Intentar ruta relativa desde el ejecutable final */
+    attr = GetFileAttributesA("musica\\JAZZ_Casino.wav");
+    if (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        ruta_usada = "musica\\JAZZ_Casino.wav";
+    } else {
+        attr = GetFileAttributesA("..\\musica\\JAZZ_Casino.wav");
+        if (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+            ruta_usada = "..\\musica\\JAZZ_Casino.wav";
+        }
+    }
+
+    if (ruta_usada != NULL) {
+        sprintf_s(cmd_open, sizeof(cmd_open), "open \"%s\" alias musica", ruta_usada);
+        if (mciSendStringA(cmd_open, NULL, 0, NULL) == 0) {
+            mciSendStringA("play musica", NULL, 0, NULL);
+        }
+    }
+}
+
+/* BUGFIX (integridad economica): antes se validaba cada ficha nueva
+   contra partida.jugador.saldo "a secas", pero registrar_apuesta() NO
+   descuenta el saldo al colocar una ficha (el saldo solo se ajusta una
+   vez, al resolver la ronda, con la ganancia/perdida neta -ver
+   jugador.c). Eso significaba que el saldo nunca "bajaba" mientras se
+   colocaban fichas dentro de la misma ronda, y el jugador podia
+   colocar muchas mas fichas de las que realmente podia pagar (hasta
+   MAX_APUESTAS), porque cada clic se validaba contra el mismo saldo
+   sin descontar.
+
+   Fix: se calcula cuanto se lleva apostado YA en esta ronda (sumando
+   partida.apuestas_activas), y se exige que el saldo alcance para eso
+   MAS la ficha nueva. No se toca jugador.c/aplicar_resultado_apuesta
+   (la liquidacion neta al final de la ronda sigue igual), solo se
+   corrige la validacion de "me alcanza para esta ficha". */
 static float monto_apostado_en_ronda(void) {
     float total = 0.0f;
     int i;
@@ -69,43 +167,71 @@ static float monto_apostado_en_ronda(void) {
     return total;
 }
 
-/* Verifica la integridad economica al momento de colocar una ficha.
-   BUGFIX: Antes se validaba cada ficha nueva contra el saldo absoluto. Como el saldo
-   solo se descuenta al finalizar la ronda, un jugador podia colocar fichas infinitas.
-   Ahora, se exige que el saldo sea suficiente para cubrir lo que YA aposto
-   en esta ronda mas el valor de la nueva ficha que intenta colocar. */
 static int saldo_alcanza_para_ficha(float monto_ficha) {
     return (partida.jugador.saldo - monto_apostado_en_ronda()) >= monto_ficha;
 }
 
-/* Evalua si el saldo actual le permite al jugador seguir apostando.
-   Si el jugador no tiene fondos suficientes ni para la ficha minima, cambia
-   el estado del juego hacia la pantalla de solicitud de prestamo.
-   Centraliza la validacion posterior a la resolucion de rondas y mensajes reflexivos. */
+/* Si el saldo no alcanza ni para la ficha minima seleccionada, manda
+   al jugador a la pantalla de prestamo. Se llama desde dos lugares:
+   1) al resolver una ronda en idle() (cuando NO hubo mensaje reflexivo
+      ese mismo round), y 2) justo despues de descartar un mensaje
+      reflexivo con ENTER (por si la condicion de fondos tambien se
+      cumplia esa misma ronda -se prioriza mostrar primero el mensaje
+      reflexivo, y recien al continuar se revisa si ademas hace falta
+      pedir prestamo). Antes esta logica estaba duplicada a mano en los
+      dos lugares; ahora hay una sola version. */
 static void verificar_fondos_y_pedir_prestamo_si_hace_falta(void) {
-    if (estado_actual == ESTADO_JUGANDO && partida.jugador.saldo < partida.monto_ficha_actual) {
+    if ((estado_actual == ESTADO_JUGANDO || estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO || estado_actual == ESTADO_DADOS_JUGANDO) && partida.jugador.saldo < partida.monto_ficha_actual) {
         cambiar_estado(ESTADO_PRESTAMO);
     }
 }
 
-/* Registra una nueva apuesta en la mesa si se cumplen los requisitos.
-   Retorna 1 si la apuesta fue agregada con exito, o 0 si se alcanzo el
-   limite maximo de apuestas permitidas simultaneamente. */
+/* Agrega una apuesta al arreglo activo si hay espacio y saldo suficiente.
+   Devuelve 1 si se agrego, 0 si no (arreglo lleno). */
 static int agregar_apuesta(TipoApuesta tipo, int valor, float monto) {
-    if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
+    char notifbuf[128];
 
+    if (partida.num_apuestas_activas >= MAX_APUESTAS) return 0;
     partida.apuestas_activas[partida.num_apuestas_activas].tipo = tipo;
     partida.apuestas_activas[partida.num_apuestas_activas].valor = valor;
     partida.apuestas_activas[partida.num_apuestas_activas].monto = monto;
     partida.num_apuestas_activas++;
 
-    /* Actualiza inmediatamente el monto total mostrado en el HUD */
     registrar_apuesta(&partida.jugador, monto);
+
+    if (tipo == APUESTA_NUMERO) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f al Numero %d", monto, valor);
+    } else if (tipo == APUESTA_COLOR) {
+        if (valor == (int)COLOR_ROJO) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a ROJO", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a NEGRO", monto);
+        }
+    } else if (tipo == APUESTA_PAR_IMPAR) {
+        if (valor == 0) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a PAR", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a IMPAR", monto);
+        }
+    } else if (tipo == APUESTA_MITAD) {
+        if (valor == 1) {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 1-18", monto);
+        } else {
+            sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a 19-36", monto);
+        }
+    } else if (tipo == APUESTA_DOCENA) {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta: $%.0f a Docena %d", monto, valor);
+    } else {
+        sprintf_s(notifbuf, sizeof(notifbuf), "Apuesta colocada: $%.0f", monto);
+    }
+    agregar_notificacion(notifbuf, 1.0f, 0.84f, 0.0f);
+
     return 1;
 }
 
-/* Elimina una apuesta especifica del arreglo, compactando los elementos
-   restantes para evitar huecos en la memoria y descontando el monto del HUD. */
+/* Quita la apuesta en la posicion 'indice' del arreglo, recorriendo
+   el resto un lugar hacia atras para no dejar huecos. Tambien
+   descuenta ese monto de total_apostado (ver anular_apuesta). */
 static void quitar_apuesta(int indice) {
     int i;
     if (indice < 0 || indice >= partida.num_apuestas_activas) return;
@@ -118,9 +244,10 @@ static void quitar_apuesta(int indice) {
     partida.num_apuestas_activas--;
 }
 
-/* Busca y elimina la ultima ficha colocada en una zona o numero especifico.
-   Se utiliza para procesar el "clic derecho" deshaciendo apuestas sobre la celda
-   actualmente apuntada, unificando la logica para numeros y zonas especiales. */
+/* Busca de atras hacia adelante la ultima apuesta con el tipo/valor
+   dados y la quita. Se usa para el clic derecho, tanto sobre un numero
+   del grid como sobre una zona especial (docena/mitad/par-impar):
+   misma logica en ambos casos, antes duplicada solo para APUESTA_NUMERO. */
 static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
     int i;
     for (i = partida.num_apuestas_activas - 1; i >= 0; i--) {
@@ -131,45 +258,152 @@ static void quitar_ultima_apuesta_tipo_valor(TipoApuesta tipo, int valor) {
     }
 }
 
-/* Funcion principal de renderizado .
-   Gestiona la secuencia de dibujado de la escena 3D, iluminacion, camara,
-   elementos de la mesa y superposicion de interfaces 2D (HUD y pantallas). */
+static void hacer_apuesta_dados(TipoApuestaDados tipo) {
+    if (!partida.dados.girando && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
+        int d1, d2;
+        
+        registrar_apuesta(&partida.jugador, partida.monto_ficha_actual);
+        partida.dados_ultima_apuesta = tipo;
+        partida.dados_monto_apuesta = partida.monto_ficha_actual;
+        partida.dados_ultimo_resultado = 0; /* Reset */
+        decidir_resultado_dados(&d1, &d2);
+        partida.mensaje_probabilidad_actual = rand() % 8;
+        iniciar_tiro_dados(&partida.dados, d1, d2);
+    }
+}
+
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* Fondo con textura de casino (si existe y no estamos en pantalla de carga) */
+    if (g_tex_casino != 0 && estado_actual != ESTADO_CARGA) {
+        int ancho = glutGet(GLUT_WINDOW_WIDTH);
+        int alto = glutGet(GLUT_WINDOW_HEIGHT);
+
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(0, ancho, 0, alto, -1, 1);
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, g_tex_casino);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, 0.0f);
+        glTexCoord2f(1.0f, 1.0f); glVertex2f((float)ancho, 0.0f);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f((float)ancho, (float)alto);
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, (float)alto);
+        glEnd();
+        glDisable(GL_TEXTURE_2D);
+
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_LIGHTING);
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    
-    gluLookAt(0.0, 15.0, 7.0,
-        0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0);
+    if (partida.juego_activo == 0) {
+        gluLookAt(0.0, 15.0, 7.0,
+            0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0);
+    } else if (partida.juego_activo == 1) {
+        /* Camara frontal para el tragamonedas (GABINETE_ALTURA_TOTAL real = 4.45f) */
+        gluLookAt(0.0, 2.5, 9.5,   /* Ojo frontal, mas alto y lejos para que entre entero con margen */
+            0.0, 2.0, 0.0,         /* Mirando cerca del centro (desplazado un poco abajo para dejar lugar al HUD) */
+            0.0, 1.0, 0.0);
+    } else {
+        /* Camara para dados */
+        gluLookAt(0.0, 16.5, 8.0,
+            0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0);
+    }
 
     glPushMatrix();
-    dibujar_mesa();
-    dibujar_tablero_apuestas(partida.apuestas_activas, partida.num_apuestas_activas);
+    if (partida.juego_activo == 0) {
+        dibujar_mesa();
+        dibujar_tablero_apuestas(partida.apuestas_activas, partida.num_apuestas_activas);
 
-    glPushMatrix();
-    glTranslatef(0.0f, 0.05f, 0.0f);
-    glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
-    dibujar_rueda();
-   
-    dibujar_pista_numerada();
+        glPushMatrix();
+        glTranslatef(0.0f, 0.05f, 0.0f);
+        glRotatef(partida.angulo_rueda, 0.0f, 1.0f, 0.0f);
+        dibujar_rueda();
+        dibujar_pista_numerada();
 
-    glPushMatrix();
-    dibujar_bolita(&partida.bolita);
+        glPushMatrix();
+        dibujar_bolita(&partida.bolita);
+        glPopMatrix();
+        glPopMatrix();
+
+        dibujar_vidrio_protector();
+    } else if (partida.juego_activo == 1) {
+        dibujar_tragamonedas(&partida.tragamonedas);
+    } else {
+        dibujar_dados(&partida.dados);
+    }
     glPopMatrix();
-    glPopMatrix();
 
-    dibujar_vidrio_protector();
-    glPopMatrix();
+    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas, partida.bolita.girando, partida.mensaje_probabilidad_actual);
 
-    dibujar_hud(&partida.jugador, partida.monto_ficha_actual, partida.num_apuestas_activas);
-    dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, partida.mensaje_reflexivo_actual);
+    if (partida.juego_activo == 1) {
+        int i, alguno_girando = 0;
+        int ancho = glutGet(GLUT_WINDOW_WIDTH);
+        int alto = glutGet(GLUT_WINDOW_HEIGHT);
+        
+        dibujar_barra_control_2d(ancho, alto,
+            partida.jugador.saldo,
+            partida.monto_ficha_actual,
+            partida.tragamonedas.ganancia_ultima,
+            &partida.tragamonedas);
+            
+        for (i = 0; i < NUM_RODILLOS; i++) {
+            if (partida.tragamonedas.rodillos[i].girando) alguno_girando = 1;
+        }
+        if (alguno_girando) {
+            dibujar_mensaje_giro_tragamonedas(partida.mensaje_probabilidad_actual);
+        }
+    } else if (partida.juego_activo == 2) {
+        int ancho = glutGet(GLUT_WINDOW_WIDTH);
+        int alto = glutGet(GLUT_WINDOW_HEIGHT);
+        dibujar_hud_dados(ancho, alto, partida.dados_ultima_apuesta, partida.dados_ultimo_resultado, partida.dados.girando, partida.dados.dado1_final, partida.dados.dado2_final);
+        
+        if (partida.dados.girando) {
+            dibujar_mensaje_giro_dados(partida.mensaje_probabilidad_actual);
+        }
+    }
+    dibujar_notificaciones();
+    {
+        InfoPantalla info;
+        info.mensaje_reflexivo = partida.mensaje_reflexivo_actual;
+        info.pagina_educacion = partida.pagina_educacion;
+        info.opcion_menu = partida.opcion_menu;
+        info.progreso_carga = partida.progreso_carga;
+        info.indice_checkpoint = partida.indice_checkpoint_educativo;
+        info.quiz_pregunta_idx = partida.quiz_pregunta_actual;
+        info.quiz_fase = partida.quiz_fase;
+        info.quiz_respuesta_elegida = partida.quiz_respuesta_elegida;
+        info.quiz_fue_correcta = partida.quiz_fue_correcta;
+        info.juego_activo = partida.juego_activo;
+        dibujar_pantalla_segun_estado(estado_actual, &partida.jugador, &info);
+    }
 
     glutSwapBuffers();
 }
 
-/* Callback de redimensionamiento de ventana */
 void reshape(int ancho, int alto) {
     float aspecto;
     if (alto == 0) alto = 1;
@@ -182,16 +416,14 @@ void reshape(int ancho, int alto) {
     glMatrixMode(GL_MODELVIEW);
 }
 
-/* Manejador de eventos de teclado .
-   Procesa comandos principales como eleccion de fichas, giros de ruleta y menu. */
 void teclado(unsigned char tecla, int x, int y) {
     (void)x; (void)y;
     switch (tecla) {
-    case 27: /* ESC - Cierra la aplicacion */
+    case 27: /* ESC */
         exit(0);
         break;
 
-        /* Controles de seleccion del monto de ficha --- */
+        /* --- Seleccion de monto de ficha --- */
     case '1': partida.ficha_actual_index = 0; partida.monto_ficha_actual = FICHAS[0]; break;
     case '2': partida.ficha_actual_index = 1; partida.monto_ficha_actual = FICHAS[1]; break;
     case '3': partida.ficha_actual_index = 2; partida.monto_ficha_actual = FICHAS[2]; break;
@@ -199,7 +431,8 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'r':
     case 'R':
-        /* Apuesta rapida a color ROJO por teclado. */
+        /* Apuesta a color ROJO: se agrega al arreglo de apuestas
+           activas, pero NO dispara el giro (ver tecla ESPACIO). */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_ROJO, partida.monto_ficha_actual);
@@ -208,18 +441,16 @@ void teclado(unsigned char tecla, int x, int y) {
 
     case 'n':
     case 'N':
-        /* Apuesta rapida a color NEGRO por teclado. */
-        if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
+        if (estado_actual == ESTADO_CONFIRMACION_JUEGO) {
+            cambiar_estado(ESTADO_MENU);
+        }
+        else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
             agregar_apuesta(APUESTA_COLOR, (int)COLOR_NEGRO, partida.monto_ficha_actual);
         }
         break;
 
     case ' ':
-        /* Inicia el giro de la ruleta (Barra Espaciadora).
-           El calculo matematico determina el angulo absoluto de la caida basado en un numero
-           aleatorio real.*/
-
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
 
@@ -228,49 +459,186 @@ void teclado(unsigned char tecla, int x, int y) {
             float angulo_sector_centro = ((float)sector_ganador + 0.5f) * (360.0f / 37.0f);
 
             partida.numero_ganador_pendiente = numero_ganador;
+            partida.mensaje_probabilidad_actual = rand() % 12;
 
-            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 1 /* vuelta extra visual */);
+            iniciar_giro_bolita_hacia_absoluto(&partida.bolita, angulo_sector_centro, 6);
+        }
+        else if (estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO) {
+            int i, alguno_girando = 0;
+            for (i = 0; i < NUM_RODILLOS; i++) {
+                if (partida.tragamonedas.rodillos[i].girando) alguno_girando = 1;
+            }
+            if (!alguno_girando && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
+                registrar_apuesta(&partida.jugador, partida.monto_ficha_actual);
+                partida.tragamonedas.monto_apuesta = partida.monto_ficha_actual;
+                decidir_resultado_tragamonedas(partida.tragamonedas.resultado_actual);
+                partida.mensaje_probabilidad_actual = rand() % 8; /* Sorteo del mensaje educativo al girar */
+                iniciar_giro_tragamonedas(&partida.tragamonedas);
+            }
+        }
+        else if (estado_actual == ESTADO_EDUCACION) {
+            partida.pagina_educacion = (partida.pagina_educacion + 1) % EDUCACION_NUM_PAGINAS;
         }
         break;
 
     case 'p':
     case 'P':
-        /* Solicitud de prestamo financiero ante falta de fondos. */
-        if (estado_actual == ESTADO_PRESTAMO) {
-            pedir_prestamo(&partida.jugador, 200.0f, 0.20f);
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_PAR);
+        } else if (estado_actual == ESTADO_PRESTAMO) {
+            pedir_prestamo(&partida.jugador, MONTO_PRESTAMO, TASA_INTERES_PRESTAMO);
 
-            if (deuda_es_impagable(&partida.jugador, 1000.0f)) {
+            if (deuda_es_impagable(&partida.jugador, LIMITE_DEUDA_IMPAGABLE)) {
                 cambiar_estado(ESTADO_GAME_OVER);
             }
             else {
-                cambiar_estado(ESTADO_JUGANDO);
+                cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
             }
         }
         break;
 
-    case 8: /* BACKSPACE Deshace la ultima ficha colocada en la mesa (Sistema LIFO) */
+    case 's':
+    case 'S':
+        if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
+            partida.mensaje_reflexivo_actual = NULL;
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_PRESTAMO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_QUIZ_EDUCATIVO) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO) {
+            int i, alguno_girando = 0;
+            for (i = 0; i < NUM_RODILLOS; i++) {
+                if (partida.tragamonedas.rodillos[i].girando) alguno_girando = 1;
+            }
+            if (!alguno_girando) cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        else if (estado_actual == ESTADO_DADOS_JUGANDO && !partida.dados.girando) {
+            cambiar_estado(ESTADO_SESION_TERMINADA);
+        }
+        break;
+
+    case 'a':
+    case 'A':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 0;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 0, partida.juego_activo);
+            partida.quiz_fase = 1;
+        }
+        break;
+
+    case 'b':
+    case 'B':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 1;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 1, partida.juego_activo);
+            partida.quiz_fase = 1;
+        }
+        break;
+
+    case 'c':
+    case 'C':
+        if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 0) {
+            partida.quiz_respuesta_elegida = 2;
+            partida.quiz_fue_correcta = quiz_evaluar_respuesta(partida.quiz_pregunta_actual, 2, partida.juego_activo);
+            partida.quiz_fase = 1;
+        }
+        break;
+
+    case 'i':
+    case 'I':
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_IMPAR);
+        } else if (estado_actual == ESTADO_MENU || estado_actual == ESTADO_GAME_OVER || estado_actual == ESTADO_SESION_TERMINADA) {
+            partida.pagina_educacion = 0;
+            cambiar_estado(ESTADO_EDUCACION);
+        }
+        break;
+
+    case '7':
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_SIETE);
+        }
+        break;
+
+    case 'e':
+    case 'E':
+        if (estado_actual == ESTADO_DADOS_JUGANDO) {
+            hacer_apuesta_dados(APUESTA_DADOS_EXTREMOS);
+        }
+        break;
+
+    case 8: /* BACKSPACE: deshace la ultima ficha colocada (LIFO) */
         if (estado_actual == ESTADO_JUGANDO && !partida.bolita.girando
             && partida.num_apuestas_activas > 0) {
             quitar_apuesta(partida.num_apuestas_activas - 1);
         }
         break;
 
-    case 13: /* ENTER Transicion generica entre estados */
-        if (estado_actual == ESTADO_MENU) {
-            cambiar_estado(ESTADO_JUGANDO);
+    case 13: /* ENTER */
+        if (estado_actual == ESTADO_ADVERTENCIA) {
+            cambiar_estado(ESTADO_PROPOSITO);
         }
-        else if (estado_actual == ESTADO_GAME_OVER) {
-            /* Reinicio completo de la partida */
-            inicializar_jugador(&partida.jugador, 1000.0f);
+        else if (estado_actual == ESTADO_PROPOSITO) {
+            cambiar_estado(ESTADO_INTRO_LATINOAMERICA);
+        }
+        else if (estado_actual == ESTADO_INTRO_LATINOAMERICA) {
+            cambiar_estado(ESTADO_INTRO_RD);
+        }
+        else if (estado_actual == ESTADO_INTRO_RD) {
+            cambiar_estado(ESTADO_INTRO_COSTO_HUMANO);
+        }
+        else if (estado_actual == ESTADO_INTRO_COSTO_HUMANO) {
+            cambiar_estado(ESTADO_MENU);
+        }
+        else if (estado_actual == ESTADO_MENU) {
+            partida.juego_activo = partida.opcion_menu; /* 0 = Ruleta, 1 = Tragamonedas */
+            cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
+        }
+        else if (estado_actual == ESTADO_CONFIRMACION_JUEGO) {
+            inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
             partida.num_apuestas_activas = 0;
             partida.mensaje_reflexivo_actual = NULL;
-            cambiar_estado(ESTADO_JUGANDO);
+            partida.rondas_desde_ultimo_checkpoint = 0;
+            partida.ultimo_checkpoint_tiempo_ms = glutGet(GLUT_ELAPSED_TIME);
+            if (partida.juego_activo == 1) {
+                inicializar_tragamonedas_animacion(&partida.tragamonedas);
+                cambiar_estado(ESTADO_TRAGAMONEDAS_JUGANDO);
+            } else if (partida.juego_activo == 2) {
+                inicializar_dados_animacion(&partida.dados);
+                cambiar_estado(ESTADO_DADOS_JUGANDO);
+            } else {
+                cambiar_estado(ESTADO_JUGANDO);
+            }
+        }
+        else if (estado_actual == ESTADO_CHECKPOINT_EDUCATIVO) {
+            cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
+        }
+        else if (estado_actual == ESTADO_QUIZ_EDUCATIVO && partida.quiz_fase == 1) {
+            cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
+        }
+
+        else if (estado_actual == ESTADO_GAME_OVER) {
+            cambiar_estado(ESTADO_MENU);
+        }
+        else if (estado_actual == ESTADO_SESION_TERMINADA) {
+            cambiar_estado(ESTADO_CONFIRMACION_JUEGO);
+        }
+        else if (estado_actual == ESTADO_EDUCACION) {
+            cambiar_estado(ESTADO_MENU);
         }
         else if (estado_actual == ESTADO_MENSAJE_REFLEXIVO) {
-            /* Descarta el mensaje reflexivo y verifica si adicionalmente
-               es necesario pedir un prestamo para poder continuar. */
             partida.mensaje_reflexivo_actual = NULL;
-            cambiar_estado(ESTADO_JUGANDO);
+            cambiar_estado((partida.juego_activo == 2 ? ESTADO_DADOS_JUGANDO : (partida.juego_activo == 1 ? ESTADO_TRAGAMONEDAS_JUGANDO : ESTADO_JUGANDO)));
             verificar_fondos_y_pedir_prestamo_si_hace_falta();
         }
         break;
@@ -281,8 +649,10 @@ void teclado(unsigned char tecla, int x, int y) {
     glutPostRedisplay();
 }
 
-/* Manejador de eventos de los clics del raton .
-   Clic Izquierdo = Apostar, Clic Derecho = Deshacer. */
+/* Clic izquierdo sobre el tablero: agrega una apuesta con la ficha
+   actualmente seleccionada, sobre un numero exacto (grid 0-36) o sobre
+   una de las zonas especiales (docena / mitad / par-impar). Clic
+   derecho: quita la ultima ficha puesta en esa misma celda o zona. */
 void mouse_click(int boton, int estado_boton, int x, int y) {
     float wx, wz;
     int numero;
@@ -290,10 +660,32 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
     int valor_zona;
 
     if (estado_boton != GLUT_DOWN) return;
+    
+    if (estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO) {
+        int i, alguno_girando = 0;
+        ZonaControlTragamonedas zona;
+        
+        for (i = 0; i < NUM_RODILLOS; i++) {
+            if (partida.tragamonedas.rodillos[i].girando) alguno_girando = 1;
+        }
+        
+        zona = obtener_zona_control_2d(x, y, glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
+        
+        if (zona == ZONA_CONTROL_SPIN && !alguno_girando && saldo_alcanza_para_ficha(partida.monto_ficha_actual)) {
+            registrar_apuesta(&partida.jugador, partida.monto_ficha_actual);
+            partida.tragamonedas.monto_apuesta = partida.monto_ficha_actual;
+            decidir_resultado_tragamonedas(partida.tragamonedas.resultado_actual);
+            partida.mensaje_probabilidad_actual = rand() % 8; /* Sorteo del mensaje educativo al girar */
+            iniciar_giro_tragamonedas(&partida.tragamonedas);
+            glutPostRedisplay();
+        }
+        return; /* En el tragamonedas el mouse solo interactua con la barra 2D por ahora */
+    }
+
     if (estado_actual != ESTADO_JUGANDO || partida.bolita.girando) return;
 
     if (boton == GLUT_LEFT_BUTTON) {
-        /* Intento de colocar una nueva ficha */
+        /* Clic izquierdo: agregar ficha */
         if (!saldo_alcanza_para_ficha(partida.monto_ficha_actual)) return;
         if (!obtener_punto_clic_en_mesa(x, y, &wx, &wz)) return;
 
@@ -307,7 +699,7 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
         }
     }
     else if (boton == GLUT_RIGHT_BUTTON) {
-        /* Intento de remover la ultima ficha del numero apuntado */
+        /* Clic derecho: quitar la ultima ficha puesta en ese numero o zona */
         if (!obtener_punto_clic_en_mesa(x, y, &wx, &wz)) return;
 
         if (obtener_numero_en_punto(wx, wz, &numero)) {
@@ -320,9 +712,8 @@ void mouse_click(int boton, int estado_boton, int x, int y) {
         }
     }
 }
-
-/* Funcion de movimiento del raton sin botones presionados
-   Actualiza las coordenadas logicas del tapete para aplicar efectos visuales */
+/* Movimiento pasivo del mouse: actualiza que celda esta en hover, para
+   el resaltado visual (ver celda_hover_col/fila en tablero_apuestas.h). */
 void mouse_mover(int x, int y) {
     float wx, wz;
     int col, fila;
@@ -337,41 +728,81 @@ void mouse_mover(int x, int y) {
     glutPostRedisplay();
 }
 
-/* Bucle de actualizacion logica (callback Idle de GLUT).
-   Calcula la interpolacion temporal e implementa la
-   resolucion y cobro de apuestas en el instante que la bolita se detiene. */
 void idle(void) {
-    
+    /* BUGFIX (velocidad de giro): antes delta_tiempo era una constante
+       fija (0.016f, "como si" el juego corriera siempre a 60 FPS). Pero
+       GLUT clasico no limita cuantas veces por segundo se llama a
+       idle() -sin vsync, esto puede correr cientos o miles de veces
+       por segundo segun el equipo-, y cada llamada sumaba esos 16ms
+       "de mentira" sin importar cuanto tiempo real hubiera pasado.
+       Resultado: una animacion pensada para durar 3.5-7 segundos
+       terminaba en menos de 1 segundo de reloj real.
+
+       Fix: medir el tiempo real transcurrido con glutGet(GLUT_ELAPSED_TIME)
+       (milisegundos desde glutInit) y usar la diferencia real entre
+       frames. Se limita (clamp) a un maximo de 0.1s por frame para
+       evitar saltos enormes si la ventana se arrastra, se minimiza, o
+       el sistema se congela un instante -sin el clamp, un solo frame
+       "lento" podria saltar la bolita varios grados de golpe. */
     static int tiempo_anterior_ms = -1;
     int   tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
     float delta_tiempo;
     int estaba_girando = partida.bolita.girando;
+    char estado_musica[128];
 
     if (tiempo_anterior_ms < 0) tiempo_anterior_ms = tiempo_actual_ms;
     delta_tiempo = (float)(tiempo_actual_ms - tiempo_anterior_ms) / 1000.0f;
     tiempo_anterior_ms = tiempo_actual_ms;
+    if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   /* por si el contador diera un valor raro */
+    if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   /* clamp anti-salto */
 
-    if (delta_tiempo < 0.0f) delta_tiempo = 0.0f;   
-    if (delta_tiempo > 0.1f) delta_tiempo = 0.1f;   
+    /* Bucle manual de audio MCI (waveaudio no soporta la bandera repeat) */
+    mciSendStringA("status musica mode", estado_musica, sizeof(estado_musica), NULL);
+    if (strcmp(estado_musica, "stopped") == 0) {
+        mciSendStringA("seek musica to start", NULL, 0, NULL);
+        mciSendStringA("play musica", NULL, 0, NULL);
+    }
+
+    if (estado_actual == ESTADO_CARGA) {
+        partida.progreso_carga += delta_tiempo / DURACION_CARGA_SEGUNDOS;
+        if (partida.progreso_carga >= 1.0f) {
+            partida.progreso_carga = 1.0f;
+            cambiar_estado(ESTADO_ADVERTENCIA);
+        }
+    }
 
     if (partida.bolita.girando) {
-        /* Garantiza que la rueda siga girando a la misma velocidad constante */
+        /* Usa la MISMA constante que iniciar_giro_bolita_hacia_absoluto()
+           asume al resolver la duracion del giro (ver ruleta_animacion.h) -
+           antes este 60.0f estaba repetido a mano en 2 lugares distintos,
+           lo cual fue justo la causa raiz del bug de "la bolita siempre
+           cae en el mismo lugar" cuando se desincronizaron. */
         partida.angulo_rueda += VELOCIDAD_RUEDA_DURANTE_GIRO * delta_tiempo;
         if (partida.angulo_rueda >= 360.0f) partida.angulo_rueda -= 360.0f;
     }
 
     actualizar_bolita(&partida.bolita, delta_tiempo);
 
-    /* Resolucion del resultado */
+    /* --- Resolver resultado cuando la bolita se acaba de detener --- */
     if (estaba_girando && !partida.bolita.girando && partida.num_apuestas_activas > 0) {
-
-        /* El numero ganador fue pre-calculado aleatoriamente de forma estricta
-           al momento de iniciar el giro. Utilizarlo directo elimina bugs visuales de borde. */
         int   numero_ganador = partida.numero_ganador_pendiente;
         float ganancia_total = calcular_ganancia_total(partida.apuestas_activas, partida.num_apuestas_activas, numero_ganador);
+        float apostado = monto_apostado_en_ronda();
 
-        /* Diagnostico exclusivo en entorno de desarrollo.
-           Desaparece automaticamente al compilar en NDEBUG (Release). */
+        {
+            char notifbuf[128];
+            const char* color_str = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "Rojo"
+                                  : (color_de_numero(numero_ganador) == COLOR_NEGRO) ? "Negro" : "Verde";
+
+            if (ganancia_total > 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Ganaste $%.0f", numero_ganador, color_str, ganancia_total);
+                agregar_notificacion(notifbuf, 0.35f, 0.65f, 0.35f);
+            } else {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Numero %d (%s) - Perdiste $%.0f", numero_ganador, color_str, apostado);
+                agregar_notificacion(notifbuf, 1.0f, 0.35f, 0.35f);
+            }
+        }
+
 #ifdef _DEBUG
         {
             const char* color_texto = (color_de_numero(numero_ganador) == COLOR_ROJO) ? "ROJO"
@@ -382,33 +813,176 @@ void idle(void) {
 
         aplicar_resultado_apuesta(&partida.jugador, ganancia_total);
         partida.num_apuestas_activas = 0;
+        partida.rondas_desde_ultimo_checkpoint++;
 
-        /* Evaluacion de riesgos de ludopatia mostrar mensajes reflexivos
-           antes de alertar por posible quiebra economica. */
-        partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador);
+        partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador, partida.juego_activo);
         if (partida.mensaje_reflexivo_actual != NULL) {
             cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
         }
         else {
-            verificar_fondos_y_pedir_prestamo_si_hace_falta();
+            int tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
+            int tiempo_transcurrido_ms = tiempo_actual_ms - partida.ultimo_checkpoint_tiempo_ms;
+
+            /* Evalua si se cumplieron 3 rondas O 5 minutos reales (300,000 ms) */
+            if (partida.rondas_desde_ultimo_checkpoint >= 3 || tiempo_transcurrido_ms >= 300000) {
+                partida.indice_checkpoint_educativo++;
+                partida.rondas_desde_ultimo_checkpoint = 0;
+                partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
+
+                if (partida.indice_checkpoint_educativo % 2 == 0) {
+                    cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
+                } else {
+                    partida.quiz_pregunta_actual = rand() % NUM_PREGUNTAS_QUIZ;
+                    partida.quiz_fase = 0;
+                    partida.quiz_respuesta_elegida = -1;
+                    cambiar_estado(ESTADO_QUIZ_EDUCATIVO);
+                }
+            }
+            else {
+                verificar_fondos_y_pedir_prestamo_si_hace_falta();
+            }
+        }
+    } else if (estado_actual == ESTADO_TRAGAMONEDAS_JUGANDO) {
+        int i, tragamonedas_girando = 0;
+        int estaba_girando_traga = 0;
+        
+        for (i = 0; i < NUM_RODILLOS; i++) {
+            if (partida.tragamonedas.rodillos[i].girando) tragamonedas_girando = 1;
+        }
+        estaba_girando_traga = tragamonedas_girando;
+        
+        actualizar_tragamonedas(&partida.tragamonedas, delta_tiempo);
+        
+        tragamonedas_girando = 0;
+        for (i = 0; i < NUM_RODILLOS; i++) {
+            if (partida.tragamonedas.rodillos[i].girando) tragamonedas_girando = 1;
+        }
+
+        /* Detectar fin de giro (todos_detenidos 0->1 se da en actualizar_tragamonedas,
+           pero como es privado a geometria lo medimos asi) */
+        if (estaba_girando_traga && !tragamonedas_girando) {
+            float g = calcular_ganancia_tragamonedas(partida.tragamonedas.resultado_actual, partida.tragamonedas.monto_apuesta);
+            partida.tragamonedas.ganancia_ultima = g;
+            partida.tragamonedas.hay_ganancia = (g > 0.0f);
+            
+            aplicar_resultado_apuesta(&partida.jugador, g);
+            partida.rondas_desde_ultimo_checkpoint++;
+            
+            partida.mensaje_reflexivo_actual = verificar_mensaje_reflexivo(&partida.jugador, partida.juego_activo);
+            if (partida.mensaje_reflexivo_actual != NULL) {
+                cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
+            }
+            else {
+                int tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
+                int tiempo_transcurrido_ms = tiempo_actual_ms - partida.ultimo_checkpoint_tiempo_ms;
+    
+                if (partida.rondas_desde_ultimo_checkpoint >= 3 || tiempo_transcurrido_ms >= 300000) {
+                    partida.indice_checkpoint_educativo++;
+                    partida.rondas_desde_ultimo_checkpoint = 0;
+                    partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
+    
+                    if (partida.indice_checkpoint_educativo % 2 == 0) {
+                        cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
+                    } else {
+                        partida.quiz_pregunta_actual = rand() % NUM_PREGUNTAS_QUIZ;
+                        partida.quiz_fase = 0;
+                        partida.quiz_respuesta_elegida = -1;
+                        cambiar_estado(ESTADO_QUIZ_EDUCATIVO);
+                    }
+                }
+                else {
+                    verificar_fondos_y_pedir_prestamo_si_hace_falta();
+                }
+            }
+        }
+    } else if (estado_actual == ESTADO_DADOS_JUGANDO) {
+        int estaba_girando = partida.dados.girando;
+        actualizar_dados(&partida.dados, delta_tiempo);
+
+        if (estaba_girando && !partida.dados.girando) {
+            float ganancia_dados;
+            char notifbuf[128];
+
+            partida.dados_ultimo_resultado = partida.dados.dado1_final + partida.dados.dado2_final;
+            
+            ganancia_dados = calcular_ganancia_dados(partida.dados_ultima_apuesta, partida.dados.dado1_final, partida.dados.dado2_final, partida.dados_monto_apuesta);
+            
+            sprintf_s(notifbuf, sizeof(notifbuf), "Salio %d y %d (suma %d)", partida.dados.dado1_final, partida.dados.dado2_final, partida.dados_ultimo_resultado);
+            agregar_notificacion(notifbuf, 1.0f, 1.0f, 1.0f);
+            
+            if (ganancia_dados > 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Ganaste $%.2f", ganancia_dados);
+                agregar_notificacion(notifbuf, 0.2f, 1.0f, 0.3f);
+            } else if (ganancia_dados < 0.0f) {
+                sprintf_s(notifbuf, sizeof(notifbuf), "Perdiste $%.2f", -ganancia_dados);
+                agregar_notificacion(notifbuf, 1.0f, 0.35f, 0.35f);
+            }
+            
+            partida.mensaje_reflexivo_actual = resolver_ronda_dados(
+                &partida.jugador, 
+                partida.dados_ultima_apuesta, 
+                partida.dados.dado1_final, 
+                partida.dados.dado2_final, 
+                partida.dados_monto_apuesta
+            );
+            
+            partida.rondas_desde_ultimo_checkpoint++;
+            
+            if (partida.mensaje_reflexivo_actual != NULL) {
+                cambiar_estado(ESTADO_MENSAJE_REFLEXIVO);
+            }
+            else {
+                int tiempo_actual_ms = glutGet(GLUT_ELAPSED_TIME);
+                int tiempo_transcurrido_ms = tiempo_actual_ms - partida.ultimo_checkpoint_tiempo_ms;
+    
+                if (partida.rondas_desde_ultimo_checkpoint >= 3 || tiempo_transcurrido_ms >= 300000) {
+                    partida.indice_checkpoint_educativo++;
+                    partida.rondas_desde_ultimo_checkpoint = 0;
+                    partida.ultimo_checkpoint_tiempo_ms = tiempo_actual_ms;
+    
+                    if (partida.indice_checkpoint_educativo % 2 == 0) {
+                        cambiar_estado(ESTADO_CHECKPOINT_EDUCATIVO);
+                    } else {
+                        partida.quiz_pregunta_actual = rand() % NUM_PREGUNTAS_QUIZ;
+                        partida.quiz_fase = 0;
+                        partida.quiz_respuesta_elegida = -1;
+                        cambiar_estado(ESTADO_QUIZ_EDUCATIVO);
+                    }
+                }
+                else {
+                    verificar_fondos_y_pedir_prestamo_si_hace_falta();
+                }
+            }
         }
     }
 
     glutPostRedisplay();
 }
 
-/* Punto de entrada principal de la aplicacion de C.
-   Inicializa los buffers graficos, configura el entorno de la partida */
+static void teclas_especiales(int tecla, int x, int y) {
+    (void)x; (void)y;
+    if (estado_actual == ESTADO_MENU) {
+        if (tecla == GLUT_KEY_DOWN) {
+            partida.opcion_menu = (partida.opcion_menu + 1) % 3;
+            glutPostRedisplay();
+        }
+        else if (tecla == GLUT_KEY_UP) {
+            partida.opcion_menu = (partida.opcion_menu + 2) % 3;
+            glutPostRedisplay();
+        }
+    }
+}
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
 
-    // ciclo de vida 
+    /* Semilla del generador de numeros aleatorios */
     srand((unsigned int)time(NULL));
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_MULTISAMPLE);
     glutInitWindowSize(1024, 768);
-    glutCreateWindow("Casino Online - Ruleta (MVP)");
+    glutCreateWindow("Casino Online - Ruleta");
+    glutFullScreen();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -416,8 +990,9 @@ int main(int argc, char** argv) {
     glEnable(GL_MULTISAMPLE);
 
     inicializar_iluminacion();
-    inicializar_jugador(&partida.jugador, 1000.0f); 
-    inicializar_estado_juego();                     
+    inicializar_notificaciones();
+    inicializar_jugador(&partida.jugador, 1000.0f, glutGet(GLUT_ELAPSED_TIME));
+    inicializar_estado_juego();
     inicializar_bolita(&partida.bolita);
     partida.angulo_rueda = 0.0f;
     partida.num_apuestas_activas = 0;
@@ -425,14 +1000,24 @@ int main(int argc, char** argv) {
     partida.monto_ficha_actual = FICHAS[0];
     partida.numero_ganador_pendiente = -1;
     partida.mensaje_reflexivo_actual = NULL;
+    partida.pagina_educacion = 0;
+    partida.opcion_menu = 0;
+    partida.progreso_carga = 0.0f;
 
     generar_perfil_bezier_rueda();
     construir_malla_rueda();
 
-    /* Asignacion de rutinas OpenGL */
+    atexit(limpiar_audio);
+    iniciar_musica_fondo();
+
+    g_tex_carga = cargar_textura_gl("texturas/loading_bg.png");
+    g_tex_casino = cargar_textura_gl("texturas/casino_bg.png");
+    inicializar_texturas_pantallas(g_tex_carga, g_tex_casino);
+
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(teclado);
+    glutSpecialFunc(teclas_especiales);
     glutIdleFunc(idle);
     glutMouseFunc(mouse_click);
     glutPassiveMotionFunc(mouse_mover);
@@ -440,3 +1025,6 @@ int main(int argc, char** argv) {
     glutMainLoop();
     return 0;
 }
+
+
+

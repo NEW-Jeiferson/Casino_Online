@@ -11,8 +11,8 @@
 #include "../core/estado_juego.h" 
 
 
-#define PERFIL_SEGMENTOS     12   
-#define REVOLUCION_SEGMENTOS 36   
+#define PERFIL_SEGMENTOS     24   
+#define REVOLUCION_SEGMENTOS 96   
 #define PI_GEOMETRIA         3.14159265358979323846f
 
 
@@ -134,13 +134,14 @@ void construir_malla_rueda(void) {
 
 /* Dibuja la mesa de la ruleta, incluyendo el fieltro y el borde de madera */
 void dibujar_mesa(void) {
-
-    const float BORDE_MESA = 0.5f;
+    const float BORDE_MESA = 0.65f;
+    const float FILO_GOLD = 0.05f;
+    const float H_BEVEL = 0.035f;
 
     glPushMatrix();
 
+    /* 1. Fieltro verde principal */
     aplicar_material(MATERIAL_FIELTRO);
-
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 1.0f, 0.0f);
     glVertex3f(-RADIO_MESA, 0.0f, -RADIO_MESA);
@@ -149,39 +150,68 @@ void dibujar_mesa(void) {
     glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
     glEnd();
 
-    aplicar_material(MATERIAL_MADERA);
+    /* 2. Filo dorado metálico de acento en la transición entre el fieltro y la madera */
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    aplicar_material(MATERIAL_METAL);
+    glColor3f(1.0f, 0.84f, 0.0f);
 
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 1.0f, 0.0f);
+    /* Superior */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, -RADIO_MESA - FILO_GOLD);
+    /* Inferior */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, RADIO_MESA);
+    /* Izquierdo */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, -RADIO_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.002f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.002f, RADIO_MESA);
+    glVertex3f(-RADIO_MESA, 0.002f, -RADIO_MESA);
+    /* Derecho */
+    glVertex3f(RADIO_MESA, 0.002f, -RADIO_MESA);
+    glVertex3f(RADIO_MESA, 0.002f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, RADIO_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.002f, -RADIO_MESA);
+    glEnd();
+    glDisable(GL_COLOR_MATERIAL);
 
-	/* Borde superior (incluye las otras 2 esquinas) */
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA - BORDE_MESA);
+    /* 3. Marco de madera de roble oscuro con relieve/biselado 3D */
+    aplicar_material(MATERIAL_MADERA_OSCURA);
 
+    glBegin(GL_QUADS);
+    glNormal3f(0.0f, 0.8f, -0.2f);
+    /* Bisel superior */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
 
-    /* Borde inferior (incluye las otras 2 esquinas) */
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA + BORDE_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
+    glNormal3f(0.0f, 0.8f, 0.2f);
+    /* Bisel inferior */
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
 
+    glNormal3f(-0.2f, 0.8f, 0.0f);
+    /* Bisel izquierdo */
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
+    glVertex3f(-RADIO_MESA - BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(-RADIO_MESA - FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
 
-    /* Borde izquierdo (solo el tramo central, las esquinas ya las
-       cubrieron los dos quads de arriba) */
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(-RADIO_MESA - BORDE_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(-RADIO_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(-RADIO_MESA, 0.0f, -RADIO_MESA);
-
-
-    /* Borde derecho */
-    glVertex3f(RADIO_MESA, 0.0f, -RADIO_MESA);
-    glVertex3f(RADIO_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, RADIO_MESA);
-    glVertex3f(RADIO_MESA + BORDE_MESA, 0.0f, -RADIO_MESA);
-
+    glNormal3f(0.2f, 0.8f, 0.0f);
+    /* Bisel derecho */
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, -RADIO_MESA - FILO_GOLD);
+    glVertex3f(RADIO_MESA + FILO_GOLD, 0.0f, RADIO_MESA + FILO_GOLD);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, RADIO_MESA + BORDE_MESA);
+    glVertex3f(RADIO_MESA + BORDE_MESA, H_BEVEL, -RADIO_MESA - BORDE_MESA);
     glEnd();
 
     glPopMatrix();
@@ -192,7 +222,7 @@ void dibujar_mesa(void) {
 void dibujar_rueda(void) {
     int i, j, jj;
 
-    aplicar_material(MATERIAL_METAL);
+    aplicar_material(MATERIAL_MADERA_OSCURA);
 
     for (i = 0; i < PERFIL_SEGMENTOS - 1; i++) {
         glBegin(GL_TRIANGLE_STRIP);
@@ -222,8 +252,8 @@ void dibujar_vidrio_protector(void) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
 
-    glScalef(RADIO_EXTERIOR_RUEDA + 0.3f, 0.35f, RADIO_EXTERIOR_RUEDA + 0.3f);
-    glutSolidSphere(1.0, 24, 24);
+    glScalef(RADIO_EXTERIOR_RUEDA, 0.28f, RADIO_EXTERIOR_RUEDA);
+    glutSolidSphere(1.0, 48, 48);
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
@@ -276,7 +306,6 @@ static void dibujar_numero_pista(int numero) {
         glLineWidth(grosor);
     }
 
-
 	/* Dibuja cada caracter del número usando glutStrokeCharacter, escalando y centrando el texto en el arco correspondiente */
     glPushMatrix();
     glScalef(escala, escala, 1.0f);
@@ -307,9 +336,7 @@ void dibujar_pista_numerada(void) {
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
     glDisable(GL_CULL_FACE);
 
-
-
-	/* Habilita suavizado de líneas y blending para que los números se vean más suaves y legibles, guardando el estado previo para restaurarlo después */
+	/* Habilita suavizado de líneas y blending para que los números se vean más suaves y legibles */
     line_smooth_estaba_activo = glIsEnabled(GL_LINE_SMOOTH);
     blend_estaba_activo = glIsEnabled(GL_BLEND);
     glEnable(GL_LINE_SMOOTH);
@@ -329,8 +356,6 @@ void dibujar_pista_numerada(void) {
         else if (color == COLOR_ROJO)  glColor3f(0.75f, 0.08f, 0.08f);
         else                            glColor3f(0.05f, 0.05f, 0.05f);
 
-
-		/* Dibuja el sector de color correspondiente al número, usando un GL_TRIANGLE_STRIP para crear la banda de color entre el radio interno y externo de la pista */
         glBegin(GL_TRIANGLE_STRIP);
         for (k = 0; k <= segmentos_arco; k++) {
             float t = (float)k / segmentos_arco;
@@ -343,13 +368,10 @@ void dibujar_pista_numerada(void) {
         glEnd();
 
         {
-			/* Calcula la posición y orientación del número centrado en el sector correspondiente, usando la altura media de la pista y el radio medio para posicionarlo correctamente */
             float ang_medio = (angulo_inicio + paso_angular / 2.0f) * PI_GEOMETRIA / 180.0f;
             float radio_medio = (RADIO_INTERNO_PISTA + RADIO_EXTERNO_PISTA) / 2.0f;
             float altura_numero = (altura_interna + altura_externa) / 2.0f + OFFSET_PISTA * 2.0f;
 
-
-			/* Dibuja el número centrado en el sector correspondiente, deshabilitando la iluminación para que se vea correctamente y restaurando el estado después */
             glColor3f(1.0f, 1.0f, 1.0f);
             glPushMatrix();
             glTranslatef(radio_medio * cosf(ang_medio), altura_numero, -radio_medio * sinf(ang_medio));
@@ -363,9 +385,153 @@ void dibujar_pista_numerada(void) {
     }
 
 
+    dibujar_emblema_central();
+
 	/* Restaura el estado previo de OpenGL, reactivando el culling, deshabilitando el color material y restaurando el estado de suavizado de líneas y blending según corresponda */
     glEnable(GL_CULL_FACE);
     glDisable(GL_COLOR_MATERIAL);
     if (!line_smooth_estaba_activo) glDisable(GL_LINE_SMOOTH);
     if (!blend_estaba_activo) glDisable(GL_BLEND);
+}
+
+void dibujar_emblema_central(void) {
+    int i, k;
+    int segmentos_cono;
+    int segmentos_anillo;
+    float h_cero;
+    GLUquadric* quad;
+    
+    segmentos_cono = 24;
+    segmentos_anillo = 36;
+    h_cero = altura_superficie_en_radio(0.0f);
+    
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    aplicar_material(MATERIAL_METAL);
+    glColor3f(1.0f, 0.84f, 0.0f); /* Dorado pulido -va DESPUES de aplicar_material() */
+
+    /* 1. Torreta central elevable (cono + cilindro) */
+    glBegin(GL_TRIANGLE_FAN);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(0.0f, h_cero + 0.32f, 0.0f);
+    for (k = 0; k <= segmentos_cono; k++) {
+        float ang = (float)k / segmentos_cono * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        glNormal3f(nx * 0.7f, 0.7f, nz * 0.7f);
+        glVertex3f(0.12f * nx, h_cero + 0.20f, 0.12f * nz);
+    }
+    glEnd();
+
+    /* Pared del eje (cilindro de la torreta) */
+    glBegin(GL_QUAD_STRIP);
+    for (k = 0; k <= segmentos_cono; k++) {
+        float ang = (float)k / segmentos_cono * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        float h_edge = altura_superficie_en_radio(0.18f);
+        glNormal3f(nx, 0.0f, nz);
+        glVertex3f(0.12f * nx, h_cero + 0.20f, 0.12f * nz);
+        glVertex3f(0.18f * nx, h_edge, 0.18f * nz);
+    }
+    glEnd();
+
+    /* Perilla dorada superior en la corona de la torreta */
+    glPushMatrix();
+    glTranslatef(0.0f, h_cero + 0.33f, 0.0f);
+    glutSolidSphere(0.065f, 16, 16);
+    glPopMatrix();
+
+    /* 2. Manijas / Brazos horizontales de la torreta central (4 brazos a 90 grados) */
+    quad = gluNewQuadric();
+    if (quad != NULL) {
+        gluQuadricDrawStyle(quad, GLU_FILL);
+        gluQuadricNormals(quad, GLU_SMOOTH);
+
+        for (i = 0; i < 4; i++) {
+            float ang_brazo = (float)i * 90.0f;
+            float ang_rad = ang_brazo * 3.14159265f / 180.0f;
+            float tip_x = 0.58f * cosf(ang_rad);
+            float tip_z = 0.58f * sinf(ang_rad);
+            float h_brazo = h_cero + 0.24f;
+
+            glPushMatrix();
+            glTranslatef(0.0f, h_brazo, 0.0f);
+            glRotatef(ang_brazo, 0.0f, 1.0f, 0.0f);
+            glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
+            gluCylinder(quad, 0.022f, 0.015f, 0.58f, 12, 4);
+            glPopMatrix();
+
+            /* Perilla dorada en la punta de cada brazo horizontal */
+            glPushMatrix();
+            glTranslatef(tip_x, h_brazo, tip_z);
+            glutSolidSphere(0.045f, 14, 14);
+            glPopMatrix();
+        }
+        gluDeleteQuadric(quad);
+    }
+
+    /* 3. Aspas de la estrella central (8 aspas tridimensionales) */
+    for (i = 0; i < 8; i++) {
+        float ang_spoke = (float)i * (2.0f * 3.14159265f / 8.0f);
+        float cos_s = cosf(ang_spoke);
+        float sin_s = sinf(ang_spoke);
+
+        float ang_izq = ang_spoke - 0.12f;
+        float ang_der = ang_spoke + 0.12f;
+
+        float h_inner_izq = altura_superficie_en_radio(0.18f);
+        float h_inner_der = altura_superficie_en_radio(0.18f);
+        float h_outer = altura_superficie_en_radio(0.80f);
+
+        /* Cara superior de la cuña */
+        glBegin(GL_TRIANGLES);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.18f * cosf(ang_izq), h_inner_izq + 0.03f, 0.18f * sinf(ang_izq));
+        glVertex3f(0.18f * cosf(ang_der), h_inner_der + 0.03f, 0.18f * sinf(ang_der));
+        glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+        glEnd();
+
+        /* Lados para dar volumen 3D */
+        glBegin(GL_QUADS);
+        /* Lado izquierdo */
+        {
+            float nx_l = -sinf(ang_izq);
+            float nz_l = cosf(ang_izq);
+            glNormal3f(nx_l, 0.1f, nz_l);
+            glVertex3f(0.18f * cosf(ang_izq), h_inner_izq + 0.03f, 0.18f * sinf(ang_izq));
+            glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+            glVertex3f(0.80f * cos_s, h_outer, 0.80f * sin_s);
+            glVertex3f(0.18f * cosf(ang_izq), h_inner_izq, 0.18f * sinf(ang_izq));
+        }
+
+        /* Lado derecho */
+        {
+            float nx_r = sinf(ang_der);
+            float nz_r = -cosf(ang_der);
+            glNormal3f(nx_r, 0.1f, nz_r);
+            glVertex3f(0.18f * cosf(ang_der), h_inner_der + 0.03f, 0.18f * sinf(ang_der));
+            glVertex3f(0.18f * cosf(ang_der), h_inner_der, 0.18f * sinf(ang_der));
+            glVertex3f(0.80f * cos_s, h_outer, 0.80f * sin_s);
+            glVertex3f(0.80f * cos_s, h_outer + 0.01f, 0.80f * sin_s);
+        }
+        glEnd();
+    }
+
+    /* 4. Anillo de realce concéntrico */
+    glBegin(GL_QUAD_STRIP);
+    for (k = 0; k <= segmentos_anillo; k++) {
+        float ang = (float)k / segmentos_anillo * 2.0f * 3.14159265f;
+        float nx = cosf(ang);
+        float nz = sinf(ang);
+        float h_in = altura_superficie_en_radio(0.88f) + 0.01f;
+        float h_out = altura_superficie_en_radio(0.94f) + 0.01f;
+
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glVertex3f(0.88f * nx, h_in, 0.88f * nz);
+        glVertex3f(0.94f * nx, h_out, 0.94f * nz);
+    }
+    glEnd();
+
+    glDisable(GL_COLOR_MATERIAL);
 }
