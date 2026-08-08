@@ -1031,7 +1031,7 @@ void dibujar_pantalla_carga(float progreso) {
             "para quienes buscan apoyo. Las vas a encontrar en la\n"
             "seccion de Informacion del menu.",
 
-            "Cada juego de este simulador esta pensado para ensenar algo\n"
+            "Cada juego de este simulador esta pensado para educar sobre algo\n"
             "distinto sobre como funcionan realmente las apuestas."
         };
         int indice_mensaje_carga = (int)(progreso * 4.0f);
@@ -1885,7 +1885,7 @@ static const PreguntaQuiz QUIZ_PREGUNTAS_DADOS[8] = {
         "Los dados no tienen memoria. Reconocer que los dados no 'te deben' nada\nes el primer paso para saber cuando retirarse."
     },
     {
-        "Los juegos que ofrecen pagos muy altos (como x13) suelen disenarse para,",
+        "Los juegos que ofrecen pagos muy altos (como x13) suelen crearse para,",
         "Fomentar la falsa esperanza y acelerar las perdidas del jugador",
         "Recompensar a los jugadores que tienen paciencia y habilidad",
         "Darle a todos una oportunidad justa de volverse ricos",

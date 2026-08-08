@@ -8,58 +8,37 @@ A diferencia de los videojuegos comerciales orientados a maximizar el tiempo de 
 
 ## 2. Modelado Matemático de la Degeneración Financiera y Psicológica
 
-Para representar fielmente la espiral destructiva del juego compulsivo, se han implementado modelos estocásticos y deterministas asimétricos que garantizan la insostenibilidad a largo plazo.
+Para representar fielmente la espiral destructiva del juego compulsivo, se ha implementado un sistema determinista de evaluación de riesgo y acumulación de deuda, diseñado explícitamente para garantizar la insostenibilidad a largo plazo.
 
-### 2.1. Ecuación Diferencial en Tiempo Discreto del "Medidor de Riesgo" (Risk Meter)
+### 2.1. Sistema Discreto de Evaluación de Riesgo (Risk Meter)
 
-El estado psicológico del jugador se cuantifica mediante la variable de estado $R(t) \in [0, 100]$, denominada "Medidor de Riesgo". Su evolución se rige por la siguiente ecuación en diferencias, diseñada para presentar histéresis (es decir, la recuperación es marginal en comparación con la acumulación del daño):
+El estado de vulnerabilidad del jugador no se modela como una función continua, sino mediante un sistema estricto de acumulación discreta de puntos de riesgo basado en umbrales absolutos. La función `calcular_nivel_riesgo()` (ubicada en `core/jugador.c`, línea 98) evalúa iterativamente el estado de la estructura `Jugador` sumando puntos fijos:
 
-$$ R_{t+1} = \min\left(100, R_t + \underbrace{\alpha \cdot \ln(1 + \max(0, \Delta L_t))}_{\text{Impacto por Pérdida}} + \underbrace{\beta \cdot \exp(\tau \cdot \Delta T_{session})}_{\text{Fatiga Temporal}} - \underbrace{\gamma \cdot I(Q_{correct})}_{\text{Mitigación Cognitiva}}\right) $$
+*   **Rachas Negativas:** Se suma 1 punto si `racha_perdidas_consecutivas >= 3`, y 1 punto adicional si `racha_perdidas_consecutivas >= 5`.
+*   **Agotamiento de Liquidez:** Quedarse sin fondos (`veces_sin_fondos >= 1`) suma 2 puntos, y reincidir (`veces_sin_fondos >= 2`) suma 2 adicionales.
+*   **Dependencia Financiera:** Mantener `prestamos_activos >= 1` suma 2 puntos, escalando con 2 puntos extra si son `>= 2`. Tener cualquier `deuda > 0.0f` aporta 1 punto.
+*   **Compulsión al Riesgo (Volumen Apostado):** Si el `total_apostado` supera el 150% del saldo inicial, suma 1 punto; si supera el 300%, suma 1 punto adicional.
+*   **Fijación Temporal:** Jugar ininterrumpidamente durante 15 minutos o más (evaluado vía `glutGet(GLUT_ELAPSED_TIME)`) suma 1 punto.
+*   **Pérdida Severa de Capital:** Si el saldo cae por debajo del 40% del `saldo_inicial`, suma 2 puntos; caer por debajo del 10% suma 2 puntos extra.
 
-Donde:
-- $t$: Índice discreto que representa un evento de juego (ej. un giro de tragamonedas).
-- $\Delta L_t$: Variación neta negativa del capital en el instante $t$.
-- $\Delta T_{session}$: Tiempo continuo de sesión sin interrupciones significativas.
-- $\alpha, \beta$: Coeficientes de sensibilidad neuroconductual (alta penalización).
-- $\tau$: Tasa de aceleración de la fatiga.
-- $\gamma$: Factor de mitigación (intencionalmente bajo, $\gamma \ll \alpha$).
-- $I(Q_{correct})$: Función indicatriz que vale 1 si el jugador responde correctamente a una intervención cognitiva (quiz), y 0 en caso contrario.
+El sumatorio total clasifica al jugador en 4 estratos inflexibles de intervención:
+- **0 puntos:** Nivel 0 (Sin riesgo detectable).
+- **1 a 2 puntos:** Nivel 1 (Riesgo Bajo).
+- **3 a 4 puntos:** Nivel 2 (Riesgo Moderado).
+- **5 o más puntos:** Nivel 3 (Riesgo Alto/Compulsivo), desencadenando la máxima fricción en el sistema.
 
 ### 2.2. Límite de Ruina Matemática y Deuda Estructural
 
-El sistema simula el crédito usurero al que recurren los ludópatas mediante una función de interés compuesto de alta frecuencia (evaluado por turno $t$, no por período fiscal). Sea $D_t$ la deuda acumulada:
+El sistema simula el crédito usurero al que recurren los ludópatas. Contrario a la asunción de un interés compuesto gradual, la aplicación impone un choque de deuda inmediato y lineal en cada transacción (ver función `pedir_prestamo` en `core/jugador.c`, línea 86).
 
-$$ D_{t} = D_0 \cdot \left(1 + i_{turno}\right)^t $$
+Cada vez que el jugador carece de fondos para cubrir una apuesta, el orquestador (`verificar_fondos_y_pedir_prestamo_si_hace_falta` en `main.c`) inyecta un préstamo fijo definido por las constantes de `core/jugador.h` (línea 16):
 
-El **Límite de Ruina Absoluta ($L_{RA}$)** se define rigurosamente como el estado donde la primera derivada de la deuda respecto al tiempo supera la expectativa matemática máxima de ganancia del jugador bajo condiciones óptimas teóricas:
+$$ D_{nueva} = D_{actual} + (MONTO\_PRESTAMO) + (MONTO\_PRESTAMO \times TASA\_INTERES\_PRESTAMO) $$
 
-$$ \frac{\partial D}{\partial t} > \mathbb{E}[G_{max}] \implies D_t \cdot \ln(1 + i_{turno}) > \max(Payout) \cdot P(Win_{max}) $$
+Con $MONTO\_PRESTAMO = 200.0f$ y $TASA\_INTERES\_PRESTAMO = 0.20f$ (20% de interés de usura fijo por evento).
 
-Una vez alcanzado este umbral, la recuperación matemática es un evento de probabilidad cero. El sistema detecta esta asíntota y activa la intervención definitiva.
+El **Límite de Ruina Absoluta** está hardcodeado incondicionalmente en el macro `LIMITE_DEUDA_IMPAGABLE 1000.0f`. Una vez que la deuda acumulada alcanza o supera este umbral (evaluado por la función `deuda_es_impagable`), el sistema detecta la asíntota financiera y activa el `ESTADO_GAME_OVER` definitivo.
 
-## 3. Modulación Sensorial e Intervención Psicológica
+## 3. Conclusión Analítica
 
-El entorno de renderizado (OpenGL) actúa como una extensión del estado interno del sistema, utilizando principios de psicofísica para inducir disonancia cognitiva.
-
-### 3.1. Psicología del Color y la Pantalla de Game Over
-
-La cromatografía del juego se degrada proporcionalmente al incremento de $R_t$. Inicialmente, el entorno presenta alta saturación y contraste, estimulando las vías de recompensa visual. Al superar $R_t > 70$, se aplica una desaturación progresiva (escala de grises) y viñeteado.
-
-En el clímax del sistema (cuando $D_t \ge L_{RA}$ o $R_t = 100$), se presenta la pantalla de **Game Over**. Esta pantalla hace un uso intensivo y calculado del **color rojo (longitud de onda de ~650 nm)**. Desde una perspectiva psicofisiológica y evolutiva, la saturación extrema de rojo induce:
-1. **Respuesta de Alarma (Fight or Flight):** Aceleración del ritmo cardíaco y estrés agudo.
-2. **Semiótica del Fracaso:** Condicionamiento cultural asociado a errores graves, déficit financiero y peligro.
-Esta hostilidad visual rompe la disociación característica del jugador patológico, anclándolo a la severidad de sus acciones.
-
-### 3.2. Manipulación Cinética: Ralentización de Animaciones
-
-Contrario a los mecanismos de retención estándar que priorizan la fluidez ("Juiciness") para mantener el estado de "Flow", este sistema emplea **fricción cinética intencional**.
-
-Sea $v_{anim}$ la velocidad de interpolación angular o traslacional de los elementos del juego (ej. rodillos). Esta velocidad es inversamente proporcional al riesgo:
-
-$$ v_{anim} = \frac{v_{base}}{1 + k \cdot \left(\frac{R_t}{100}\right)^2} $$
-
-**Fundamento Clínico:** Los jugadores compulsivos operan en un ciclo de anticipación rápida. Al dilatar artificialmente el tiempo de resolución del evento aleatorio, el juego intercepta la liberación de dopamina pre-evento. Esta "cámara lenta" forzada genera frustración aguda y elimina el efecto narcótico de la repetición rápida, obligando al usuario a confrontar cognitivamente la futilidad de la acción mientras espera un resultado adverso precalculado.
-
-## 4. Conclusión Analítica
-
-La arquitectura algorítmica y estética del "Sistema de Concientización y Consecuencias" no busca el entretenimiento, sino la deconstrucción empírica de la ludopatía. Mediante la aplicación asimétrica de funciones de riesgo, el uso agresivo de la psicología del color (rojo como estresor) y la disrupción intencional del ritmo dopaminérgico a través de la fricción cinética, el software cumple su objetivo educativo primario. Se demuestra matemáticamente a través de las ecuaciones de interés y riesgo que el sistema es un entorno no ergódico y determinista hacia la ruina, donde la única decisión racional (el óptimo global) es cesar el juego (terminación del proceso).
+La arquitectura algorítmica del "Sistema de Concientización y Consecuencias" no busca el entretenimiento, sino la deconstrucción empírica de la ludopatía. Mediante la aplicación de un estricto medidor de riesgo y la inyección lineal e inmediata de deuda usurera sin posibilidad de recuperación gradual, el software cumple su objetivo educativo primario. Se demuestra matemáticamente a través de los límites duros del sistema que se trata de un entorno no ergódico y determinista hacia la ruina, donde la única decisión racional (el óptimo global) es cesar el juego antes de alcanzar el estado de bancarrota irrecuperable.

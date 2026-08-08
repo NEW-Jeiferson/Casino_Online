@@ -189,7 +189,7 @@ static const char* DATOS_EDUCATIVOS_GENERALES_RULETA[8] = {
     "recuperar lo perdido es una escalada real de\n"
     "deuda, no una solucion temporal.\n"
     "\n"
-    "Detenerte a tiempo previene mayores danos."
+    "Detenerte a tiempo previene mayores perdidas."
 };
 
 static const char* DATOS_EDUCATIVOS_GENERALES_TRAGAMONEDAS[8] = {
@@ -234,16 +234,16 @@ static const char* DATOS_EDUCATIVOS_GENERALES_TRAGAMONEDAS[8] = {
     "Buscar alternativas saludables protege tu salud.",
 
     "Dato: los 'casi aciertos' (near misses) son\n"
-    "ilusiones opticas programadas para enganarte\n"
+    "ilusiones opticas programadas para confundirte\n"
     "y que sientas que 'casi ganas'.\n"
     "\n"
     "Matematicamente, perdiste igual que siempre.",
 
     "Dato: las 'falsas victorias' (ganar menos\n"
-    "dinero del que apostaste en un giro) enganan\n"
+    "dinero del que apostaste en un giro) confunden\n"
     "al cerebro con luces y sonidos de victoria.\n"
     "\n"
-    "Detenerte a tiempo previene mayores danos."
+    "Detenerte a tiempo previene mayores perdidas."
 };
 
 static const char* DATOS_EDUCATIVOS_GENERALES_DADOS[8] = {
@@ -299,7 +299,7 @@ static const char* DATOS_EDUCATIVOS_GENERALES_DADOS[8] = {
     "recuperar lo perdido es una escalada real de\n"
     "deuda, no una solucion temporal.\n"
     "\n"
-    "Detenerte a tiempo previene mayores danos."
+    "Detenerte a tiempo previene mayores perdidas."
 };
 
 const char* verificar_mensaje_reflexivo(Jugador* j, int juego_activo) {

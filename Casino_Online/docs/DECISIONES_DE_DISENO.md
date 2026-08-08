@@ -17,44 +17,39 @@ La implementación se ha realizado estrictamente bajo el estándar **ANSI C (C89
 ```c
 /* Fragmento de core/estado_juego.h */
 typedef enum {
-    ESTADO_INIT,
-    ESTADO_INTRO,
-    ESTADO_MENU_PRINCIPAL,
-    ESTADO_MINIJUEGO_RULETA,
-    ESTADO_MINIJUEGO_TRAGAMONEDAS,
-    ESTADO_MINIJUEGO_DADOS,
-    ESTADO_GAME_OVER
-} TipoEstadoJuego;
+    ESTADO_MENU,
+    ESTADO_JUGANDO,
+    ESTADO_PRESTAMO,
+    ESTADO_GAME_OVER,
+    ESTADO_MENSAJE_REFLEXIVO,
+    ESTADO_SESION_TERMINADA,
+    ESTADO_EDUCACION,
+    ESTADO_CARGA,
+    ESTADO_TRAGAMONEDAS_JUGANDO,
+    ESTADO_DADOS_JUGANDO,
+    ESTADO_ADVERTENCIA,
+    ESTADO_PROPOSITO,
+    ESTADO_INTRO_LATINOAMERICA,
+    ESTADO_INTRO_RD,
+    ESTADO_INTRO_COSTO_HUMANO,
+    ESTADO_CONFIRMACION_JUEGO,
+    ESTADO_CHECKPOINT_EDUCATIVO,
+    ESTADO_QUIZ_EDUCATIVO
+} EstadoJuego;
 
-/* Fragmento de core/estado_juego.c */
-#include "estado_juego.h"
-
-static TipoEstadoJuego estado_actual = ESTADO_INIT;
-
-void cambiar_estado(TipoEstadoJuego nuevo_estado) {
-    /* Lógica de limpieza (teardown) del estado anterior si fuese necesaria */
-    estado_actual = nuevo_estado;
-}
-
-void actualizar_y_renderizar_estado(void) {
-    switch (estado_actual) {
-        case ESTADO_INTRO:
-            renderizar_pantalla_intro();
+/* Fragmento simplificado de ui/pantallas.c (dibujar_pantalla_segun_estado) */
+void dibujar_pantalla_segun_estado(EstadoJuego estado, const Jugador* jugador, const InfoPantalla* info) {
+    switch (estado) {
+        case ESTADO_CARGA:
+            dibujar_pantalla_carga(info->progreso_carga);
             break;
-        case ESTADO_MENU_PRINCIPAL:
-            actualizar_menu();
-            renderizar_menu();
-            break;
-        case ESTADO_MINIJUEGO_RULETA:
-            actualizar_ruleta();
-            renderizar_ruleta();
+        case ESTADO_MENU:
+            dibujar_pantalla_menu(info->opcion_menu);
             break;
         case ESTADO_GAME_OVER:
-            renderizar_game_over();
+            dibujar_pantalla_game_over(jugador);
             break;
-        default:
-            /* Manejo de errores por estados indefinidos */
-            break;
+        /* ... otros 15 estados delegados a funciones dibujar_pantalla_* ... */
     }
 }
 ```
