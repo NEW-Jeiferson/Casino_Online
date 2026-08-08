@@ -1,11 +1,12 @@
 #include "dados_animacion.h"
-#include "../utils/bezier.h"
+
 #include <math.h>
 
 #define TIEMPO_TIRO 4.0f
 
 void inicializar_dados_animacion(EstadoDados* estado) {
     estado->girando = 0;
+    estado->fase_asentamiento = 0;
     estado->tiempo_transcurrido = 0.0f;
     estado->rotacion_x[0] = 0.0f;
     estado->rotacion_y[0] = 0.0f;
@@ -13,6 +14,12 @@ void inicializar_dados_animacion(EstadoDados* estado) {
     estado->rotacion_x[1] = 0.0f;
     estado->rotacion_y[1] = 0.0f;
     estado->rotacion_z[1] = 0.0f;
+    estado->rot_snap_x[0] = 0.0f;
+    estado->rot_snap_y[0] = 0.0f;
+    estado->rot_snap_z[0] = 0.0f;
+    estado->rot_snap_x[1] = 0.0f;
+    estado->rot_snap_y[1] = 0.0f;
+    estado->rot_snap_z[1] = 0.0f;
     estado->altura[0] = 0.5f;
     estado->altura[1] = 0.5f;
 }
