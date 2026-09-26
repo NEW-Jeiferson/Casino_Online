@@ -8,6 +8,7 @@ Este documento consolida y reemplaza la información del `README.md` ubicado en 
 
 ## 🎯 Objetivo
 
+
 El objetivo de esta herramienta **no es glorificar el juego ni enseñar a apostar**, sino servir como un **Serious Game (juego serio) para la concientización sobre la ludopatía**. 
 El jugador inicia con saldo virtual y experimenta el rápido y destructivo ciclo del juego problemático: la euforia de ganar, la pérdida rápida de fondos, el endeudamiento progresivo para intentar recuperar las pérdidas y, finalmente, la bancarrota (Game Over). Este progreso está intercalado con pantallas educativas, quizzes y mensajes reflexivos que explican de manera realista las verdaderas probabilidades matemáticas en contra del jugador.
 
