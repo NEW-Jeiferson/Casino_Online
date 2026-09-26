@@ -1,0 +1,16 @@
+name: Pruebas Automaticas
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+      - name: Simular instalacion de dependencias
+        run: echo 'Instalando dependencias...'
+      - name: Simular ejecucion de pruebas
+        run: echo 'Ejecutando pruebas... Todo OK'
